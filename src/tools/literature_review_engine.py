@@ -30,17 +30,26 @@ class LiteratureReviewEngine:
     - Citation Integration (引用整合)
     """
 
-    def __init__(self, api_key: str = None, api_url: str = None):
+    def __init__(self, api_key: str = None, api_url: str = None, model: str = None):
         """
         初始化文献综述引擎
 
         Args:
             api_key: MiniMax API密钥
             api_url: MiniMax API地址
+            model: 模型名称
         """
-        self.api_key = api_key or __import__('os').environ.get("MINIMAX_API_KEY", "")
-        self.api_url = api_url or "https://api.minimax.chat/v1/text/chatcompletion_pro"
-        self.model = "abab6.5s-chat"
+        import os as _os
+        # 从config.json读取配置
+        _cfg_file = _os.path.join(_os.path.dirname(__file__), '..', '..', 'config.json')
+        _llm_cfg = {}
+        if _os.path.exists(_cfg_file):
+            with open(_cfg_file, 'r') as _f:
+                _llm_cfg = json.load(_f).get('llm', {})
+
+        self.api_key = api_key or _llm_cfg.get('api_key', '') or _os.environ.get("MINIMAX_API_KEY", "")
+        self.api_url = api_url or _llm_cfg.get('base_url', 'https://minnimax.chat/v1')
+        self.model = model or _llm_cfg.get('model', 'MiniMax-M2.7')
 
     def _call_llm(self, prompt: str, temperature: float = 0.7,
                   max_output_tokens: int = 4096) -> Optional[str]:

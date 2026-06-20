@@ -53,3 +53,4 @@ Thumbs.db
 
 # Server
 uploads/
+config.local.json

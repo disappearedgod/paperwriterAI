@@ -49,18 +49,38 @@ def allocate_research_id(papers_data: Optional[dict] = None, created_at: Optiona
     when = created_at or datetime.now()
     date_part = when.strftime("%Y%m%d")
 
+    existing_ids = set()
+    if RESEARCH_DIR.exists():
+        for entry in RESEARCH_DIR.iterdir():
+            if not entry.is_dir():
+                continue
+            m = re.match(r"^(RS-\d{8}-\d{3})", entry.name)
+            if not m:
+                continue
+            rid = m.group(1)
+            if rid.startswith(f"RS-{date_part}-"):
+                existing_ids.add(rid)
+
     seq = 1
     if papers_data:
         seq = int(papers_data.get("next_research_seq", 1))
-        existing_ids = {p.get("research_id") for p in papers_data.get("papers", []) if p.get("research_id")}
-        while f"RS-{date_part}-{seq:03d}" in existing_ids:
-            seq += 1
+        existing_ids.update({p.get("research_id") for p in papers_data.get("papers", []) if p.get("research_id")})
+
+    while f"RS-{date_part}-{seq:03d}" in existing_ids:
+        seq += 1
 
     return f"RS-{date_part}-{seq:03d}"
 
 
-def bump_research_seq(papers_data: dict) -> None:
-    papers_data["next_research_seq"] = int(papers_data.get("next_research_seq", 1)) + 1
+def bump_research_seq(papers_data: dict, used_research_id: Optional[str] = None) -> None:
+    seq = int(papers_data.get("next_research_seq", 1))
+    if used_research_id:
+        m = re.match(r"^RS-\d{8}-(\d{3})$", used_research_id)
+        if m:
+            seq = max(seq, int(m.group(1)) + 1)
+            papers_data["next_research_seq"] = seq
+            return
+    papers_data["next_research_seq"] = seq + 1
 
 
 def research_folder_name(research_id: str, title: str) -> str:
@@ -131,6 +151,7 @@ def build_artifacts_record(root: Path, research_id: str) -> Dict[str, str]:
     mapping = {
         "markdown": str(root / "article" / names["article_md"]),
         "latex": str(root / "article" / names["article_tex"]),
+        "latex_pdf": str(root / "article" / f"{research_id}_paper.pdf"),
         "experiment_data": str(root / "data" / names["experiment_data"]),
         "indicator_sample": str(root / "data" / names["indicator_sample"]),
         "backtest_results": str(root / "metrics" / names["backtest_results"]),

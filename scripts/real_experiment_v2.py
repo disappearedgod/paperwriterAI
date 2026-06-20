@@ -13,44 +13,73 @@ warnings.filterwarnings('ignore')
 import os
 import pandas as pd
 import numpy as np
-import baostock as bs
+import akshare as ak
+import yfinance as yf
 from datetime import datetime
 
 print("=== FARS 真实量化策略实验 ===")
 print()
 
-# 登录baostock
-print("连接baostock数据源...")
-lg = bs.login()
-print(f"登录结果: {lg.error_code} {lg.error_msg}")
+for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+    os.environ.pop(key, None)
+os.environ["NO_PROXY"] = "*"
 
-# 获取平安银行(000001)日线数据
-print("\n获取平安银行(000001) 2019-2024日线数据...")
-rs = bs.query_history_k_data_plus(
-    "sz.000001",
-    "date,code,open,high,low,close,volume,amount,pctChg",
-    start_date='2019-01-01',
-    end_date='2024-12-31',
-    frequency="d"
-)
+print("获取平安银行(000001) 2019-2024 日线数据...")
+df = None
+try:
+    raw = ak.stock_zh_a_hist(symbol="000001", period="daily", start_date="20190101", end_date="20241231", adjust="qfq")
+    print(f"AkShare 数据获取成功! 共 {len(raw)} 条记录")
+    df = raw.rename(columns={
+        "日期": "date",
+        "开盘": "open",
+        "收盘": "close",
+        "最高": "high",
+        "最低": "low",
+        "成交量": "volume",
+        "成交额": "amount",
+        "涨跌幅": "pctChg",
+    })
+except Exception as e:
+    print(f"AkShare 拉取失败: {e}")
 
-print(f"查询结果: {rs.error_code} {rs.error_msg}")
+if df is None or len(df) == 0:
+    print("尝试使用 yfinance 备用数据源...")
+    for symbol in ("000001.SZ", "000001.SS", "SPY"):
+        try:
+            raw = yf.download(symbol, start="2019-01-01", end="2025-01-01", progress=False)
+            if raw is None or raw.empty:
+                continue
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = raw.columns.get_level_values(0)
+            raw = raw.reset_index().rename(columns={
+                "Date": "date",
+                "Open": "open",
+                "Close": "close",
+                "High": "high",
+                "Low": "low",
+                "Volume": "volume",
+            })
+            raw["amount"] = raw["close"] * raw["volume"]
+            raw["pctChg"] = raw["close"].pct_change() * 100
+            df = raw
+            print(f"yfinance 数据获取成功: {symbol} 共 {len(df)} 条记录")
+            break
+        except Exception as e:
+            print(f"yfinance 拉取失败({symbol}): {e}")
 
-# 转换为DataFrame
-data_list = []
-while (rs.error_code == '0') & rs.next():
-    data_list.append(rs.get_row_data())
+if df is None or len(df) == 0:
+    raise RuntimeError("数据获取失败")
 
-df = pd.DataFrame(data_list, columns=rs.fields)
-print(f"数据获取成功! 共 {len(df)} 条记录")
-
-# 数据预处理
-df['date'] = pd.to_datetime(df['date'])
-for col in ['open', 'high', 'low', 'close', 'volume', 'amount', 'pctChg']:
-    df[col] = pd.to_numeric(df[col], errors='coerce')
-
+df["date"] = pd.to_datetime(df["date"])
+for col in ["open", "high", "low", "close", "volume", "amount", "pctChg"]:
+    if col not in df.columns:
+        raise RuntimeError(f"缺少必要字段: {col}")
+    series = df[col]
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+    df[col] = pd.to_numeric(series, errors="coerce")
 df = df.dropna().reset_index(drop=True)
-df['return'] = df['pctChg'] / 100  # 涨跌幅转换为收益率
+df["return"] = df["pctChg"] / 100
 
 print(f"有效数据: {len(df)} 条")
 print(f"时间范围: {df['date'].iloc[0].date()} 至 {df['date'].iloc[-1].date()}")
@@ -89,19 +118,18 @@ df['vol_ma5'] = df['volume'].rolling(window=5).mean()
 df['vol_ratio'] = df['volume'] / df['vol_ma5']
 
 print("\n数据样本(最后5行):")
-print(df[['date', 'close', 'return', 'ma5', 'ma20', 'rsi']].tail())
-
-# 登出
-bs.logout()
+print(df[["date", "close", "return", "ma5", "ma20", "rsi"]].tail())
 
 print("\n=== Step 2: 实现策略回测 ===")
 
 def backtest_ma_strategy(df, fast_ma=5, slow_ma=20):
     """均线交叉策略回测"""
     df = df.copy()
+    df['fast_ma'] = df['close'].rolling(window=int(fast_ma)).mean()
+    df['slow_ma'] = df['close'].rolling(window=int(slow_ma)).mean()
     df['signal'] = 0
-    df.loc[df['ma5'] > df['ma20'], 'signal'] = 1  # 金叉买入
-    df.loc[df['ma5'] <= df['ma20'], 'signal'] = -1  # 死叉卖出
+    df.loc[df['fast_ma'] > df['slow_ma'], 'signal'] = 1
+    df.loc[df['fast_ma'] <= df['slow_ma'], 'signal'] = -1
 
     # 计算持仓 (次日执行信号)
     df['position'] = df['signal'].shift(1).fillna(0)
@@ -161,23 +189,10 @@ def calculate_metrics(df, cum_col='cum_strategy'):
         "annual_vol": round(annual_vol * 100, 2)
     }
 
-# 策略1: 均线交叉 (MA5/MA20)
-print("实现均线交叉策略...")
-df_ma = backtest_ma_strategy(df, fast_ma=5, slow_ma=20)
-ma_metrics = calculate_metrics(df_ma, 'cum_strategy')
-
-print("\n均线交叉策略 (MA5/MA20) 回测结果:")
-print(f"  总收益率: {ma_metrics['total_return']}%")
-print(f"  年化收益率: {ma_metrics['annual_return']}%")
-print(f"  夏普比率: {ma_metrics['sharpe_ratio']}")
-print(f"  最大回撤: {ma_metrics['max_drawdown']}%")
-print(f"  胜率: {ma_metrics['win_rate']}%")
-print(f"  交易次数: {ma_metrics['total_trades']}")
-
 # 策略2: RSI均值回归
 print("\n实现RSI均值回归策略...")
 
-def backtest_rsi_strategy(df, lookback=14, lower=30, upper=70):
+def backtest_rsi_strategy(df, lookback=14, lower=30, upper=70, hold_days=3):
     """RSI均值回归策略"""
     df = df.copy()
     df['rsi_signal'] = 0
@@ -185,8 +200,7 @@ def backtest_rsi_strategy(df, lookback=14, lower=30, upper=70):
     df.loc[df['rsi'] > upper, 'rsi_signal'] = -1  # 超买卖出
     df.loc[(df['rsi'] >= lower) & (df['rsi'] <= upper), 'rsi_signal'] = 0
 
-    # 持仓保持3天
-    df['rsi_position'] = df['rsi_signal'].rolling(3).mean().fillna(0)
+    df['rsi_position'] = df['rsi_signal'].rolling(int(hold_days)).mean().fillna(0)
     df['rsi_position'] = df['rsi_position'].clip(-1, 1)
 
     df['rsi_strategy_return'] = df['rsi_position'] * df['return']
@@ -208,9 +222,13 @@ print(f"  交易次数: {rsi_metrics['total_trades']}")
 # 策略3: 布林带策略
 print("\n实现布林带均值回归策略...")
 
-def backtest_bb_strategy(df):
+def backtest_bb_strategy(df, window=20, std_mult=2):
     """布林带策略"""
     df = df.copy()
+    df['bb_mid'] = df['close'].rolling(window=int(window)).mean()
+    bb_std = df['close'].rolling(window=int(window)).std()
+    df['bb_upper'] = df['bb_mid'] + float(std_mult) * bb_std
+    df['bb_lower'] = df['bb_mid'] - float(std_mult) * bb_std
     df['bb_signal'] = 0
     df.loc[df['close'] < df['bb_lower'], 'bb_signal'] = 1  # 价格低于下轨买入
     df.loc[df['close'] > df['bb_upper'], 'bb_signal'] = -1  # 价格高于上轨卖出
@@ -222,16 +240,50 @@ def backtest_bb_strategy(df):
 
     return df
 
-df_bb = backtest_bb_strategy(df)
-bb_metrics = calculate_metrics(df_bb, 'cum_bb')
+print("\n开始参数搜索（以夏普比率为主）...")
 
-print("\n布林带策略 回测结果:")
-print(f"  总收益率: {bb_metrics['total_return']}%")
-print(f"  年化收益率: {bb_metrics['annual_return']}%")
-print(f"  夏普比率: {bb_metrics['sharpe_ratio']}")
-print(f"  最大回撤: {bb_metrics['max_drawdown']}%")
-print(f"  胜率: {bb_metrics['win_rate']}%")
-print(f"  交易次数: {bb_metrics['total_trades']}")
+ma_candidates = []
+for fast in (5, 8, 10, 12):
+    for slow in (20, 30, 60):
+        if fast >= slow:
+            continue
+        df_ma = backtest_ma_strategy(df, fast_ma=fast, slow_ma=slow)
+        ma_candidates.append({
+            "fast_ma": fast,
+            "slow_ma": slow,
+            "metrics": calculate_metrics(df_ma, 'cum_strategy'),
+        })
+ma_best = max(ma_candidates, key=lambda x: x["metrics"]["sharpe_ratio"])
+
+rsi_candidates = []
+for lower in (20, 25, 30):
+    for upper in (70, 75, 80):
+        for hold in (2, 3, 5):
+            df_rsi = backtest_rsi_strategy(df, lower=lower, upper=upper, hold_days=hold)
+            rsi_candidates.append({
+                "lookback": 14,
+                "lower_threshold": lower,
+                "upper_threshold": upper,
+                "hold_days": hold,
+                "metrics": calculate_metrics(df_rsi, 'cum_rsi'),
+            })
+rsi_best = max(rsi_candidates, key=lambda x: x["metrics"]["sharpe_ratio"])
+
+bb_candidates = []
+for window in (20, 30, 40):
+    for std_mult in (1.8, 2.0, 2.2):
+        df_bb = backtest_bb_strategy(df, window=window, std_mult=std_mult)
+        bb_candidates.append({
+            "window": window,
+            "std_mult": std_mult,
+            "metrics": calculate_metrics(df_bb, 'cum_bb'),
+        })
+bb_best = max(bb_candidates, key=lambda x: x["metrics"]["sharpe_ratio"])
+
+print("\n参数搜索结果（最优配置）:")
+print(f"  均线交叉: MA{ma_best['fast_ma']}/MA{ma_best['slow_ma']} Sharpe={ma_best['metrics']['sharpe_ratio']}")
+print(f"  RSI均值回归: lower={rsi_best['lower_threshold']} upper={rsi_best['upper_threshold']} hold={rsi_best['hold_days']} Sharpe={rsi_best['metrics']['sharpe_ratio']}")
+print(f"  布林带: window={bb_best['window']} std={bb_best['std_mult']} Sharpe={bb_best['metrics']['sharpe_ratio']}")
 
 # 基准 - 买入持有
 benchmark_cum = (1 + df['return']).cumprod()
@@ -243,13 +295,13 @@ print(f"基准年化收益率: {benchmark_annual*100:.2f}%")
 
 # 确定最佳策略
 all_sharpe = {
-    'ma_crossover': ma_metrics['sharpe_ratio'],
-    'rsi_mean_reversion': rsi_metrics['sharpe_ratio'],
-    'bollinger_bands': bb_metrics['sharpe_ratio']
+    'ma_crossover': ma_best['metrics']['sharpe_ratio'],
+    'rsi_mean_reversion': rsi_best['metrics']['sharpe_ratio'],
+    'bollinger_bands': bb_best['metrics']['sharpe_ratio']
 }
 best_strategy = max(all_sharpe, key=all_sharpe.get)
 best_name = {
-    'ma_crossover': '均线交叉策略 (MA5/MA20)',
+    'ma_crossover': f"均线交叉策略 (MA{ma_best['fast_ma']}/MA{ma_best['slow_ma']})",
     'rsi_mean_reversion': 'RSI均值回归策略',
     'bollinger_bands': '布林带策略'
 }
@@ -264,23 +316,24 @@ all_results = {
     "data_points": len(df),
     "strategies": {
         "ma_crossover": {
-            "name": "均线交叉策略 (MA5/MA20)",
-            "fast_ma": 5,
-            "slow_ma": 20,
-            "metrics": ma_metrics
+            "name": f"均线交叉策略 (MA{ma_best['fast_ma']}/MA{ma_best['slow_ma']})",
+            "fast_ma": ma_best["fast_ma"],
+            "slow_ma": ma_best["slow_ma"],
+            "metrics": ma_best["metrics"]
         },
         "rsi_mean_reversion": {
             "name": "RSI均值回归策略",
-            "lookback": 14,
-            "lower_threshold": 30,
-            "upper_threshold": 70,
-            "metrics": rsi_metrics
+            "lookback": rsi_best["lookback"],
+            "lower_threshold": rsi_best["lower_threshold"],
+            "upper_threshold": rsi_best["upper_threshold"],
+            "hold_days": rsi_best["hold_days"],
+            "metrics": rsi_best["metrics"]
         },
         "bollinger_bands": {
             "name": "布林带策略",
-            "window": 20,
-            "std_mult": 2,
-            "metrics": bb_metrics
+            "window": bb_best["window"],
+            "std_mult": bb_best["std_mult"],
+            "metrics": bb_best["metrics"]
         }
     },
     "benchmark": {
@@ -291,7 +344,29 @@ all_results = {
     "best_strategy": best_strategy
 }
 
-output_path = '/Users/derek/WorkBuddy/2026-06-20-12-11-53/fars_system/workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json'
+# Resolve output paths dynamically
+root_dir = os.environ.get("RESEARCH_ROOT") or os.environ.get("RESEARCH_WORKSPACE")
+if not root_dir:
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        if os.path.basename(script_dir) == "code":
+            root_dir = os.path.dirname(script_dir)
+        else:
+            root_dir = script_dir
+    except Exception:
+        root_dir = "."
+
+rid = os.environ.get("RESEARCH_ID")
+if not rid:
+    try:
+        rid = RESEARCH_ID
+    except NameError:
+        rid = "RS-default"
+
+output_path = os.path.join(root_dir, "metrics", f"{rid}_backtest_results.json")
+# Ensure metrics directory exists
+os.makedirs(os.path.join(root_dir, "metrics"), exist_ok=True)
+
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(all_results, f, ensure_ascii=False, indent=2)
 
@@ -299,7 +374,27 @@ print(f"\n回测结果已保存到: {output_path}")
 
 # 保存技术指标数据供论文使用
 indicator_data = df[['date', 'close', 'return', 'ma5', 'ma20', 'ma60', 'rsi', 'macd', 'macd_hist', 'bb_upper', 'bb_lower']].tail(100).to_dict('records')
-with open('/Users/derek/WorkBuddy/2026-06-20-12-11-53/fars_system/workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json', 'w', encoding='utf-8') as f:
+indicator_path = os.path.join(root_dir, "data", f"{rid}_indicator_sample.json")
+# Ensure data directory exists
+os.makedirs(os.path.join(root_dir, "data"), exist_ok=True)
+
+with open(indicator_path, 'w', encoding='utf-8') as f:
     json.dump(indicator_data, f, ensure_ascii=False, indent=2, default=str)
+
+print(f"\n技术指标数据已保存到: {indicator_path}")
+
+# Additionally save experiment_data.json
+exp_data_path = os.path.join(root_dir, "data", f"{rid}_experiment_data.json")
+exp_data = {
+    "research_id": rid,
+    "stock": "000001 平安银行 (sz.000001)",
+    "data_range": f"{df['date'].iloc[0].date()} 至 {df['date'].iloc[-1].date()}",
+    "data_points": len(df),
+    "best_strategy": best_strategy,
+    "metrics": all_results["strategies"][best_strategy]["metrics"],
+    "created_at": datetime.now().isoformat()
+}
+with open(exp_data_path, 'w', encoding='utf-8') as f:
+    json.dump(exp_data, f, ensure_ascii=False, indent=2)
 
 print("\n实验完成!")

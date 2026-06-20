@@ -534,6 +534,10 @@
             padding: 1.5rem;
         }
 
+        .checkpoint-item.has-checkpoint {
+            border-left: 3px solid var(--accent-green);
+        }
+
         .code-preview {
             background: var(--bg-secondary);
             border-radius: 8px;
@@ -638,6 +642,16 @@
             background: var(--bg-secondary);
             color: var(--text-secondary);
             border: 1px solid var(--border-color);
+        }
+
+        .grading-btn.warning {
+            background: var(--accent-yellow);
+            color: #1a1a1a;
+        }
+
+        .grading-btn.purple {
+            background: var(--accent-purple);
+            color: white;
         }
 
         .grading-btn:hover {
@@ -1114,8 +1128,11 @@
             <button class="control-btn secondary" onclick="showRestartModal()">
                 🔄 重新开始
             </button>
-            <button class="control-btn secondary" onclick="generateNextPaper()">
-                ➕ 生成下一篇
+            <button class="control-btn secondary" onclick="showCheckpointModal()">
+                📍 从断点开始
+            </button>
+            <button id="btn-next" class="control-btn secondary" onclick="generateNextPaper()">
+                ➕ 生成一篇
             </button>
             <button class="control-btn danger" onclick="resetFromZero()" title="备份后清空论文档案，保留种子文献">
                 🧹 从0开始
@@ -1158,6 +1175,8 @@
         <button class="nav-btn" data-view="citations">🔗 引用关系图</button>
         <button class="nav-btn" data-view="grading">📊 论文评分</button>
         <button class="nav-btn" data-view="history">📜 历史记录</button>
+        <button class="nav-btn" data-view="settings" onclick="openSettingsModal()">⚙️ LLM配置</button>
+        <button class="nav-btn" data-view="authors">👥 作者关系图</button>
     </nav>
 
     <main class="main-container">
@@ -1356,7 +1375,16 @@
                                 <button onclick="scorePaper()" class="grading-btn primary">
                                     ⭐ 开始评分
                                 </button>
-                                <button onclick="iterateImprove()" class="grading-btn success">
+                                <button onclick="runAIDetection()" class="grading-btn warning">
+                                    🔍 AI痕迹检测
+                                </button>
+                                <button onclick="runPaperReview()" class="grading-btn success">
+                                    📋 论文评审
+                                </button>
+                                <button onclick="runFullPipeline()" class="grading-btn purple">
+                                    🚀 完整流水线
+                                </button>
+                                <button onclick="iterateImprove()" class="grading-btn secondary">
                                     🔄 迭代改进
                                 </button>
                                 <button onclick="clearGrading()" class="grading-btn secondary">
@@ -1411,6 +1439,62 @@
                         <div class="empty-state">
                             <p>暂无历史记录</p>
                             <p style="font-size: 0.85rem; color: var(--text-secondary);">点击刷新加载历史记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authors Section -->
+            <div id="authors-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>👥 作者关系网络图</h2>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                            拖拽节点 · 点击查看详情
+                        </span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="authors-container" style="height: 500px; background: var(--bg-secondary); position: relative;">
+                            <svg id="authors-graph"></svg>
+                            <div class="legend" style="bottom: 1rem; left: 1rem;">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #3b82f6;"></div>
+                                    <span>第一作者</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #10b981;"></div>
+                                    <span>第二作者</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #f59e0b;"></div>
+                                    <span>通讯作者</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #8b5cf6;"></div>
+                                    <span>其他作者</span>
+                                </div>
+                                <div style="margin-top: 0.5rem; border-top: 1px solid #334155; padding-top: 0.5rem;">
+                                    <div class="legend-item">
+                                        <div class="legend-dot" style="background: #ef4444; width: 8px; height: 8px;"></div>
+                                        <span>高校</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-dot" style="background: #06b6d4; width: 8px; height: 8px;"></div>
+                                        <span>公司/机构</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 1rem;">
+                    <div class="card-header">
+                        <h2>📋 作者详细信息</h2>
+                    </div>
+                    <div class="card-body" id="author-details">
+                        <div class="empty-state">
+                            <p>点击图中的节点查看作者详细信息</p>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">包括: 第一作者、第二作者、通讯作者、学校/公司、合作关系</p>
                         </div>
                     </div>
                 </div>
@@ -1475,6 +1559,157 @@
                     <button id="btn-confirm-restart" onclick="confirmRestart()" class="grading-btn primary" disabled>
                         ✅ 确认创建新分支
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkpoint Modal -->
+    <div id="checkpoint-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>📍 从断点开始</h3>
+                <button class="modal-close" onclick="closeCheckpointModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    选择一个已有的研究断点，从上次中断的位置继续生成论文。
+                </p>
+                <div id="checkpoint-list" style="max-height: 350px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        ⏳ 加载中...
+                    </div>
+                </div>
+                <div class="grading-actions" style="justify-content: flex-end; margin-top: 1rem;">
+                    <button onclick="closeCheckpointModal()" class="grading-btn secondary">取消</button>
+                    <button id="btn-confirm-checkpoint" onclick="confirmCheckpoint()" class="grading-btn primary" disabled>
+                        ▶ 从所选断点继续
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LLM Settings Modal -->
+    <div id="llm-settings-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 700px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>⚙️ LLM 模型配置</h3>
+                <button class="modal-close" onclick="closeLLMSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="control-group" style="margin-bottom: 1.5rem;">
+                    <label class="control-label">当前 Provider:</label>
+                    <select id="llm-provider-select" class="branch-select" onchange="switchLLMProvider(this.value)" style="min-width: 150px;">
+                        <option value="minimax">MiniMax</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <!-- MiniMax Settings -->
+                <div id="llm-minimax-settings" class="llm-provider-settings">
+                    <h4 style="color: var(--accent-blue); margin-bottom: 0.75rem;">MiniMax 配置</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">API Key</label>
+                            <input type="password" id="llm-minimax-apikey" class="branch-select" style="width: 100%;" placeholder="输入 API Key">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">模型</label>
+                                <input type="text" id="llm-minimax-model" class="branch-select" style="width: 100%;" value="MiniMax-M2.7">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">Base URL</label>
+                                <input type="text" id="llm-minimax-url" class="branch-select" style="width: 100%;" value="https://minnimax.chat/v1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OpenAI Settings -->
+                <div id="llm-openai-settings" class="llm-provider-settings" style="display: none;">
+                    <h4 style="color: #10b981; margin-bottom: 0.75rem;">OpenAI 配置</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">API Key</label>
+                            <input type="password" id="llm-openai-apikey" class="branch-select" style="width: 100%;" placeholder="sk-...">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">模型</label>
+                                <input type="text" id="llm-openai-model" class="branch-select" style="width: 100%;" value="gpt-4o">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">Base URL</label>
+                                <input type="text" id="llm-openai-url" class="branch-select" style="width: 100%;" value="https://api.openai.com/v1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gemini Settings -->
+                <div id="llm-gemini-settings" class="llm-provider-settings" style="display: none;">
+                    <h4 style="color: #f59e0b; margin-bottom: 0.75rem;">Gemini 配置</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">API Key</label>
+                            <input type="password" id="llm-gemini-apikey" class="branch-select" style="width: 100%;" placeholder="AI...">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">模型</label>
+                                <input type="text" id="llm-gemini-model" class="branch-select" style="width: 100%;" value="gemini-2.0-flash">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">Base URL</label>
+                                <input type="text" id="llm-gemini-url" class="branch-select" style="width: 100%;" value="https://generativelanguage.googleapis.com/v1beta">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Settings -->
+                <div id="llm-custom-settings" class="llm-provider-settings" style="display: none;">
+                    <h4 style="color: #8b5cf6; margin-bottom: 0.75rem;">Custom 配置</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">API Key</label>
+                            <input type="password" id="llm-custom-apikey" class="branch-select" style="width: 100%;" placeholder="输入 API Key">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">模型</label>
+                                <input type="text" id="llm-custom-model" class="branch-select" style="width: 100%;" placeholder="e.g., gpt-4o, claude-3">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: var(--text-secondary);">Base URL</label>
+                                <input type="text" id="llm-custom-url" class="branch-select" style="width: 100%;" placeholder="https://api.example.com/v1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Common Settings -->
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <h4 style="color: var(--text-primary); margin-bottom: 0.75rem;">通用参数</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">Temperature</label>
+                            <input type="number" id="llm-temperature" class="branch-select" style="width: 100%;" value="0.7" min="0" max="2" step="0.1">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">Max Tokens</label>
+                            <input type="number" id="llm-maxtokens" class="branch-select" style="width: 100%;" value="4096" min="100" max="32000" step="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grading-actions" style="justify-content: flex-end; margin-top: 1.5rem;">
+                    <button onclick="closeLLMSettingsModal()" class="grading-btn secondary">取消</button>
+                    <button onclick="saveLLMSettings()" class="grading-btn primary">💾 保存配置</button>
                 </div>
             </div>
         </div>
@@ -1892,10 +2127,14 @@
             const navBtns = document.querySelectorAll('.nav-btn');
             navBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
+                    const view = btn.dataset.view;
+                    if (view === 'settings') {
+                        openSettingsModal();
+                        return;
+                    }
                     navBtns.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
 
-                    const view = btn.dataset.view;
                     document.querySelectorAll('.papers-section').forEach(s => s.classList.remove('active'));
 
                     if (view === 'topology') {
@@ -1912,6 +2151,9 @@
                     } else if (view === 'history') {
                         document.getElementById('history-section').classList.add('active');
                         loadHistory();
+                    } else if (view === 'authors') {
+                        document.getElementById('authors-section').classList.add('active');
+                        loadAuthorNetwork();
                     } else {
                         document.getElementById(`${view}-section`).classList.add('active');
                     }
@@ -2243,23 +2485,25 @@
 
             container.innerHTML = experiments.map(exp => {
                 const expFiles = farsData.filePaths.experiments[exp.id] || {};
-                const codeFiles = farsData.filePaths.code;
+                const codeFiles = farsData.filePaths.code || {};
+                const metrics = exp.metrics || {};
+                const startedAt = exp.started_at || exp.created_at || null;
+                const completedAt = exp.completed_at || null;
                 return `
                 <div class="hypothesis-item">
                     <h4 style="color: ${getStatusColor(exp.status)};">${exp.title}</h4>
-                    <h4 style="color: ${getStatusColor(exp.status)};">${exp.title}</h4>
                     <p><strong>方法:</strong> ${exp.method}</p>
-                    <p style="margin-top: 0.25rem;"><strong>时间:</strong> ${new Date(exp.started_at).toLocaleString()} - ${exp.completed_at ? new Date(exp.completed_at).toLocaleString() : '进行中'}</p>
-                    ${Object.keys(exp.metrics).length > 0 ? `
+                    <p style="margin-top: 0.25rem;"><strong>时间:</strong> ${startedAt ? new Date(startedAt).toLocaleString('zh-CN') : '未知'} - ${completedAt ? new Date(completedAt).toLocaleString('zh-CN') : (exp.status === 'success' ? '已完成' : '进行中')}</p>
+                    ${Object.keys(metrics).length > 0 ? `
                         <div style="margin-top: 0.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
-                            ${Object.entries(exp.metrics).map(([k, v]) => `<span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${k}: ${typeof v === 'number' ? v.toFixed(2) : v}</span>`).join('')}
+                            ${Object.entries(metrics).map(([k, v]) => `<span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${k}: ${typeof v === 'number' ? v.toFixed(2) : v}</span>`).join('')}
                         </div>
                     ` : ''}
                     <span class="paper-status status-${exp.status}" style="margin-top: 0.5rem;">${getStatusText(exp.status)}</span>
                     <div class="experiment-actions">
                         ${expFiles && expFiles.data ? `<a href="${expFiles.data}" download class="download-btn data" title="下载实验数据">📊 数据</a>` : ''}
                         ${expFiles && expFiles.indicators ? `<a href="${expFiles.indicators}" download class="download-btn data" title="下载指标数据">📈 指标</a>` : ''}
-                        ${codeFiles && codeFiles[exp.id] ? `<button onclick="previewCode('${codeFiles[exp.id]}')" class="download-btn code" title="预览代码">💻 代码</button>` : ''}
+                        ${codeFiles[exp.id] ? `<button onclick="previewCode('${codeFiles[exp.id]}')" class="download-btn code" title="预览代码">💻 代码</button>` : ''}
                     </div>
                 </div>
             `}).join('');
@@ -2641,6 +2885,302 @@
             }
         }
 
+        // ==================== Author Network Topology ====================
+
+        // Author network data (loaded from seed papers analysis)
+        let authorNetworkData = {
+            authors: [],
+            institutions: [],
+            papers: [],
+            collaborations: []  // { author1, author2, paper_id }
+        };
+
+        // Load author network from API
+        async function loadAuthorNetwork() {
+            try {
+                const res = await fetch('/api/research/author-network/latest');
+                const data = await res.json();
+                if (data.success && data.author_network) {
+                    authorNetworkData = data.author_network;
+                    renderAuthorNetwork();
+                }
+            } catch (e) {
+                console.error('Failed to load author network', e);
+                // Use demo data if API fails
+                initDemoAuthorData();
+                renderAuthorNetwork();
+            }
+        }
+
+        function initDemoAuthorData() {
+            // Demo data for author network visualization
+            authorNetworkData = {
+                authors: [
+                    { id: 'a1', name: 'Wei Chen', role: 'first', institution: '清华大学', type: 'university', paper_id: 'p1' },
+                    { id: 'a2', name: 'Li Zhang', role: 'second', institution: '北京大学', type: 'university', paper_id: 'p1' },
+                    { id: 'a3', name: 'Yiming Liu', role: 'corresponding', institution: '微软亚洲研究院', type: 'company', paper_id: 'p1' },
+                    { id: 'a4', name: 'Jia Wang', role: 'first', institution: '上海交通大学', type: 'university', paper_id: 'p2' },
+                    { id: 'a5', name: 'Xin Li', role: 'second', institution: '阿里巴巴', type: 'company', paper_id: 'p2' },
+                    { id: 'a6', name: 'Bo Wei', role: 'corresponding', institution: '清华大学', type: 'university', paper_id: 'p2' },
+                    { id: 'a7', name: 'Qian Sun', role: 'first', institution: '复旦大学', type: 'university', paper_id: 'p3' },
+                    { id: 'a8', name: 'Lei Yang', role: 'second', institution: '华为诺亚', type: 'company', paper_id: 'p3' },
+                    { id: 'a9', name: 'Chen Xu', role: 'corresponding', institution: '中科院', type: 'university', paper_id: 'p3' },
+                ],
+                institutions: [
+                    { id: 'i1', name: '清华大学', type: 'university' },
+                    { id: 'i2', name: '北京大学', type: 'university' },
+                    { id: 'i3', name: '微软亚洲研究院', type: 'company' },
+                    { id: 'i4', name: '上海交通大学', type: 'university' },
+                    { id: 'i5', name: '阿里巴巴', type: 'company' },
+                    { id: 'i6', name: '复旦大学', type: 'university' },
+                    { id: 'i7', name: '华为诺亚', type: 'company' },
+                    { id: 'i8', name: '中科院', type: 'university' },
+                ],
+                papers: [
+                    { id: 'p1', title: 'LLM in Finance: A Survey', authors: ['Wei Chen', 'Li Zhang', 'Yiming Liu'] },
+                    { id: 'p2', title: 'TradingAgents Framework', authors: ['Jia Wang', 'Xin Li', 'Bo Wei'] },
+                    { id: 'p3', title: 'QuantAgent for HFT', authors: ['Qian Sun', 'Lei Yang', 'Chen Xu'] },
+                ],
+                collaborations: [
+                    { author1: 'a1', author2: 'a3', paper_id: 'p1' },
+                    { author1: 'a4', author2: 'a5', paper_id: 'p2' },
+                    { author1: 'a4', author2: 'a6', paper_id: 'p2' },
+                    { author1: 'a7', author2: 'a8', paper_id: 'p3' },
+                    { author1: 'a7', author2: 'a9', paper_id: 'p3' },
+                ]
+            };
+        }
+
+        function renderAuthorNetwork() {
+            const container = document.getElementById('authors-container');
+            const svg = d3.select('#authors-graph');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            if (width === 0 || height === 0) return;
+
+            svg.attr('viewBox', `0 0 ${width} ${height}`);
+            svg.selectAll('*').remove();
+
+            // Create nodes from authors and institutions
+            const nodes = [];
+            const nodeMap = new Map();
+
+            // Add author nodes
+            authorNetworkData.authors.forEach(author => {
+                const node = {
+                    id: author.id,
+                    type: 'author',
+                    label: author.name,
+                    role: author.role,
+                    institution: author.institution,
+                    institutionType: author.type,
+                    paper_id: author.paper_id
+                };
+                nodes.push(node);
+                nodeMap.set(author.id, node);
+            });
+
+            // Add institution nodes
+            authorNetworkData.institutions.forEach(inst => {
+                const node = {
+                    id: inst.id,
+                    type: 'institution',
+                    label: inst.name,
+                    institutionType: inst.type
+                };
+                nodes.push(node);
+                nodeMap.set(inst.id, node);
+            });
+
+            // Create links for collaborations
+            const links = authorNetworkData.collaborations.map(c => ({
+                source: nodeMap.get(c.author1),
+                target: nodeMap.get(c.author2),
+                paper_id: c.paper_id
+            })).filter(l => l.source && l.target);
+
+            // Create links from authors to their institutions
+            authorNetworkData.authors.forEach(author => {
+                const instNode = nodes.find(n => n.type === 'institution' && n.label === author.institution);
+                const authorNode = nodeMap.get(author.id);
+                if (instNode && authorNode) {
+                    links.push({
+                        source: authorNode,
+                        target: instNode,
+                        type: 'affiliation'
+                    });
+                }
+            });
+
+            // Force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.type === 'affiliation' ? 80 : 150))
+                .force('charge', d3.forceManyBody().strength(d => d.type === 'institution' ? -400 : -200))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(40));
+
+            // Draw links
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .join('line')
+                .attr('stroke', d => d.type === 'affiliation' ? '#64748b' : '#3b82f6')
+                .attr('stroke-opacity', 0.5)
+                .attr('stroke-width', d => d.type === 'affiliation' ? 1 : 2);
+
+            // Draw nodes
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .join('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // Node colors based on role and type
+            node.append('circle')
+                .attr('r', d => d.type === 'institution' ? 25 : d.role === 'first' ? 18 : d.role === 'corresponding' ? 20 : 16)
+                .attr('fill', d => {
+                    if (d.type === 'institution') {
+                        return d.institutionType === 'company' ? '#06b6d4' : '#ef4444';
+                    }
+                    return d.role === 'first' ? '#3b82f6' : d.role === 'corresponding' ? '#f59e0b' : '#8b5cf6';
+                })
+                .attr('stroke', '#1e293b')
+                .attr('stroke-width', 2);
+
+            // Node labels
+            node.append('text')
+                .text(d => d.label.substring(0, 10))
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => d.type === 'institution' ? 40 : 30)
+                .attr('fill', '#94a3b8')
+                .attr('font-size', '10px');
+
+            // Role icons for authors
+            node.filter(d => d.type === 'author')
+                .append('text')
+                .text(d => d.role === 'first' ? '1️⃣' : d.role === 'corresponding' ? '📧' : '2️⃣')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 4)
+                .attr('font-size', '10px');
+
+            // Institution icons
+            node.filter(d => d.type === 'institution')
+                .append('text')
+                .text(d => d.institutionType === 'company' ? '🏢' : '🎓')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 5)
+                .attr('font-size', '14px');
+
+            // Tooltip
+            node.on('mouseover', (event, d) => {
+                const tooltip = document.getElementById('tooltip');
+                let content = `<h4>${d.label}</h4>`;
+                if (d.type === 'author') {
+                    content += `<p><strong>角色:</strong> ${d.role === 'first' ? '第一作者' : d.role === 'corresponding' ? '通讯作者' : '第二作者'}</p>`;
+                    content += `<p><strong>机构:</strong> ${d.institution}</p>`;
+                    const paper = authorNetworkData.papers.find(p => p.id === d.paper_id);
+                    if (paper) content += `<p><strong>论文:</strong> ${paper.title}</p>`;
+                } else {
+                    content += `<p><strong>类型:</strong> ${d.institutionType === 'company' ? '公司/机构' : '高校'}</p>`;
+                    const authors = authorNetworkData.authors.filter(a => a.institution === d.label);
+                    if (authors.length > 0) {
+                        content += `<p><strong>成员:</strong> ${authors.map(a => a.name).join(', ')}</p>`;
+                    }
+                }
+                tooltip.innerHTML = content;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+
+                // Show details in right panel
+                showAuthorDetails(d);
+            }).on('mouseout', () => {
+                document.getElementById('tooltip').style.display = 'none';
+            });
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        function showAuthorDetails(author) {
+            const detailsEl = document.getElementById('author-details');
+            
+            if (author.type === 'author') {
+                const paper = authorNetworkData.papers.find(p => p.id === author.paper_id);
+                const coauthors = authorNetworkData.collaborations
+                    .filter(c => c.author1 === author.id || c.author2 === author.id)
+                    .map(c => {
+                        const otherId = c.author1 === author.id ? c.author2 : c.author1;
+                        return authorNetworkData.authors.find(a => a.id === otherId);
+                    })
+                    .filter(a => a);
+                
+                let html = `
+                    <div class="hypothesis-item">
+                        <h4 style="color: var(--accent-blue);">${author.name}</h4>
+                        <p><strong>角色:</strong> ${author.role === 'first' ? '第一作者' : author.role === 'corresponding' ? '通讯作者' : '第二作者'}</p>
+                        <p><strong>机构:</strong> ${author.institution}</p>
+                        ${paper ? `<p><strong>论文:</strong> ${paper.title}</p>` : ''}
+                    </div>
+                `;
+                
+                if (coauthors.length > 0) {
+                    html += `<div class="hypothesis-item" style="margin-top: 1rem;">
+                        <h4>合作作者</h4>
+                        ${coauthors.map(a => `<span style="display: inline-block; background: var(--bg-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; margin: 0.25rem; font-size: 0.85rem;">${a.name} (${a.role === 'first' ? '第一作者' : a.role === 'corresponding' ? '通讯作者' : '第二作者'})</span>`).join('')}
+                    </div>`;
+                }
+                
+                detailsEl.innerHTML = html;
+            } else {
+                const members = authorNetworkData.authors.filter(a => a.institution === author.label);
+                let html = `
+                    <div class="hypothesis-item">
+                        <h4 style="color: var(--accent-purple);">${author.label}</h4>
+                        <p><strong>类型:</strong> ${author.institutionType === 'company' ? '公司/机构' : '高校'}</p>
+                        <p><strong>成员数量:</strong> ${members.length}</p>
+                    </div>
+                `;
+                
+                if (members.length > 0) {
+                    html += `<div class="hypothesis-item" style="margin-top: 1rem;">
+                        <h4>成员列表</h4>
+                        ${members.map(a => `<span style="display: inline-block; background: var(--bg-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; margin: 0.25rem; font-size: 0.85rem;">${a.name} (${a.role === 'first' ? '第一作者' : a.role === 'corresponding' ? '通讯作者' : '第二作者'})</span>`).join('')}
+                    </div>`;
+                }
+                
+                detailsEl.innerHTML = html;
+            }
+        }
+
         // Modal Functions
         function openModal(title, content) {
             document.getElementById('modal-title').textContent = title;
@@ -2741,6 +3281,299 @@
             } finally {
                 loading.style.display = 'none';
             }
+        }
+
+        // ============================================================
+        // 质量流水线函数 (Step 4 AI痕迹检测 + Step 5 论文评审)
+        // ============================================================
+
+        async function runAIDetection() {
+            const paperContent = document.getElementById('paper-input').value.trim();
+            if (!paperContent) {
+                alert('请输入论文内容');
+                return;
+            }
+
+            const loading = document.getElementById('grading-loading');
+            loading.style.display = 'flex';
+            loading.querySelector('span').textContent = '正在AI痕迹检测...';
+
+            try {
+                const response = await fetch('/api/quality/detect-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: paperContent })
+                });
+                const result = await response.json();
+                displayAIDetectionResult(result);
+            } catch (error) {
+                console.error('AI检测失败:', error);
+                alert('AI痕迹检测失败: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                loading.querySelector('span').textContent = '正在评分...';
+            }
+        }
+
+        async function runPaperReview() {
+            const paperContent = document.getElementById('paper-input').value.trim();
+            if (!paperContent) {
+                alert('请输入论文内容');
+                return;
+            }
+
+            const loading = document.getElementById('grading-loading');
+            loading.style.display = 'flex';
+            loading.querySelector('span').textContent = '正在论文评审...';
+
+            try {
+                const response = await fetch('/api/quality/review-paper', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: paperContent,
+                        title: '待评审论文'
+                    })
+                });
+                const result = await response.json();
+                displayPaperReviewResult(result);
+            } catch (error) {
+                console.error('论文评审失败:', error);
+                alert('论文评审失败: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                loading.querySelector('span').textContent = '正在评分...';
+            }
+        }
+
+        async function runFullPipeline() {
+            const paperContent = document.getElementById('paper-input').value.trim();
+            if (!paperContent) {
+                alert('请输入论文内容');
+                return;
+            }
+
+            const loading = document.getElementById('grading-loading');
+            loading.style.display = 'flex';
+            loading.querySelector('span').textContent = '正在运行完整流水线...';
+
+            try {
+                const response = await fetch('/api/quality/pipeline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: paperContent,
+                        title: '待评审论文',
+                        run_ai_detection: true,
+                        run_paper_review: true
+                    })
+                });
+                const result = await response.json();
+                displayFullPipelineReport(result);
+            } catch (error) {
+                console.error('流水线失败:', error);
+                alert('质量流水线失败: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                loading.querySelector('span').textContent = '正在评分...';
+            }
+        }
+
+        function displayAIDetectionResult(result) {
+            const container = document.getElementById('grading-results');
+            const status = document.getElementById('grading-status');
+
+            if (result.error) {
+                container.innerHTML = `<div class="empty-state"><p style="color: var(--accent-red);">错误: ${result.error}</p></div>`;
+                status.textContent = 'AI检测失败';
+                return;
+            }
+
+            const risk = result.risk_level || 'unknown';
+            const riskColors = { low: 'var(--accent-green)', medium: 'var(--accent-yellow)', high: 'var(--accent-red)' };
+            const riskLabels = { low: '✅ 低风险', medium: '⚠️ 中风险', high: '🚨 高风险' };
+
+            status.textContent = riskLabels[risk] || risk;
+            status.style.color = riskColors[risk] || 'var(--text-secondary)';
+
+            const prob = (result.ai_probability * 100).toFixed(1);
+            const conf = (result.confidence * 100).toFixed(0);
+            const timeMs = result.detection_time_ms ? result.detection_time_ms.toFixed(0) : 'N/A';
+            const modelUsed = result.model_used || 'unknown';
+
+            let segHtml = '';
+            if (result.suspicious_segments && result.suspicious_segments.length > 0) {
+                segHtml = result.suspicious_segments.map(seg => `
+                    <div style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; font-size: 0.85rem;">
+                        <span style="color: var(--accent-yellow);">⚠️ 可疑段落 #${seg.position}</span>
+                        <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0;">${seg.text}</p>
+                    </div>
+                `).join('');
+            }
+
+            container.innerHTML = `
+                <div class="score-display">
+                    <div class="score-header">
+                        <div>
+                            <div class="score-value" style="color: ${riskColors[risk] || 'var(--text-primary)'}">${prob}%</div>
+                            <div class="score-label">AI生成概率</div>
+                        </div>
+                        <div class="iteration-badge" style="background: ${riskColors[risk] || 'var(--accent-blue)'}; color: white;">
+                            ${riskLabels[risk] || risk}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">置信度</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">${conf}%</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">检测耗时</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">${timeMs}ms</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">检测模型</div>
+                            <div style="font-size: 0.9rem; font-weight: bold;">${modelUsed}</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 6px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">判据分数</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">${(result.criterion_score || 0).toFixed(3)}</div>
+                        </div>
+                    </div>
+                </div>
+                ${segHtml ? `<div style="margin-top: 1rem;"><div style="font-weight: 600; margin-bottom: 0.5rem;">🔍 可疑段落 (${result.suspicious_segments.length})</div>${segHtml}</div>` : ''}
+            `;
+        }
+
+        function displayPaperReviewResult(result) {
+            const container = document.getElementById('grading-results');
+            const status = document.getElementById('grading-status');
+
+            if (result.error) {
+                container.innerHTML = `<div class="empty-state"><p style="color: var(--accent-red);">错误: ${result.error}</p></div>`;
+                status.textContent = '评审失败';
+                return;
+            }
+
+            const review = result.review || result;
+            const score = review.overall_score || review.overallScore || 5.0;
+            const dims = review.dimensions || {};
+
+            status.textContent = `📋 评审完成 (评审模型: ${review.reviewer_model || 'unknown'})`;
+            status.style.color = 'var(--accent-blue)';
+
+            const dimItems = Object.entries(dims).map(([k, v]) => {
+                const names = { merit: '学术价值', clarity: '清晰度', reproducibility: '可复现性', originality: '创新性', utility: '实用性' };
+                return `<div class="criteria-item">
+                    <div>
+                        <div class="criteria-name">${names[k] || k}</div>
+                    </div>
+                    <div class="criteria-score">${(v || 0).toFixed(1)}/10</div>
+                </div>`;
+            }).join('');
+
+            const strengths = (review.strengths || []).map(s => `<li style="margin: 0.25rem 0;">✅ ${s}</li>`).join('');
+            const weaknesses = (review.weaknesses || []).map(w => `<li style="margin: 0.25rem 0;">⚠️ ${w}</li>`).join('');
+
+            container.innerHTML = `
+                <div class="score-display">
+                    <div class="score-header">
+                        <div>
+                            <div class="score-value" style="color: ${score >= 7 ? 'var(--accent-green)' : score >= 5 ? 'var(--accent-yellow)' : 'var(--accent-red)'}">${score.toFixed(1)}</div>
+                            <div class="score-label">综合评分 (10分制)</div>
+                        </div>
+                        ${review.recommended_venue ? `<div class="iteration-badge" style="background: var(--accent-purple); color: white; font-size: 0.75rem;">${review.recommended_venue}</div>` : ''}
+                    </div>
+                    <div class="criteria-list">
+                        ${dimItems || '<p style="color: var(--text-secondary);">维度评分暂无</p>'}
+                    </div>
+                </div>
+                ${strengths ? `<div class="feedback-box" style="margin-top: 1rem;"><div class="feedback-title">💪 优点</div><ul style="padding-left: 1.25rem;">${strengths}</ul></div>` : ''}
+                ${weaknesses ? `<div class="feedback-box" style="margin-top: 0.75rem;"><div class="feedback-title">⚠️ 缺点</div><ul style="padding-left: 1.25rem;">${weaknesses}</ul></div>` : ''}
+                ${review.detailed_feedback ? `<div class="feedback-box" style="margin-top: 0.75rem;"><div class="feedback-title">📝 详细反馈</div><p style="font-size: 0.9rem; line-height: 1.6;">${review.detailed_feedback}</p></div>` : ''}
+            `;
+        }
+
+        function displayFullPipelineReport(result) {
+            const container = document.getElementById('grading-results');
+            const status = document.getElementById('grading-status');
+
+            if (result.error) {
+                container.innerHTML = `<div class="empty-state"><p style="color: var(--accent-red);">错误: ${result.error}</p></div>`;
+                status.textContent = '流水线失败';
+                return;
+            }
+
+            const report = result.report || result;
+            const stars = report.quality_stars || 3;
+            const overallPass = report.overall_pass;
+            const passLabel = overallPass ? '✅ 综合通过' : '⚠️ 综合未通过';
+            const passColor = overallPass ? 'var(--accent-green)' : 'var(--accent-yellow)';
+
+            status.textContent = passLabel;
+            status.style.color = passColor;
+
+            let aiSection = '';
+            if (report.ai_detection) {
+                const ai = report.ai_detection;
+                const riskColors = { low: 'var(--accent-green)', medium: 'var(--accent-yellow)', high: 'var(--accent-red)' };
+                const risk = ai.risk_level || 'medium';
+                aiSection = `
+                    <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-weight: 600;">🔍 AI痕迹检测</span>
+                            <span style="color: ${riskColors[risk]}; font-weight: bold;">${(ai.ai_probability * 100).toFixed(1)}% (${risk})</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 0.8rem;">
+                            <div>置信度: <b>${(ai.confidence * 100).toFixed(0)}%</b></div>
+                            <div>耗时: <b>${(ai.detection_time_ms || 0).toFixed(0)}ms</b></div>
+                            <div>模型: <b>${ai.model_used || 'local'}</b></div>
+                        </div>
+                    </div>`;
+            }
+
+            let reviewSection = '';
+            if (report.paper_review) {
+                const pr = report.paper_review;
+                const dims = pr.dimensions || {};
+                reviewSection = `
+                    <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-weight: 600;">📋 论文评审</span>
+                            <span style="font-weight: bold;">综合 ${(pr.overall_score || 0).toFixed(1)}/10</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.8rem;">
+                            <div>学术价值<br><b>${(dims.merit || 0).toFixed(1)}</b></div>
+                            <div>清晰度<br><b>${(dims.clarity || 0).toFixed(1)}</b></div>
+                            <div>可复现性<br><b>${(dims.reproducibility || 0).toFixed(1)}</b></div>
+                            <div>创新性<br><b>${(dims.originality || 0).toFixed(1)}</b></div>
+                            <div>实用性<br><b>${(dims.utility || 0).toFixed(1)}</b></div>
+                        </div>
+                        ${pr.recommended_venue ? `<div style="margin-top: 0.5rem; font-size: 0.8rem;">推荐会议: <b>${pr.recommended_venue}</b></div>` : ''}
+                    </div>`;
+            }
+
+            const recs = (report.recommendations || []).map(r => `<li style="margin: 0.25rem 0;">${r}</li>`).join('');
+
+            container.innerHTML = `
+                <div class="score-display">
+                    <div class="score-header">
+                        <div>
+                            <div class="score-value" style="color: ${passColor}">${'⭐'.repeat(stars)}${'☆'.repeat(5 - stars)}</div>
+                            <div class="score-label">${stars}/5 质量星级</div>
+                        </div>
+                        <div class="iteration-badge" style="background: ${passColor}; color: white;">
+                            ${passLabel}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    ${aiSection}
+                    ${reviewSection}
+                </div>
+                ${report.summary ? `<div class="feedback-box" style="margin-top: 0.75rem;"><div class="feedback-title">📊 综合摘要</div><p style="font-size: 0.9rem;">${report.summary}</p></div>` : ''}
+                ${recs ? `<div class="feedback-box" style="margin-top: 0.75rem;"><div class="feedback-title">💡 改进建议</div><ul style="padding-left: 1.25rem;">${recs}</ul></div>` : ''}
+            `;
         }
 
         async function iterateImprove() {
@@ -3036,6 +3869,7 @@
 
         let selectedReviewFile = null;
         let statePollInterval = null;
+        let llmReady = false;
 
         async function initResearchControl() {
             await loadBranches();
@@ -3043,7 +3877,32 @@
             await loadDataRegistry();
             await loadPaperArchives();
             await loadResearchState();
+            await ensureLLMReady(true);
             startStatePolling();
+        }
+
+        async function ensureLLMReady(showModal = false) {
+            try {
+                const res = await fetch('/api/config/llm');
+                const data = await res.json();
+                if (!data.success) return true;
+                const llm = data.llm || {};
+                llmReady = !!llm.api_key_configured;
+                if (!llmReady && showModal) {
+                    await openSettingsModal();
+                    alert('需要先配置 LLM API Key 才能开始生成。');
+                }
+                updateControlButtons();
+                return llmReady;
+            } catch (e) {
+                llmReady = false;
+                updateControlButtons();
+                if (showModal) {
+                    await openSettingsModal();
+                    alert('需要先配置 LLM API Key 才能开始生成。');
+                }
+                return false;
+            }
         }
 
         async function loadDataRegistry() {
@@ -3261,16 +4120,17 @@
             const btnPause = document.getElementById('btn-pause');
             const btnResume = document.getElementById('btn-resume');
             const btnStop = document.getElementById('btn-stop');
+            const btnNext = document.getElementById('btn-next');
 
-            if (researchState.isGenerating) {
-                btnStart.style.display = 'none';
-                btnPause.style.display = 'inline-flex';
-                btnResume.style.display = 'none';
-                btnStop.style.display = 'inline-flex';
-            } else if (researchState.isPaused) {
+            if (researchState.isPaused) {
                 btnStart.style.display = 'none';
                 btnPause.style.display = 'none';
                 btnResume.style.display = 'inline-flex';
+                btnStop.style.display = 'inline-flex';
+            } else if (researchState.isGenerating) {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'inline-flex';
+                btnResume.style.display = 'none';
                 btnStop.style.display = 'inline-flex';
             } else {
                 btnStart.style.display = 'inline-flex';
@@ -3278,6 +4138,11 @@
                 btnResume.style.display = 'none';
                 btnStop.style.display = 'none';
             }
+
+            const allowGenerate = !!llmReady;
+            if (btnStart) btnStart.disabled = !allowGenerate;
+            if (btnResume) btnResume.disabled = !allowGenerate;
+            if (btnNext) btnNext.disabled = !allowGenerate;
         }
 
         function updateStatus() {
@@ -3287,7 +4152,10 @@
 
             statusEl.classList.remove('idle', 'generating', 'paused', 'stopped');
 
-            if (researchState.isGenerating) {
+            if (researchState.isPaused) {
+                statusEl.classList.add('paused');
+                statusText.textContent = act.message || '已暂停';
+            } else if (researchState.isGenerating) {
                 statusEl.classList.add('generating');
                 const phaseLabels = {
                     starting: '启动中',
@@ -3301,9 +4169,6 @@
                 const phase = phaseLabels[act.phase] || '研究中';
                 const msg = act.message && act.phase !== 'completed' ? act.message : (act.message || '请稍候…');
                 statusText.textContent = `${phase} · ${msg}`;
-            } else if (researchState.isPaused) {
-                statusEl.classList.add('paused');
-                statusText.textContent = '已暂停';
             } else if (act.phase === 'completed' && act.message) {
                 statusEl.classList.add('idle');
                 statusText.textContent = act.message;
@@ -3333,7 +4198,7 @@
             if (statePollInterval) clearInterval(statePollInterval);
             statePollInterval = setInterval(async () => {
                 await loadResearchState();
-                if (!researchState.isGenerating) {
+                if (!researchState.isGenerating || researchState.isPaused) {
                     clearInterval(statePollInterval);
                     statePollInterval = setInterval(loadResearchState, 3000);
                 }
@@ -3342,19 +4207,31 @@
 
         async function startGeneration() {
             try {
+                if (!(await ensureLLMReady(true))) return;
                 const btn = document.getElementById('btn-start');
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div> 启动中...';
 
                 const branchId = document.getElementById('branch-select').value;
+                let resume = false;
+                try {
+                    const runRes = await fetch('/api/research/run');
+                    const runData = await runRes.json();
+                    resume = !!runData.resumable;
+                } catch (e) {}
                 const response = await fetch('/api/generate/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ branch_id: branchId || null })
+                    body: JSON.stringify({ branch_id: branchId || null, resume })
                 });
 
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
+                    if (err.code === 'llm_not_configured') {
+                        await openSettingsModal();
+                        alert(err.error || '需要先配置 LLM API Key 才能开始生成。');
+                        return;
+                    }
                     throw new Error(err.error || `HTTP ${response.status}`);
                 }
 
@@ -3394,8 +4271,13 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    researchState.isPaused = true;
-                    researchState.isGenerating = false;
+                    researchState.isPaused = false;
+                    researchState.isGenerating = true;
+                    researchState.activity = {
+                        phase: researchState.activity?.phase || 'generating',
+                        message: '将于下一篇生成完成后暂停',
+                        progress: researchState.activity?.progress || 0
+                    };
                     updateControlButtons();
                     updateStatus();
                 } else {
@@ -3410,6 +4292,7 @@
 
         async function resumeGeneration() {
             try {
+                if (!(await ensureLLMReady(true))) return;
                 const btn = document.getElementById('btn-resume');
                 btn.disabled = true;
                 btn.innerHTML = '<div class="spinner"></div>';
@@ -3424,7 +4307,20 @@
                     researchState.isGenerating = true;
                     updateControlButtons();
                     updateStatus();
+
+                    if (result.status === 'already_complete') {
+                        // 所有步骤已完成，提示用户可以继续生成新论文
+                        setTimeout(() => {
+                            alert('✅ 所有研究步骤已完成！\n\n可以点击「生成下一篇」继续扩展研究，或点击「⭐ 开始评分」对已有论文评分。');
+                        }, 500);
+                    } else if (result.resumed_steps && result.resumed_steps.length > 0) {
+                        // 有恢复的步骤
+                        console.log('已恢复步骤:', result.resumed_steps);
+                    }
                 } else {
+                    if (result.code === 'llm_not_configured') {
+                        await openSettingsModal();
+                    }
                     alert('继续失败: ' + (result.error || '未知错误'));
                 }
             } catch (error) {
@@ -3464,8 +4360,9 @@
         }
 
         async function generateNextPaper() {
-            const btn = document.querySelector('[onclick="generateNextPaper()"]');
+            const btn = document.getElementById('btn-next');
             try {
+                if (!(await ensureLLMReady(true))) return;
                 if (btn) {
                     btn.disabled = true;
                     btn.innerHTML = '<div class="spinner"></div>';
@@ -3484,6 +4381,9 @@
                     await loadResearchState();
                     alert('已生成下一篇论文: ' + (result.paper?.research_id || ''));
                 } else {
+                    if (result.code === 'llm_not_configured') {
+                        await openSettingsModal();
+                    }
                     alert('生成失败: ' + (result.error || '未知错误'));
                 }
             } catch (error) {
@@ -3492,7 +4392,7 @@
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '➕ 生成下一篇';
+                    btn.innerHTML = '➕ 生成一篇';
                 }
             }
         }
@@ -3531,6 +4431,126 @@
 
         function closeRestartModal() {
             document.getElementById('restart-modal').classList.remove('active');
+        }
+
+        // ==================== LLM Settings Modal Functions ====================
+
+        async function openSettingsModal() {
+            const modal = document.getElementById('llm-settings-modal');
+            modal.classList.add('active');
+            
+            // Load current LLM config
+            try {
+                const res = await fetch('/api/config/llm');
+                const data = await res.json();
+                if (data.success) {
+                    populateLLMSettings(data.llm, data.llm_providers);
+                }
+            } catch (e) {
+                console.error('Failed to load LLM config', e);
+            }
+        }
+
+        function closeLLMSettingsModal() {
+            document.getElementById('llm-settings-modal').classList.remove('active');
+        }
+
+        function populateLLMSettings(llm, providers) {
+            if (!providers) return;
+            
+            // Set current provider
+            const currentProvider = llm.provider || 'minimax';
+            document.getElementById('llm-provider-select').value = currentProvider;
+            switchLLMProvider(currentProvider);
+            
+            // Populate each provider's settings
+            for (const [name, config] of Object.entries(providers)) {
+                const prefix = `llm-${name}`;
+                const apikeyEl = document.getElementById(`${prefix}-apikey`);
+                const modelEl = document.getElementById(`${prefix}-model`);
+                const urlEl = document.getElementById(`${prefix}-url`);
+                
+                if (apikeyEl && config.api_key) apikeyEl.value = config.api_key;
+                if (modelEl && config.model) modelEl.value = config.model;
+                if (urlEl && config.base_url) urlEl.value = config.base_url;
+            }
+            
+            // Set common settings
+            if (llm.temperature) document.getElementById('llm-temperature').value = llm.temperature;
+            if (llm.max_tokens) document.getElementById('llm-maxtokens').value = llm.max_tokens;
+        }
+
+        function switchLLMProvider(provider) {
+            // Hide all provider settings
+            document.querySelectorAll('.llm-provider-settings').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show selected provider settings
+            const settingsEl = document.getElementById(`llm-${provider}-settings`);
+            if (settingsEl) {
+                settingsEl.style.display = 'block';
+            }
+        }
+
+        async function saveLLMSettings() {
+            const provider = document.getElementById('llm-provider-select').value;
+            
+            const llm_providers = {
+                minimax: {
+                    api_key: document.getElementById('llm-minimax-apikey').value,
+                    model: document.getElementById('llm-minimax-model').value,
+                    base_url: document.getElementById('llm-minimax-url').value,
+                    enabled: provider === 'minimax'
+                },
+                openai: {
+                    api_key: document.getElementById('llm-openai-apikey').value,
+                    model: document.getElementById('llm-openai-model').value,
+                    base_url: document.getElementById('llm-openai-url').value,
+                    enabled: provider === 'openai'
+                },
+                gemini: {
+                    api_key: document.getElementById('llm-gemini-apikey').value,
+                    model: document.getElementById('llm-gemini-model').value,
+                    base_url: document.getElementById('llm-gemini-url').value,
+                    enabled: provider === 'gemini'
+                },
+                custom: {
+                    api_key: document.getElementById('llm-custom-apikey').value,
+                    model: document.getElementById('llm-custom-model').value,
+                    base_url: document.getElementById('llm-custom-url').value,
+                    enabled: provider === 'custom'
+                }
+            };
+            
+            const llm = {
+                provider: provider,
+                temperature: parseFloat(document.getElementById('llm-temperature').value) || 0.7,
+                max_tokens: parseInt(document.getElementById('llm-maxtokens').value) || 4096
+            };
+            
+            // Set the active provider's full config
+            const activeProvider = llm_providers[provider];
+            llm.model = activeProvider.model;
+            llm.base_url = activeProvider.base_url;
+            llm.api_key = activeProvider.api_key;
+            
+            try {
+                const res = await fetch('/api/config/llm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ llm, llm_providers })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('LLM 配置已保存');
+                    closeLLMSettingsModal();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
         }
 
         function handleFileSelect(file) {
@@ -3661,6 +4681,115 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeRestartModal();
+            }
+        });
+
+        // ==================== Checkpoint Modal Functions ====================
+        let selectedCheckpointId = null;
+
+        async function showCheckpointModal() {
+            selectedCheckpointId = null;
+            const btn = document.getElementById('btn-confirm-checkpoint');
+            btn.disabled = true;
+            btn.innerHTML = '▶ 从所选断点继续';
+            document.getElementById('checkpoint-modal').classList.add('active');
+            renderCheckpointList();
+        }
+
+        function closeCheckpointModal() {
+            document.getElementById('checkpoint-modal').classList.remove('active');
+        }
+
+        async function renderCheckpointList() {
+            const container = document.getElementById('checkpoint-list');
+            try {
+                const resp = await fetch('/api/research/checkpoints');
+                const data = await resp.json();
+                const checkpoints = data.checkpoints || [];
+
+                if (checkpoints.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            📭 暂无可用的研究断点<br><small>请先运行一次研究生成</small>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = checkpoints.map(cp => {
+                    const meta = cp.meta || {};
+                    const title = meta.topic || meta.title || cp.research_id;
+                    const date = meta.started_at ? new Date(meta.started_at).toLocaleString('zh-CN') : '未知时间';
+                    const status = meta.status || (cp.has_checkpoint ? '进行中' : '未知');
+                    const papers = meta.papers_count || meta.papers || 0;
+                    return `
+                        <div class="checkpoint-item ${cp.has_checkpoint ? 'has-checkpoint' : ''}"
+                             onclick="selectCheckpoint('${cp.research_id}', this)"
+                             style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">
+                                ${title}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                <span>🆔 ${cp.research_id}</span> &nbsp;|&nbsp;
+                                <span>📅 ${date}</span> &nbsp;|&nbsp;
+                                <span>📄 ${papers} 篇</span>
+                                ${cp.has_checkpoint ? '&nbsp;|&nbsp;<span style="color: var(--accent-green);">✅ 有断点</span>' : ''}
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = `<div style="color: var(--accent-red); padding: 1rem;">加载失败: ${err.message}</div>`;
+            }
+        }
+
+        function selectCheckpoint(researchId, el) {
+            selectedCheckpointId = researchId;
+            document.querySelectorAll('.checkpoint-item').forEach(item => {
+                item.style.borderColor = 'var(--border-color)';
+                item.style.background = 'transparent';
+            });
+            el.style.borderColor = 'var(--accent-blue)';
+            el.style.background = 'rgba(59, 130, 246, 0.1)';
+            document.getElementById('btn-confirm-checkpoint').disabled = false;
+        }
+
+        async function confirmCheckpoint() {
+            if (!selectedCheckpointId) return;
+            const btn = document.getElementById('btn-confirm-checkpoint');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 正在启动...';
+
+            try {
+                const resp = await fetch(`/api/research/resume/${selectedCheckpointId}`, { method: 'POST' });
+                const result = await resp.json();
+
+                if (result.success) {
+                    closeCheckpointModal();
+                    const state = { phase: 'resuming', message: `从断点 ${selectedCheckpointId} 继续...` };
+                    updateControlButtons();
+                    updateStatus(state);
+                    startFastPolling();
+                } else {
+                    alert('启动失败: ' + (result.error || result.message || '未知错误'));
+                    btn.disabled = false;
+                    btn.innerHTML = '▶ 从所选断点继续';
+                }
+            } catch (err) {
+                alert('启动失败: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '▶ 从所选断点继续';
+            }
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('checkpoint-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('checkpoint-modal')) {
+                closeCheckpointModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCheckpointModal();
             }
         });
     </script>

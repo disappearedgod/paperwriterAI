@@ -18,6 +18,8 @@ from .database import (
     init_database
 )
 
+from .pdf_compiler import compile_markdown_to_pdf
+
 __all__ = [
     "CONFIG",
     "Workspace",
@@ -27,5 +29,6 @@ __all__ = [
     "REPORTS_DIR",
     "DATABASE_SCHEMA",
     "get_connection",
-    "init_database"
+    "init_database",
+    "compile_markdown_to_pdf"
 ]

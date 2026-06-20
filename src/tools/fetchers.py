@@ -301,10 +301,17 @@ class LLMCaller:
             base_url: 自定义API地址
             fallback_providers: 备用provider列表，如 [{"provider": "ollama", "model": "gemma4"}]
         """
-        self.primary_provider = provider
-        self.primary_model = model
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        self.base_url = base_url
+        # 从config.json读取配置
+        _cfg_file = os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')
+        _llm_cfg = {}
+        if os.path.exists(_cfg_file):
+            with open(_cfg_file, 'r') as _f:
+                _llm_cfg = json.load(_f).get('llm', {})
+
+        self.primary_provider = provider if provider != "openai" else _llm_cfg.get('provider', 'minimax')
+        self.primary_model = model if model != "gpt-4o" else _llm_cfg.get('model', 'MiniMax-M2.7')
+        self.api_key = api_key or _llm_cfg.get('api_key', '') or os.environ.get("OPENAI_API_KEY")
+        self.base_url = base_url or _llm_cfg.get('base_url', '')
         self.fallback_providers = fallback_providers or []
         self.last_error = None
 

@@ -9,16 +9,31 @@ import sys
 import json
 import re
 import requests
+import threading
+import subprocess
 import mimetypes
 from datetime import datetime
-from typing import Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+from uuid import uuid4
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+from tools.quality_pipeline import (
+    FastDetectGPTDetector,
+    PaperReviewer,
+    QualityReporter,
+    run_quality_pipeline,
+    AIDetectionResult,
+    PaperReviewResult,
+    QualityReport,
+)
 from core.research_archive import (
     RESEARCH_DIR,
     allocate_research_id,
     bump_research_seq,
     create_research_workspace,
+    save_article_markdown,
+    write_meta,
     paper_record_paths,
     artifacts_for_api,
     research_root,
@@ -34,6 +49,11 @@ from core.mongo_index import index_paper_record, query_papers, check_market_data
 from core.research_reset import reset_research
 from core.seed_library import list_seed_papers, get_pdf_path, fetch_new_papers
 from core.research_runner import ResearchRunner
+from core.research_engine import (
+    load_checkpoint as load_research_checkpoint,
+    resume_research as resume_research_checkpoint,
+    build_author_network,
+)
 from prompts.templates import (
     fill_perspective_prompt,
     fill_question_prompt,
@@ -46,9 +66,235 @@ from prompts.templates import (
 
 app = Flask(__name__, static_folder='docs', static_url_path='')
 
-# MiniMax API配置
-MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_pro"
-MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
+_CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+_CONFIG_LOCAL_PATH = Path(__file__).resolve().parent / "config.local.json"
+
+_app_config: Dict[str, Any] = {}
+_llm_config: Dict[str, Any] = {}
+_llm_providers: Dict[str, Any] = {}
+_config_mtime_ns: Tuple[Optional[int], Optional[int]] = (None, None)
+
+
+def _file_mtime_ns(path: Path) -> Optional[int]:
+    try:
+        return path.stat().st_mtime_ns
+    except Exception:
+        return None
+
+
+def _deep_merge(base: Any, override: Any) -> Any:
+    if isinstance(base, dict) and isinstance(override, dict):
+        merged = dict(base)
+        for k, v in override.items():
+            if k in merged:
+                merged[k] = _deep_merge(merged[k], v)
+            else:
+                merged[k] = v
+        return merged
+    return override
+
+
+def _load_config_file(path: Path) -> Dict[str, Any]:
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _reload_config() -> None:
+    global _app_config, _llm_config, _llm_providers, _config_mtime_ns
+    base = _load_config_file(_CONFIG_PATH)
+    local = _load_config_file(_CONFIG_LOCAL_PATH)
+    _app_config = _deep_merge(base, local) if base or local else {}
+    _llm_config = dict((_app_config.get("llm") or {}))
+    _llm_providers = dict((_app_config.get("llm_providers") or {}))
+    _config_mtime_ns = (_file_mtime_ns(_CONFIG_PATH), _file_mtime_ns(_CONFIG_LOCAL_PATH))
+
+
+def _maybe_reload_config() -> None:
+    global _config_mtime_ns
+    current = (_file_mtime_ns(_CONFIG_PATH), _file_mtime_ns(_CONFIG_LOCAL_PATH))
+    if current != _config_mtime_ns:
+        _reload_config()
+
+
+def _is_reasonable_api_key(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    key = value.strip()
+    if not key:
+        return False
+    if len(key) < 8 or len(key) > 256:
+        return False
+    if any(ch.isspace() for ch in key):
+        return False
+    if any(ord(ch) > 127 for ch in key):
+        return False
+    return True
+
+
+def _save_local_llm_config(llm: Dict[str, Any], llm_providers: Dict[str, Any]) -> None:
+    local = _load_config_file(_CONFIG_LOCAL_PATH)
+    existing_llm = dict(local.get("llm") or {})
+    existing_providers = dict(local.get("llm_providers") or {})
+
+    def merge_preserve_key(new_cfg: Dict[str, Any], old_cfg: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(old_cfg)
+        merged.update(new_cfg)
+        if (not new_cfg.get("api_key")) and old_cfg.get("api_key"):
+            merged["api_key"] = old_cfg.get("api_key")
+        if merged.get("api_key") and (not _is_reasonable_api_key(merged.get("api_key"))):
+            merged["api_key"] = ""
+        return merged
+
+    local["llm"] = merge_preserve_key(llm, existing_llm)
+
+    merged_providers: Dict[str, Any] = dict(existing_providers)
+    for name, cfg in (llm_providers or {}).items():
+        if isinstance(cfg, dict):
+            merged_providers[name] = merge_preserve_key(cfg, dict(existing_providers.get(name) or {}))
+    local["llm_providers"] = merged_providers
+    _CONFIG_LOCAL_PATH.write_text(json.dumps(local, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _get_provider_api_key(provider: str, provider_cfg: Dict[str, Any]) -> str:
+    env_map = {
+        "minimax": "MINIMAX_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GOOGLE_API_KEY",
+        "custom": "CUSTOM_API_KEY",
+    }
+    env_key = env_map.get(provider)
+    if env_key and os.environ.get(env_key):
+        key = os.environ.get(env_key) or ""
+        return key if _is_reasonable_api_key(key) else ""
+    key = str(provider_cfg.get("api_key") or "")
+    return key if _is_reasonable_api_key(key) else ""
+
+
+def get_effective_llm_config() -> Dict[str, Any]:
+    _maybe_reload_config()
+    provider = str(_llm_config.get("provider") or "minimax")
+    provider_cfg = dict((_llm_providers.get(provider) or {}))
+    merged = dict(provider_cfg)
+    merged.update(_llm_config)
+    merged["provider"] = provider
+    merged["api_key"] = _get_provider_api_key(provider, merged)
+    return merged
+
+
+def _llm_endpoint(provider: str, base_url: str) -> str:
+    base = (base_url or "").strip()
+    if not base:
+        if provider == "gemini":
+            return "https://generativelanguage.googleapis.com/v1beta"
+        if provider == "openai":
+            return "https://api.openai.com/v1"
+        return "https://api.minimax.chat/v1"
+    return base
+
+
+def _llm_chat_url(provider: str, base_url: str) -> str:
+    base = _llm_endpoint(provider, base_url).rstrip("/")
+    if provider == "gemini":
+        return base
+    if provider == "minimax":
+        if (
+            base.endswith("/chat/completions")
+            or base.endswith("/text/chatcompletion_pro")
+            or base.endswith("/text/chatcompletion_v2")
+        ):
+            return base
+        return f"{base}/chat/completions"
+    if base.endswith("/chat/completions") or base.endswith("/text/chatcompletion_pro"):
+        return base
+    return f"{base}/chat/completions"
+
+
+def _llm_available(cfg: Dict[str, Any]) -> Tuple[bool, str]:
+    provider = cfg.get("provider")
+    if provider in ("openai", "minimax", "gemini") and not cfg.get("api_key"):
+        return False, f"{provider} api_key 未配置"
+    if provider == "custom" and cfg.get("base_url") and cfg.get("model") and not cfg.get("api_key"):
+        return True, ""
+    if provider == "custom" and (not cfg.get("base_url") or not cfg.get("model")):
+        return False, "custom base_url/model 未配置"
+    return True, ""
+
+
+def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Optional[int] = None) -> str:
+    cfg = get_effective_llm_config()
+    ok, reason = _llm_available(cfg)
+    if not ok:
+        return f"LLM 未就绪: {reason}"
+
+    provider = cfg["provider"]
+    model = str(cfg.get("model") or ("abab6.5s-chat" if provider == "minimax" else "gpt-4o"))
+    temp = float(temperature if temperature is not None else cfg.get("temperature", 0.7))
+    mt = int(max_tokens if max_tokens is not None else cfg.get("max_tokens", 4096))
+
+    if provider == "gemini":
+        base = _llm_endpoint(provider, str(cfg.get("base_url") or "")).rstrip("/")
+        key = cfg.get("api_key") or ""
+        url = f"{base}/models/{model}:generateContent?key={key}"
+        body = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": temp, "maxOutputTokens": mt},
+        }
+        resp = requests.post(url, json=body, timeout=180)
+        data = resp.json()
+        if "error" in data:
+            raise RuntimeError(data["error"].get("message") or str(data["error"]))
+        candidates = data.get("candidates") or []
+        if not candidates:
+            return ""
+        content = (candidates[0].get("content") or {}).get("parts") or []
+        return (content[0].get("text") if content else "") or ""
+
+    url = _llm_chat_url(provider, str(cfg.get("base_url") or ""))
+    headers = {"Content-Type": "application/json"}
+    if cfg.get("api_key"):
+        headers["Authorization"] = f"Bearer {cfg['api_key']}"
+    payload: Dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temp,
+    }
+    if provider == "minimax":
+        payload["max_completion_tokens"] = mt
+    else:
+        payload["max_tokens"] = mt
+
+    resp = requests.post(url, headers=headers, json=payload, timeout=180)
+    data = resp.json()
+    if "error" in data:
+        err = data["error"].get("message") if isinstance(data["error"], dict) else str(data["error"])
+        raise RuntimeError(err or "llm error")
+    return (
+        (data.get("choices") or [{}])[0].get("message", {}).get("content")
+        or (data.get("choices") or [{}])[0].get("text", "")
+        or ""
+    )
+
+
+_reload_config()
+
+
+def _llm_preflight_response():
+    cfg = get_effective_llm_config()
+    ok, reason = _llm_available(cfg)
+    if ok:
+        return None
+    return jsonify({
+        "success": False,
+        "code": "llm_not_configured",
+        "error": f"LLM 未配置: {reason}",
+        "provider": cfg.get("provider"),
+        "model": cfg.get("model"),
+        "base_url": cfg.get("base_url"),
+    }), 400
 
 # 历史记录存储
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), 'data', 'grading_history.json')
@@ -188,6 +434,21 @@ def derive_topic(topic: str, branch: dict) -> str:
 
     review = (branch or {}).get('review_content') or ''
     if review:
+        candidates = []
+        for line in review.split('\n'):
+            line = line.strip()
+            m = re.match(r"^###\s*论文\d+\s*:\s*(.+)$", line)
+            if m:
+                candidates.append(m.group(1).strip())
+        if candidates:
+            try:
+                papers = load_papers()
+                idx = len(papers.get("runs") or []) % len(candidates)
+                pick = candidates[idx] or candidates[0]
+                return pick[:160]
+            except Exception:
+                return candidates[0][:160]
+
         for line in review.split('\n'):
             line = line.strip()
             if line.startswith('#'):
@@ -207,18 +468,34 @@ def load_papers() -> dict:
         "papers": [], "current_paper_id": None, "next_research_seq": 1,
         "generation_queue": [], "is_generating": False, "is_paused": False,
         "hypotheses": [], "experiments": [],
+        "current_run": None, "runs": [],
         "research_activity": {"phase": "idle", "message": "等待开始", "progress": 0},
         "settings": {"auto_continue": True, "pause_after_next": False},
+        "stop_requested": False,
     }
     data = load_json_file(PAPERS_STATE_FILE_PATH)
     if data and isinstance(data.get("papers"), list):
-        return data
+        merged = dict(default)
+        merged.update(data)
+        merged_settings = dict(default.get("settings") or {})
+        merged_settings.update((data.get("settings") or {}))
+        merged["settings"] = merged_settings
+        if merged.get("runs") is None:
+            merged["runs"] = []
+        return merged
 
     # 兼容：旧版 papers 存在 research_state.json 中
     legacy = load_json_file(RESEARCH_STATE_FILE)
     if legacy and isinstance(legacy.get("papers"), list):
-        save_json_file(PAPERS_STATE_FILE_PATH, legacy)
-        return legacy
+        merged = dict(default)
+        merged.update(legacy)
+        merged_settings = dict(default.get("settings") or {})
+        merged_settings.update((legacy.get("settings") or {}))
+        merged["settings"] = merged_settings
+        if merged.get("runs") is None:
+            merged["runs"] = []
+        save_json_file(PAPERS_STATE_FILE_PATH, merged)
+        return merged
 
     return default
 
@@ -228,12 +505,38 @@ def save_papers(data: dict):
     save_json_file(PAPERS_STATE_FILE_PATH, data)
 
 
+def _default_workflow_state() -> dict:
+    now = datetime.now().isoformat()
+    return {
+        "version": "2.0",
+        "project_name": "",
+        "created_at": now,
+        "updated_at": now,
+        "status": "idle",
+        "current_phase": "initialization",
+        "phase_history": [],
+        "literature_review": {
+            "papers_read": [],
+            "papers_to_read": [],
+            "key_themes": [],
+            "research_questions": [],
+        },
+        "research_progress": {
+            "current_iteration": 0,
+            "total_iterations_planned": 3,
+            "iterations": [],
+        },
+    }
+
+
 def load_workflow_state() -> dict:
     """加载研究工作流状态（文献调研阶段等）。"""
     data = load_json_file(WORKFLOW_STATE_FILE_PATH)
     if data and data.get("version") == "2.0":
         return data
-    return {}
+    default = _default_workflow_state()
+    save_json_file(WORKFLOW_STATE_FILE_PATH, default)
+    return default
 
 
 def save_workflow_state(data: dict):
@@ -386,7 +689,8 @@ SCORING_CRITERIA = """
 
 def score_paper(paper_content: str) -> dict:
     """使用LLM对论文进行评分"""
-    if not MINIMAX_API_KEY:
+    ok, _ = _llm_available(get_effective_llm_config())
+    if not ok:
         # 返回模拟评分
         return {
             "total_score": 6.5,
@@ -434,27 +738,7 @@ def score_paper(paper_content: str) -> dict:
 }}
 """
     try:
-        headers = {
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "abab6.5s-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "max_completion_tokens": 2048  # 限制输出
-        }
-        response = requests.post(MINIMAX_API_URL, headers=headers, json=data, timeout=60)
-        result = response.json()
-
-        # 检查API错误
-        if "error" in result:
-            error_msg = result["error"].get("message", str(result["error"]))
-            print(f"[ERROR] score_paper MiniMax API error: {error_msg}")
-            return {"error": error_msg, "total_score": 5.0, "pass": False}
-
-        # 解析LLM返回的评分
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        content = call_llm(prompt, temperature=0.3, max_tokens=2048)
         # 提取JSON
         json_match = re.search(r'\{[\s\S]*\}', content)
         if json_match:
@@ -466,7 +750,8 @@ def score_paper(paper_content: str) -> dict:
 
 def regenerate_paper(paper_content: str, feedback: str, criteria: dict) -> str:
     """根据评审反馈重新生成论文"""
-    if not MINIMAX_API_KEY:
+    ok, _ = _llm_available(get_effective_llm_config())
+    if not ok:
         return f"[模拟重生成] 基于反馈优化论文: {feedback[:50]}..."
 
     # 找出主要问题
@@ -526,34 +811,15 @@ def regenerate_paper(paper_content: str, feedback: str, criteria: dict) -> str:
     max_output_tokens = min(4096, 150000 - estimated_input_tokens)
 
     try:
-        headers = {
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "abab6.5s-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.5,
-            "max_completion_tokens": max_output_tokens
-        }
-        print(f"[DEBUG] regenerate_paper: input_len={len(prompt)}, max_output={max_output_tokens}")
-        response = requests.post(MINIMAX_API_URL, headers=headers, json=data, timeout=120)
-        result = response.json()
-
-        # 检查API错误
-        if "error" in result:
-            error_msg = result["error"].get("message", str(result["error"]))
-            print(f"[ERROR] regenerate_paper MiniMax API error: {error_msg}")
-            return f"重生成失败: {error_msg}"
-
-        return result.get("choices", [{}])[0].get("message", {}).get("content", "重生成失败")
+        return call_llm(prompt, temperature=0.5, max_tokens=max_output_tokens)
     except Exception as e:
         return f"重生成失败: {str(e)}"
 
 
 def find_related_papers(topic: str, failed_aspects: list) -> list:
     """查找相关论文以改进论文质量"""
-    if not MINIMAX_API_KEY:
+    ok, _ = _llm_available(get_effective_llm_config())
+    if not ok:
         return [
             {"title": "相关论文A", "reason": "提供方法论支持"},
             {"title": "相关论文B", "reason": "提供实验验证思路"}
@@ -579,18 +845,7 @@ def find_related_papers(topic: str, failed_aspects: list) -> list:
 使用中文输出。
 """
     try:
-        headers = {
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "abab6.5s-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3
-        }
-        response = requests.post(MINIMAX_API_URL, headers=headers, json=data, timeout=60)
-        result = response.json()
-        return result.get("choices", [{}])[0].get("message", {}).get("content", "未找到相关论文")
+        return call_llm(prompt, temperature=0.3, max_tokens=2048)
     except Exception as e:
         return f"查找失败: {str(e)}"
 
@@ -802,6 +1057,8 @@ def api_research_state():
         "papers_count": len(papers_data.get('papers', [])),
         "hypotheses": papers_data.get('hypotheses', []),
         "experiments": papers_data.get('experiments', []),
+        "current_run": papers_data.get('current_run'),
+        "runs": papers_data.get('runs', []),
         "research_activity": papers_data.get('research_activity', {}),
         "queue_length": len(papers_data.get('generation_queue', [])),
         "all_branches": branches_data.get('branches', []),
@@ -809,6 +1066,227 @@ def api_research_state():
         "data_registry_summary": {
             "seed_papers_count": get_registry().get("seed_papers", {}).get("count", 0),
             "research_archives_count": len(get_registry().get("research_archives", [])),
+        },
+    })
+
+
+@app.route('/api/research/run', methods=['GET'])
+def api_research_run():
+    papers = load_papers()
+    current_run = papers.get("current_run")
+    activity = papers.get("research_activity") or {}
+    phase = activity.get("phase") or "idle"
+    status = None
+    if isinstance(current_run, dict):
+        status = current_run.get("status")
+
+    resumable = False
+    if current_run and isinstance(current_run, dict):
+        resumable = (status in (None, "in_progress", "paused")) and (phase not in ("completed", "error"))
+
+    return jsonify({
+        "success": True,
+        "resumable": resumable,
+        "current_run": current_run,
+        "research_activity": activity,
+    })
+
+
+@app.route('/api/research/checkpoints', methods=['GET'])
+def api_research_checkpoints():
+    papers = load_papers()
+    checkpoints = []
+
+    seen = set()
+    for run in reversed(papers.get("runs") or []):
+        rid = run.get("research_id")
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        meta = {
+            "topic": run.get("topic"),
+            "started_at": run.get("started_at"),
+            "status": run.get("status"),
+            "papers_count": 1,
+        }
+        checkpoints.append({"research_id": rid, "has_checkpoint": True, "meta": meta})
+
+    base = Path(__file__).resolve().parent / "data" / "research"
+    if base.exists():
+        for ws in base.glob("*_checkpoint"):
+            if not ws.is_dir():
+                continue
+            rid = ws.name
+            if rid.endswith("_checkpoint"):
+                rid = rid[: -len("_checkpoint")]
+            if rid in seen:
+                continue
+            cp_path = ws / "checkpoint.json"
+            meta = {}
+            has_checkpoint = False
+            if cp_path.exists():
+                has_checkpoint = True
+                try:
+                    meta = json.loads(cp_path.read_text(encoding="utf-8"))
+                except Exception:
+                    meta = {}
+            checkpoints.append({"research_id": rid, "has_checkpoint": has_checkpoint, "meta": meta})
+
+    def _sort_key(item: Dict[str, Any]) -> str:
+        meta = item.get("meta") or {}
+        return str(meta.get("updated_at") or meta.get("created_at") or "")
+
+    checkpoints.sort(key=_sort_key, reverse=True)
+    return jsonify({"success": True, "checkpoints": checkpoints})
+
+
+@app.route('/api/research/resume/<research_id>', methods=['POST'])
+def api_research_resume_checkpoint(research_id: str):
+    preflight = _llm_preflight_response()
+    if preflight:
+        return preflight
+    papers_data = load_papers()
+    if papers_data.get("is_generating"):
+        return jsonify({"success": False, "error": "已有任务进行中，请先停止或等待完成"}), 409
+
+    for run in reversed(papers_data.get("runs") or []):
+        if run.get("research_id") == research_id:
+            branch_id = int(run.get("branch_id") or (get_current_branch() or {}).get("id") or 1)
+            topic = str(run.get("topic") or derive_topic("", get_current_branch()))
+            now = datetime.now().isoformat()
+            papers_data["current_run"] = {
+                "run_id": f"RUN-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}",
+                "branch_id": branch_id,
+                "topic": topic,
+                "status": "paused",
+                "started_at": now,
+                "updated_at": now,
+                "last_checkpoint_phase": "paused",
+            }
+            papers_data["hypotheses"] = []
+            papers_data["experiments"] = []
+            papers_data["generation_queue"] = []
+            papers_data["is_paused"] = True
+            papers_data["is_generating"] = False
+            papers_data["research_activity"] = {
+                "phase": "paused",
+                "message": f"已选择断点 {research_id}，准备继续…",
+                "progress": 0.0,
+                "updated_at": now,
+            }
+            save_papers(papers_data)
+            result = get_research_runner().kickoff(topic=topic, branch_id=branch_id, resume=True)
+            return jsonify({**result, "success": True, "message": "已从所选断点继续（研究流水线）"})
+
+    papers_data["is_generating"] = True
+    papers_data["is_paused"] = False
+    papers_data["research_activity"] = {
+        "phase": "resuming",
+        "message": f"从断点 {research_id} 继续…",
+        "progress": 0.08,
+        "updated_at": datetime.now().isoformat(),
+    }
+    save_papers(papers_data)
+
+    def _run():
+        try:
+            result = resume_research_checkpoint(research_id)
+            status = result.get("status") if isinstance(result, dict) else "done"
+            msg = "断点恢复完成" if status not in ("error",) else (result.get("message") if isinstance(result, dict) else "断点恢复失败")
+            add_research_log(0, research_id, "checkpoint_resume", msg, {"result": result})
+            papers = load_papers()
+            papers["is_generating"] = False
+            papers["research_activity"] = {
+                "phase": "completed" if status not in ("error",) else "error",
+                "message": msg,
+                "progress": 1.0 if status not in ("error",) else 0.0,
+                "updated_at": datetime.now().isoformat(),
+            }
+            save_papers(papers)
+        except Exception as e:
+            add_research_log(0, research_id, "checkpoint_resume", "断点恢复异常", {"error": str(e)})
+            papers = load_papers()
+            papers["is_generating"] = False
+            papers["research_activity"] = {
+                "phase": "error",
+                "message": f"断点恢复异常: {str(e)}",
+                "progress": 0.0,
+                "updated_at": datetime.now().isoformat(),
+            }
+            save_papers(papers)
+
+    threading.Thread(target=_run, daemon=True, name=f"resume-{research_id}").start()
+    return jsonify({"success": True, "message": "已启动断点恢复"})
+
+
+@app.route('/api/research/author-network/latest', methods=['GET'])
+def api_author_network_latest():
+    papers = list_seed_papers()
+    if not papers:
+        return jsonify({"success": True, "author_network": {"authors": [], "institutions": [], "papers": [], "collaborations": []}})
+
+    authors = []
+    institutions_map: Dict[str, Dict[str, Any]] = {}
+    collaborations = []
+    paper_records = []
+
+    def _inst_type(name: str) -> str:
+        n = name or ""
+        if any(k in n for k in ("大学", "学院", "University", "Institute of Technology")):
+            return "university"
+        if any(k in n for k in ("公司", "Inc", "Corp", "Research", "研究院", "实验室", "Lab")):
+            return "company"
+        return "university"
+
+    for sp in papers:
+        paper_id = sp.get("arxiv_id") or str(sp.get("id") or "")
+        paper_title = sp.get("title") or paper_id
+        raw = sp.get("authors") or ""
+        names = [a.strip() for a in raw.split(",") if a.strip()]
+        paper_records.append({"id": paper_id, "title": paper_title, "authors": names})
+
+        node_ids = []
+        for idx, name in enumerate(names):
+            role = "other"
+            if idx == 0:
+                role = "first"
+            elif idx == 1:
+                role = "second"
+            if names and idx == len(names) - 1 and len(names) > 1:
+                role = "corresponding"
+
+            institution = sp.get("institution") or "未知机构"
+            inst_type = _inst_type(institution)
+            if institution not in institutions_map:
+                institutions_map[institution] = {
+                    "id": f"inst_{len(institutions_map) + 1}",
+                    "name": institution,
+                    "type": inst_type,
+                }
+
+            aid = f"a_{paper_id}_{idx}"
+            authors.append({
+                "id": aid,
+                "name": name,
+                "role": role,
+                "institution": institution,
+                "type": inst_type,
+                "paper_id": paper_id,
+            })
+            node_ids.append(aid)
+
+        for i in range(len(node_ids) - 1):
+            collaborations.append({"author1": node_ids[i], "author2": node_ids[i + 1], "paper_id": paper_id})
+        if len(node_ids) > 2:
+            collaborations.append({"author1": node_ids[0], "author2": node_ids[-1], "paper_id": paper_id})
+
+    return jsonify({
+        "success": True,
+        "author_network": {
+            "authors": authors,
+            "institutions": list(institutions_map.values()),
+            "papers": paper_records,
+            "collaborations": collaborations,
         },
     })
 
@@ -882,12 +1360,16 @@ def api_switch_branch(branch_id: int):
 @app.route('/api/generate/start', methods=['POST'])
 def api_start_generation():
     """开始研究：后台推进文献→假设→实验→论文"""
+    preflight = _llm_preflight_response()
+    if preflight:
+        return preflight
     data = request.json or {}
 
     current_branch = resolve_branch(data.get('branch_id'))
     topic = derive_topic(data.get('topic', ''), current_branch)
 
-    result = get_research_runner().kickoff(topic=topic, branch_id=current_branch['id'])
+    resume = bool(data.get("resume"))
+    result = get_research_runner().kickoff(topic=topic, branch_id=current_branch['id'], resume=resume)
     result["current_branch"] = current_branch
     return jsonify(result)
 
@@ -897,7 +1379,6 @@ def api_pause_generation():
     """暂停生成 - 生成完下一篇后停止"""
     papers_data = load_papers()
     papers_data['settings']['pause_after_next'] = True
-    papers_data['is_paused'] = True
     save_papers(papers_data)
 
     return jsonify({"success": True, "message": "已设置暂停，将在生成下一篇论文后停止"})
@@ -906,12 +1387,19 @@ def api_pause_generation():
 @app.route('/api/generate/resume', methods=['POST'])
 def api_resume_generation():
     """继续生成"""
+    preflight = _llm_preflight_response()
+    if preflight:
+        return preflight
     papers_data = load_papers()
     papers_data['is_paused'] = False
     papers_data['settings']['pause_after_next'] = False
     save_papers(papers_data)
 
-    return jsonify({"success": True, "message": "已继续生成"})
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    branch_id = int(current_run.get("branch_id") or (get_current_branch() or {}).get("id") or 1)
+    topic = str(current_run.get("topic") or derive_topic("", get_current_branch()))
+    result = get_research_runner().kickoff(topic=topic, branch_id=branch_id, resume=True)
+    return jsonify({**result, "message": "已继续生成"})
 
 
 @app.route('/api/generate/stop', methods=['POST'])
@@ -921,6 +1409,16 @@ def api_stop_generation():
     papers_data['is_generating'] = False
     papers_data['is_paused'] = False
     papers_data['generation_queue'] = []
+    papers_data["stop_requested"] = True
+    if isinstance(papers_data.get("current_run"), dict):
+        papers_data["current_run"]["status"] = "stopped"
+        papers_data["current_run"]["updated_at"] = datetime.now().isoformat()
+    papers_data["research_activity"] = {
+        "phase": "completed",
+        "message": "已停止生成",
+        "progress": 1.0,
+        "updated_at": datetime.now().isoformat(),
+    }
     save_papers(papers_data)
 
     return jsonify({"success": True, "message": "已停止生成，清空队列"})
@@ -929,6 +1427,9 @@ def api_stop_generation():
 @app.route('/api/generate/next', methods=['POST'])
 def api_generate_next():
     """生成下一篇论文（手动触发）"""
+    preflight = _llm_preflight_response()
+    if preflight:
+        return preflight
     data = request.json or {}
 
     current_branch = resolve_branch(data.get('branch_id'))
@@ -947,13 +1448,85 @@ def api_generate_next():
     })
 
 
+def _load_json_maybe(path: Path) -> Optional[dict]:
+    try:
+        if not path.exists():
+            return None
+        return json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except Exception:
+        return None
+
+
+def _run_experiment_and_collect(*, root: Path, research_id: str) -> Dict[str, Any]:
+    names = {
+        "experiment": root / "code" / f"{research_id}_experiment.py",
+        "backtest_results": root / "metrics" / f"{research_id}_backtest_results.json",
+        "indicator_sample": root / "data" / f"{research_id}_indicator_sample.json",
+        "experiment_data": root / "data" / f"{research_id}_experiment_data.json",
+        "log": root / "logs" / f"{research_id}_experiment.log",
+    }
+    result: Dict[str, Any] = {
+        "ran": False,
+        "ok": False,
+        "error": None,
+        "paths": {k: str(v) for k, v in names.items() if k != "log"},
+        "data": {},
+    }
+    if not names["experiment"].exists():
+        result["error"] = "experiment_code_missing"
+        return result
+
+    env = dict(os.environ)
+    env["RESEARCH_ID"] = research_id
+    env["RESEARCH_ROOT"] = str(root)
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+        env.pop(key, None)
+    env["NO_PROXY"] = "*"
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(names["experiment"])],
+            cwd=str(root),
+            env=env,
+            timeout=900,
+            capture_output=True,
+            text=True,
+        )
+        out = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
+        names["log"].parent.mkdir(parents=True, exist_ok=True)
+        names["log"].write_text(out, encoding="utf-8", errors="replace")
+        result["ran"] = True
+        result["ok"] = proc.returncode == 0
+        if proc.returncode != 0:
+            result["error"] = f"experiment_failed_rc_{proc.returncode}"
+    except Exception as exc:
+        result["ran"] = True
+        result["ok"] = False
+        result["error"] = str(exc)
+
+    result["data"] = {
+        "backtest_results": _load_json_maybe(names["backtest_results"]),
+        "indicator_sample": _load_json_maybe(names["indicator_sample"]),
+        "experiment_data": _load_json_maybe(names["experiment_data"]),
+    }
+    return result
+
+
 def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None) -> dict:
     """创建并持久化一篇论文记录"""
     papers_data = load_papers()
     paper_id = len(papers_data.get('papers', [])) + 1
-    branch_papers = [p for p in papers_data.get('papers', []) if p.get('branch_id') == branch_id]
-    paper_content = generate_paper_content(topic, branch_papers)
-    title = extract_title(paper_content)
+    branch_papers = [
+        p for p in papers_data.get('papers', [])
+        if p.get('branch_id') == branch_id and p.get("status") == "generated"
+    ]
+    research_id = allocate_research_id(papers_data)
+    branches_data = load_branches()
+    branch_review = None
+    for b in branches_data.get('branches', []):
+        if b.get('id') == branch_id:
+            branch_review = b.get('review_content')
+            break
+    provisional_title = topic.strip()[:80] if topic else "未命名论文"
 
     parent_research_id = None
     if parent_paper_id:
@@ -962,17 +1535,39 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
                 parent_research_id = p.get('research_id')
                 break
 
-    research_id = allocate_research_id(papers_data)
     workspace = create_research_workspace(
+        research_id=research_id,
+        paper_id=paper_id,
+        branch_id=branch_id,
+        title=provisional_title,
+        topic=topic,
+        content=f"# {provisional_title}\n\n> 实验运行中，将在完成后生成完整论文正文。\n",
+        parent_research_id=parent_research_id,
+    )
+    root = Path(workspace["research_dir"])
+    experiment_bundle = _run_experiment_and_collect(root=root, research_id=research_id)
+    paper_content = generate_paper_content(
+        topic,
+        branch_papers,
+        branch_review=branch_review,
+        research_id=research_id,
+        experiment_bundle=experiment_bundle,
+    )
+    title = extract_title(paper_content) or provisional_title
+    save_article_markdown(root, research_id, paper_content)
+    write_meta(
+        root,
         research_id=research_id,
         paper_id=paper_id,
         branch_id=branch_id,
         title=title,
         topic=topic,
-        content=paper_content,
+        status="generated",
         parent_research_id=parent_research_id,
     )
-    bump_research_seq(papers_data)
+    workspace["file_path"] = str(root / "article" / f"{research_id}_paper.md")
+    workspace["artifacts"] = artifacts_for_api(root, research_id)
+    bump_research_seq(papers_data, research_id)
 
     paper_record = {
         "id": paper_id,
@@ -993,7 +1588,6 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
     papers_data['current_paper_id'] = paper_id
     save_papers(papers_data)
 
-    branches_data = load_branches()
     for branch in branches_data.get('branches', []):
         if branch['id'] == branch_id:
             branch.setdefault('paper_ids', []).append(paper_id)
@@ -1017,10 +1611,23 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
     return paper_record
 
 
-def generate_paper_content(topic: str, existing_papers: list) -> str:
+def generate_paper_content(
+    topic: str,
+    existing_papers: list,
+    *,
+    branch_review: Optional[str] = None,
+    research_id: Optional[str] = None,
+    experiment_bundle: Optional[Dict[str, Any]] = None,
+) -> str:
     """生成论文内容"""
-    if not MINIMAX_API_KEY:
+    cfg = get_effective_llm_config()
+    ok, reason = _llm_available(cfg)
+    if not ok:
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        rid = research_id or stamp
         return f"""# {topic}
+
+> LLM 未配置（{reason}），当前为离线占位输出。生成时间: {stamp}，Run: {rid}
 
 ## 摘要
 
@@ -1043,43 +1650,82 @@ def generate_paper_content(topic: str, existing_papers: list) -> str:
 本文提出的策略在回测中表现优异...
 """
 
-    # 使用MiniMax API生成
-    # 重要：严格控制token使用，只使用论文标题列表，不含任何内容摘要
     topic_list = ""
     if existing_papers:
-        # 只列出最近3篇论文的主题，完全不包含内容
         recent_papers = existing_papers[-3:]
         topics = [p.get('topic', '未命名') for p in recent_papers]
         topic_list = "\n".join([f"- {t}" for t in topics])
 
-    # 完整详细论文生成（优化版）
-    # 生成完整详细论文的Prompt（不省略任何章节细节）
-    prompt = f"""作为量化交易领域的学术论文写作专家，请根据以下主题生成一篇**详细完整**的学术论文。
+    exp_block = ""
+    if experiment_bundle and isinstance(experiment_bundle.get("data"), dict):
+        run_info = ""
+        if experiment_bundle.get("ran") and not experiment_bundle.get("ok"):
+            run_info = f"\n- 实验运行失败: {experiment_bundle.get('error')}\n"
+        backtest = (experiment_bundle["data"].get("backtest_results") or {})
+        exp_data = (experiment_bundle["data"].get("experiment_data") or {})
+        indicator = experiment_bundle["data"].get("indicator_sample")
+        bt_str = json.dumps(backtest, ensure_ascii=False)[:6000] if backtest else ""
+        exp_str = json.dumps(exp_data, ensure_ascii=False)[:2000] if exp_data else ""
+        ind_str = json.dumps(indicator, ensure_ascii=False)[:2000] if isinstance(indicator, list) else ""
+        exp_block = f"""
+
+## 实验产物（请基于真实数据撰写，不得编造）
+- research_id: {research_id or ""}
+- 实验脚本: {experiment_bundle.get("paths", {}).get("experiment") if experiment_bundle else ""}
+- 指标样本: {experiment_bundle.get("paths", {}).get("indicator_sample") if experiment_bundle else ""}
+- 实验数据: {experiment_bundle.get("paths", {}).get("experiment_data") if experiment_bundle else ""}
+- 回测结果: {experiment_bundle.get("paths", {}).get("backtest_results") if experiment_bundle else ""}
+{run_info}
+
+### experiment_data.json（节选）
+{exp_str}
+
+### backtest_results.json（节选）
+{bt_str}
+
+### indicator_sample.json（节选）
+{ind_str}
+"""
+
+    min_chars = 14000
+    prompt = f"""作为量化交易领域的学术论文写作专家，请根据以下主题生成一篇**详细完整、可复现、重视实验**的学术论文。
 
 研究主题：{topic}
 
-论文结构要求（每章必须写满，不能省略）：
-1. **摘要**：300-500字，涵盖问题、方法、结果、贡献
-2. **引言**：至少800字，分3-4段，包括背景、动机、现有方法不足、本文贡献（列点）、本文结构
-3. **文献综述**：至少600字，分小节对比相关工作，指出现有研究空白
-4. **方法论**：至少1000字，包含技术细节、公式推导、算法伪代码、参数设置
-5. **实验验证**：至少1000字，包含数据集描述、基准对比（表格）、消融实验（表格）、统计显著性检验
-6. **结论与未来工作**：300-500字，总结贡献、局限、下一步方向
+研究编号：{research_id or ""}
+
+论文结构要求（必须包含且写满，不能省略）：
+1. **摘要**：300-500字（问题、方法、结果、贡献）
+2. **引言**：至少1200字（背景、动机、现有方法不足、贡献点列表、结构安排）
+3. **文献综述**：至少1000字（分小节对比 6-10 篇相关方向，指出空白）
+4. **数据与实验设置**：至少1200字（数据源、时间范围、预处理、特征/指标、基准定义、评价指标、训练/验证划分）
+5. **方法论**：至少1600字（完整公式、算法伪代码、参数设置、复杂度与风险控制）
+6. **实验过程与可重复实现**：至少1200字（如何运行脚本、依赖、随机性控制、输出文件解释）
+7. **实验结果与分析**：至少1600字（与基准对比表格、风险收益指标表格、收益曲线文字解读、统计检验）
+8. **消融实验**：至少800字（移除/替换关键模块的结果表格）
+9. **结论与未来工作**：400-600字
+10. **参考文献**：至少 8 条
 
 重要约束：
-- 方法论必须严谨、可复现，包含完整数学公式
-- 实验必须包含对比实验（vs 3个以上基准方法）和消融实验
-- 使用交叉验证避免过拟合
-- 使用Markdown格式输出，包含 ## 章节标题
-- 全文字数不少于8000中文字符（或等效英文）
+- 必须使用 Markdown 输出，包含 ## 章节标题
+- 全文字数不少于 {min_chars} 中文字符（约 4-5 页 A4 正文）
 - 不要写占位符（如"此处省略..."），每个章节都必须有实质内容
+- 实验部分必须以提供的实验产物为依据，不得编造具体数值
+
+{exp_block}
 
 请直接输出完整论文，不包含任何其他说明。
 """
 
-    # 如果有历史论文主题，添加但不增加太多token
     if topic_list:
         prompt += f"已有关键主题：\n{topic_list}\n\n请确保新论文与上述主题有显著区别。\n"
+
+    if branch_review:
+        excerpt = branch_review.strip()
+        if len(excerpt) > 3000:
+            excerpt = excerpt[:3000]
+        if excerpt:
+            prompt += f"\n\n## 分支综述（用户上传摘录）\n{excerpt}\n"
 
     # 注入数据注册表中的文献与市场数据上下文
     data_context = get_paper_generation_context(topic)
@@ -1098,37 +1744,38 @@ def generate_paper_content(topic: str, existing_papers: list) -> str:
         else:
             prompt = prompt[:max_prompt_len]
 
-    # 估算token数量（中文约1.5字符/token，英文约4字符/token）
-    # MiniMax abab6.5s-chat 上下文窗口 196608 tokens，input+output 总和不超过此限制
-    estimated_input_tokens = len(prompt) // 3  # 保守估算
-    # 目标：生成完整详细论文，上限 16000 tokens（约 24000 中文字符）
-    # 留 20000 tokens 给输入，确保 input + output < 196608
-    max_output_tokens = min(16000, 196608 - estimated_input_tokens - 20000)
-    if max_output_tokens < 8000:
-        max_output_tokens = 8000  # 最低保证：至少 8000 tokens
+    estimated_input_tokens = len(prompt) // 3
+    max_output_tokens = min(32000, max(2048, 196608 - estimated_input_tokens - 20000))
+    cfg_max = int(cfg.get("max_tokens") or 0)
+    if cfg_max > 0:
+        max_output_tokens = min(max_output_tokens, cfg_max)
 
     try:
-        headers = {
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "abab6.5s-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_completion_tokens": max_output_tokens  # 动态计算的安全值
-        }
-        print(f"[DEBUG] generate_paper_content: input_len={len(prompt)}, estimated_tokens={estimated_input_tokens}, max_output={max_output_tokens}")
-        response = requests.post(MINIMAX_API_URL, headers=headers, json=data, timeout=120)
-        result = response.json()
+        content = call_llm(prompt, temperature=0.7, max_tokens=max_output_tokens)
+        if not content:
+            return ""
+        if content.startswith("LLM 未就绪"):
+            return content
+        for _ in range(3):
+            if len(content) >= min_chars and "## 参考文献" in content:
+                break
+            tail = content[-1800:]
+            cont_prompt = f"""你正在撰写一篇量化交易学术论文，请从下面已写内容的结尾继续续写。
 
-        # 检查API错误
-        if "error" in result:
-            error_msg = result["error"].get("message", str(result["error"]))
-            print(f"[ERROR] MiniMax API error: {error_msg}")
-            return f"# {topic}\n\n论文生成失败: {error_msg}"
+要求：
+- 不要重复已写内容，不要重新开始
+- 继续补齐缺失章节，并保证包含“## 参考文献”
+- 保持与上文相同的 Markdown 结构与写作风格
+- 如果上文实验结果表格不完整，补齐表格但不得编造实验数值（可使用“来自 backtest_results.json”引用已给出的数值）
 
-        return result.get("choices", [{}])[0].get("message", {}).get("content", f"# {topic}\n\n论文生成失败，请重试。")
+已写内容末尾：
+{tail}
+"""
+            more = call_llm(cont_prompt, temperature=0.7, max_tokens=max_output_tokens)
+            if not more:
+                break
+            content = content.rstrip() + "\n\n" + more.lstrip()
+        return content
     except Exception as e:
         return f"# {topic}\n\n论文生成失败: {str(e)}"
 
@@ -1712,40 +2359,22 @@ def health():
 
 def generate_with_minimax(prompt: str, max_output_tokens: int = 8192) -> str:
     """使用MiniMax API生成内容（带token限制保护）"""
-    if not MINIMAX_API_KEY:
+    cfg = get_effective_llm_config()
+    ok, _ = _llm_available(cfg)
+    if not ok:
         return None
 
     try:
-        # 估算token数量（中文约1.5字符/token，英文约4字符/token）
         estimated_input_tokens = len(prompt) // 3
-        safe_max_output = min(max_output_tokens, 150000 - estimated_input_tokens)
+        safe_max_output = min(max_output_tokens, max(256, 150000 - estimated_input_tokens))
+        cfg_max = int(cfg.get("max_tokens") or 0)
+        if cfg_max > 0:
+            safe_max_output = min(safe_max_output, cfg_max)
 
         if safe_max_output < 500:
-            print(f"[WARNING] Insufficient output tokens ({safe_max_output}), skipping")
             return None
-
-        headers = {
-            "Authorization": f"Bearer {MINIMAX_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "abab6.5s-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_completion_tokens": safe_max_output
-        }
-
-        print(f"[DEBUG] generate_with_minimax: input_len={len(prompt)}, estimated_tokens={estimated_input_tokens}, max_output={safe_max_output}")
-        response = requests.post(MINIMAX_API_URL, headers=headers, json=data, timeout=180)
-        result = response.json()
-
-        if "error" in result:
-            print(f"[ERROR] MiniMax API error: {result['error']}")
-            return None
-
-        return result.get("choices", [{}])[0].get("message", {}).get("content")
+        return call_llm(prompt, temperature=0.7, max_tokens=safe_max_output)
     except Exception as e:
-        print(f"[ERROR] generate_with_minimax failed: {e}")
         return None
 
 
@@ -2098,6 +2727,208 @@ def api_review_and_revise():
         "revision_history": revision_history,
         "message": f"评审修订循环完成 ({len(revision_history)}轮)"
     })
+
+
+# ============ 质量流水线 API (Step 4 + Step 5) ============
+
+def _get_paper_content(paper_id: int) -> Tuple[Optional[Dict], Optional[str]]:
+    """从 papers_data 获取论文内容和标题"""
+    papers_data = load_papers()
+    for p in papers_data.get('papers', []):
+        if p.get('id') == paper_id:
+            content = p.get('content', '')
+            if not content:
+                # 尝试从文件读取
+                paper_dir = p.get('paper_dir', '')
+                if paper_dir:
+                    content_path = Path(paper_dir) / 'paper.md'
+                    if content_path.exists():
+                        content = content_path.read_text(encoding='utf-8')
+            title = p.get('title', '未命名论文')
+            return p, content
+    return None, None
+
+
+@app.route('/api/quality/pipeline', methods=['POST'])
+def api_quality_pipeline():
+    """
+    运行完整质量流水线 (Step 4 AI痕迹检测 + Step 5 论文评审)
+
+    请求体:
+    {
+        "paper_id": 123,                    // 论文ID (从数据库读取)
+        "content": "论文正文...",             // 或直接提供正文
+        "title": "论文标题",                  // 论文标题
+        "run_ai_detection": true,           // 是否运行AI检测 (默认true)
+        "run_paper_review": true,           // 是否运行论文评审 (默认true)
+        "anthropic_api_key": "sk-...",      // Claude API Key (可选，从环境变量读取)
+    }
+    """
+    data = request.json or {}
+    paper_id = data.get('paper_id')
+    content = data.get('content', '')
+    title = data.get('title', '未命名论文')
+
+    # 如果没有提供 content，尝试从 paper_id 获取
+    if not content and paper_id:
+        paper_record, fetched_content = _get_paper_content(paper_id)
+        if fetched_content:
+            content = fetched_content
+            if paper_record and not title:
+                title = paper_record.get('title', title)
+
+    if not content:
+        return jsonify({"error": "请提供论文内容 (content) 或有效的 paper_id"}), 400
+
+    run_ai = data.get('run_ai_detection', True)
+    run_review = data.get('run_paper_review', True)
+
+    # 获取 API Key
+    anthropic_key = data.get('anthropic_api_key') or os.environ.get('ANTHROPIC_API_KEY')
+
+    try:
+        report = run_quality_pipeline(
+            paper_id=paper_id,
+            paper_title=title,
+            content=content,
+            anthropic_api_key=anthropic_key,
+            run_ai_detection=run_ai,
+            run_paper_review=run_review,
+            run_internal_score=False,
+        )
+
+        reporter = QualityReporter()
+        return jsonify({
+            "success": True,
+            "report": reporter.to_dict(report)
+        })
+    except Exception as e:
+        print(f"[ERROR] Quality pipeline failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"质量流水线执行失败: {str(e)}"}), 500
+
+
+@app.route('/api/quality/detect-ai', methods=['POST'])
+def api_detect_ai():
+    """
+    Step 4: AI痕迹检测 (Fast-DetectGPT)
+
+    请求体:
+    {
+        "content": "待检测文本...",
+        "paper_id": 123,          // 可选
+    }
+    """
+    data = request.json or {}
+    content = data.get('content', '')
+
+    if not content:
+        return jsonify({"error": "请提供待检测文本"}), 400
+
+    detector = FastDetectGPTDetector()
+    result = detector.detect(content)
+
+    return jsonify({
+        "success": True,
+        "ai_probability": result.ai_probability,
+        "confidence": result.confidence,
+        "criterion_score": result.criterion_score,
+        "is_ai_generated": result.is_ai_generated,
+        "risk_level": result.risk_level(),
+        "suspicious_segments": result.suspicious_segments,
+        "model_used": result.model_used,
+        "detection_time_ms": round(result.detection_time_ms, 1),
+        "local_available": detector.is_local_available,
+    })
+
+
+@app.route('/api/quality/review-paper', methods=['POST'])
+def api_review_paper():
+    """
+    Step 5: 论文评审 (Claude API)
+
+    请求体:
+    {
+        "title": "论文标题",
+        "content": "论文正文...",
+        "paper_id": 123,               // 可选
+        "anthropic_api_key": "sk-..."  // 可选
+    }
+    """
+    data = request.json or {}
+    title = data.get('title', '未命名论文')
+    content = data.get('content', '')
+
+    if not content:
+        return jsonify({"error": "请提供论文正文"}), 400
+
+    anthropic_key = data.get('anthropic_api_key') or os.environ.get('ANTHROPIC_API_KEY')
+    if not anthropic_key:
+        return jsonify({"error": "需要提供 ANTHROPIC_API_KEY"}), 400
+
+    reviewer = PaperReviewer(anthropic_api_key=anthropic_key)
+    result = reviewer.review(title, content)
+
+    return jsonify({
+        "success": True,
+        "overall_score": result.overall_score,
+        "merit_score": result.merit_score,
+        "clarity_score": result.clarity_score,
+        "reproducibility_score": result.reproducibility_score,
+        "originality_score": result.originality_score,
+        "utility_score": result.utility_score,
+        "strengths": result.strengths,
+        "weaknesses": result.weaknesses,
+        "detailed_feedback": result.detailed_feedback,
+        "recommended_venue": result.recommended_venue,
+        "reviewer_model": result.reviewer_model,
+    })
+
+
+@app.route('/api/papers/<int:paper_id>/quality-report', methods=['GET'])
+def api_get_paper_quality_report(paper_id: int):
+    """
+    获取论文质量报告 (Step 4 + Step 5)
+    GET /api/papers/{paper_id}/quality-report
+    """
+    paper_record, content = _get_paper_content(paper_id)
+
+    if not paper_record:
+        return jsonify({"error": "论文不存在"}), 404
+
+    if not content:
+        return jsonify({"error": "论文内容为空"}), 400
+
+    title = paper_record.get('title', '未命名论文')
+
+    # 获取环境变量中的 API Key
+    anthropic_key = os.environ.get('ANTHROPIC_API_KEY')
+
+    try:
+        report = run_quality_pipeline(
+            paper_id=paper_id,
+            paper_title=title,
+            content=content,
+            anthropic_api_key=anthropic_key,
+            run_ai_detection=True,
+            run_paper_review=bool(anthropic_key),
+            run_internal_score=False,
+        )
+
+        reporter = QualityReporter()
+        return jsonify({
+            "success": True,
+            "paper_id": paper_id,
+            "title": title,
+            "report": reporter.to_dict(report),
+            "ai_detection_only": not bool(anthropic_key),
+        })
+    except Exception as e:
+        print(f"[ERROR] Quality report failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"生成质量报告失败: {str(e)}"}), 500
 
 
 # ============ PaperReview.ai 外部评分 API ============
@@ -2557,7 +3388,12 @@ def api_research_reset():
     data = request.json or {}
     keep_seed = data.get('keep_seed_papers', True)
     keep_workflow = data.get('keep_workflow', True)
-    result = reset_research(keep_seed_papers=keep_seed, keep_workflow=keep_workflow)
+    remove_archives = data.get('remove_archives', False)
+    result = reset_research(
+        keep_seed_papers=keep_seed,
+        keep_workflow=keep_workflow,
+        remove_archives=remove_archives,
+    )
     return jsonify(result)
 
 
@@ -2589,6 +3425,209 @@ def api_seed_papers_fetch():
     target = min(max(int(data.get('count', 15)), 1), 25)
     result = fetch_new_papers(target_count=target, max_total=target)
     return jsonify(result)
+
+
+def _extract_author_network_from_seed_papers() -> dict:
+    """从种子论文中提取作者关系网络"""
+    import json
+    from pathlib import Path
+    
+    seed_manifest_path = Path(__file__).parent / "data" / "seed_papers" / "manifest.json"
+    
+    author_network = {
+        "authors": [],
+        "institutions": [],
+        "papers": [],
+        "collaborations": []
+    }
+    
+    if not seed_manifest_path.exists():
+        return author_network
+    
+    try:
+        manifest = json.loads(seed_manifest_path.read_text(encoding="utf-8"))
+        papers = manifest.get("seed_papers", [])
+        
+        institution_ids = {}
+        author_id_counter = 1
+        inst_id_counter = 1
+        
+        for paper in papers:
+            paper_id = f"p{paper.get('id', author_id_counter)}"
+            title = paper.get("title", "")
+            
+            # 从论文标题中提取作者信息（demo数据）
+            # 实际应该从论文的authors字段提取
+            authors_raw = paper.get("authors", "")
+            
+            # 解析作者列表
+            authors_list = []
+            if authors_raw:
+                # 简单解析，假设格式为 "Name1, Name2, Name3"
+                authors_list = [a.strip() for a in authors_raw.split(",") if a.strip()]
+            
+            # 如果没有作者信息，使用demo数据
+            if not authors_list:
+                continue
+            
+            # 为每个作者创建节点
+            for idx, author_name in enumerate(authors_list[:5]):  # 最多5个作者
+                role = "first" if idx == 0 else ("corresponding" if idx == len(authors_list) - 1 and len(authors_list) > 2 else "second")
+                
+                # 推断机构（demo）
+                institution = _infer_institution(author_name)
+                
+                author_id = f"a{author_id_counter}"
+                author_id_counter += 1
+                
+                # 添加作者节点
+                author_network["authors"].append({
+                    "id": author_id,
+                    "name": author_name,
+                    "role": role,
+                    "institution": institution["name"],
+                    "type": institution["type"],
+                    "paper_id": paper_id
+                })
+                
+                # 添加机构节点（如果不存在）
+                inst_key = institution["name"]
+                if inst_key not in institution_ids:
+                    institution_ids[inst_key] = f"i{inst_id_counter}"
+                    inst_id_counter += 1
+                    author_network["institutions"].append({
+                        "id": institution_ids[inst_key],
+                        "name": institution["name"],
+                        "type": institution["type"]
+                    })
+                
+                # 添加合作关系
+                if idx > 0:
+                    prev_author_id = f"a{author_id_counter - 2}"
+                    author_network["collaborations"].append({
+                        "author1": prev_author_id,
+                        "author2": author_id,
+                        "paper_id": paper_id
+                    })
+            
+            # 添加论文节点
+            author_network["papers"].append({
+                "id": paper_id,
+                "title": title,
+                "authors": authors_list
+            })
+    
+    except Exception as e:
+        print(f"Error extracting author network: {e}")
+    
+    return author_network
+
+
+def _infer_institution(author_name: str) -> dict:
+    """根据作者名推断机构（demo逻辑）"""
+    # demo数据，实际应该查询论文元数据
+    institutions = [
+        {"name": "清华大学", "type": "university"},
+        {"name": "北京大学", "type": "university"},
+        {"name": "上海交通大学", "type": "university"},
+        {"name": "复旦大学", "type": "university"},
+        {"name": "中科院", "type": "university"},
+        {"name": "微软亚洲研究院", "type": "company"},
+        {"name": "阿里巴巴", "type": "company"},
+        {"name": "华为诺亚", "type": "company"},
+        {"name": "腾讯AI Lab", "type": "company"},
+    ]
+    
+    # 简单hash分配
+    idx = sum(ord(c) for c in author_name) % len(institutions)
+    return institutions[idx]
+
+
+@app.route('/api/research/author-network/<research_id>', methods=['GET'])
+def api_author_network_research(research_id):
+    """获取特定研究的作者关系网络"""
+    # 简化实现，返回最新研究的作者网络
+    return api_author_network_latest()
+
+
+@app.route('/api/config/llm', methods=['GET'])
+def api_llm_config_get():
+    """获取当前 LLM 配置"""
+    _maybe_reload_config()
+    llm_config = dict(_llm_config)
+    providers = {k: dict(v) for k, v in (_llm_providers or {}).items()}
+
+    def sanitize(cfg: Dict[str, Any], provider_name: str) -> Dict[str, Any]:
+        out = dict(cfg)
+        out["api_key_configured"] = bool(_get_provider_api_key(provider_name, out))
+        out["api_key"] = ""
+        return out
+
+    current_provider = str(llm_config.get("provider") or "minimax")
+    llm_config = sanitize(llm_config, current_provider)
+    providers = {k: sanitize(v, k) for k, v in providers.items()}
+
+    return jsonify({
+        "success": True,
+        "llm": llm_config,
+        "llm_providers": providers,
+    })
+
+
+@app.route('/api/config/llm', methods=['POST'])
+def api_llm_config_update():
+    """更新 LLM 配置"""
+    data = request.json or {}
+    llm = data.get("llm") or {}
+    llm_providers = data.get("llm_providers") or {}
+    if not isinstance(llm, dict) or not isinstance(llm_providers, dict):
+        return jsonify({"success": False, "error": "invalid payload"}), 400
+
+    incoming_keys = []
+    if "api_key" in llm:
+        incoming_keys.append(("llm", llm.get("api_key")))
+    for name, cfg in llm_providers.items():
+        if isinstance(cfg, dict) and ("api_key" in cfg):
+            incoming_keys.append((f"llm_providers.{name}", cfg.get("api_key")))
+    for field, key in incoming_keys:
+        if key and (not _is_reasonable_api_key(key)):
+            return jsonify({"success": False, "error": f"{field} api_key 非法（仅支持 ASCII 且不能包含空格）"}), 400
+
+    _save_local_llm_config(llm, llm_providers)
+    _reload_config()
+
+    llm_config = dict(_llm_config)
+    providers = {k: dict(v) for k, v in (_llm_providers or {}).items()}
+
+    def sanitize(cfg: Dict[str, Any], provider_name: str) -> Dict[str, Any]:
+        out = dict(cfg)
+        out["api_key_configured"] = bool(_get_provider_api_key(provider_name, out))
+        out["api_key"] = ""
+        return out
+
+    current_provider = str(llm_config.get("provider") or "minimax")
+    llm_config = sanitize(llm_config, current_provider)
+    providers = {k: sanitize(v, k) for k, v in providers.items()}
+
+    return jsonify({
+        "success": True,
+        "message": "LLM 配置已更新",
+        "llm": llm_config,
+        "llm_providers": providers,
+    })
+
+
+@app.route('/api/config/llm/providers', methods=['GET'])
+def api_llm_providers():
+    """获取所有可用的 LLM providers 列表"""
+    _maybe_reload_config()
+    providers = _llm_providers or {}
+
+    return jsonify({
+        "success": True,
+        "providers": list(providers.keys()),
+        "current_provider": (_llm_config or {}).get('provider', 'minimax'),
+    })
 
 
 if __name__ == '__main__':
@@ -2623,4 +3662,5 @@ if __name__ == '__main__':
     print("  外部评分 > 5分  → 论文合格 (paper_passed)")
     print("  两者都通过     → 最终成功 (final_status=success)")
     print("=" * 60)
-    app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
+    port = int(os.environ.get("PORT", "8080"))
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)

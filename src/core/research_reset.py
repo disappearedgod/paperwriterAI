@@ -34,6 +34,8 @@ def _empty_papers_state() -> dict:
         "is_paused": False,
         "hypotheses": [],
         "experiments": [],
+        "current_run": None,
+        "runs": [],
         "research_activity": {"phase": "idle", "message": "等待开始", "progress": 0},
         "settings": {"auto_continue": True, "pause_after_next": False},
     }
@@ -62,9 +64,16 @@ def _empty_workflow_state() -> dict:
     }
 
 
-def reset_research(*, keep_seed_papers: bool = True, keep_workflow: bool = False) -> Dict[str, Any]:
+def reset_research(
+    *,
+    keep_seed_papers: bool = True,
+    keep_workflow: bool = False,
+    remove_archives: bool = False,
+) -> Dict[str, Any]:
     """
-    从 0 开始：备份后清空论文与研究档案，默认保留 seed_papers。
+    从 0 开始：备份后重置状态文件。
+
+    默认不删除 research 目录下的 RS-* 研究档案（避免误删下载中心资源）。
     """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_root = BACKUP_DIR / ts
@@ -98,9 +107,8 @@ def reset_research(*, keep_seed_papers: bool = True, keep_workflow: bool = False
     ]:
         backup_path(DATA_DIR / rel_path, rel_path)
 
-    # 删除 RS-* 研究档案
     removed_archives = []
-    if RESEARCH_DIR.exists():
+    if remove_archives and RESEARCH_DIR.exists():
         for item in RESEARCH_DIR.iterdir():
             if item.is_dir() and item.name.startswith("RS-"):
                 shutil.rmtree(item)
@@ -131,5 +139,6 @@ def reset_research(*, keep_seed_papers: bool = True, keep_workflow: bool = False
         "removed_archives": removed_archives,
         "kept_seed_papers": keep_seed_papers,
         "kept_workflow": keep_workflow,
+        "remove_archives": remove_archives,
         "message": f"已重置；备份位于 data/bac/{ts}/",
     }

@@ -1,0 +1,3 @@
+[submodule "vendor/fast-detect-gpt"]
+	path = vendor/fast-detect-gpt
+	url = https://github.com/baoguangsheng/fast-detect-gpt
