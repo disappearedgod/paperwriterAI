@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+server.log
+
+# Data files (keep structure but ignore contents)
+data/*.json
+data/*.db
+!data/.gitkeep
+
+# Papers and outputs
+papers/
+outputs/
+reports/
+workspace/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Server
+uploads/

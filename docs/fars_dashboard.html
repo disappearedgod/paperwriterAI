@@ -1,0 +1,3668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FARS - 全自动科研系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2035;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: .5rem;
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .stat-value.success { color: var(--accent-green); }
+        .stat-value.failed { color: var(--accent-red); }
+        .stat-value.warning { color: var(--accent-yellow); }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Topology Graph */
+        #topology-container {
+            height: 500px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            position: relative;
+        }
+
+        #topology-graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node:hover {
+            filter: brightness(1.2);
+        }
+
+        .node-hypothesis { fill: var(--accent-blue); }
+        .node-experiment { fill: var(--accent-yellow); }
+        .node-paper-success { fill: var(--accent-green); }
+        .node-paper-failed { fill: var(--accent-red); }
+
+        .link {
+            stroke: var(--border-color);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(0,0,0,0.7);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Papers List */
+        .papers-section {
+            display: none;
+        }
+
+        .papers-section.active {
+            display: block;
+        }
+
+        /* Download Center Styles */
+        #downloads-section {
+            display: none;
+        }
+
+        #downloads-section.active {
+            display: block;
+        }
+
+        .download-category {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .download-item {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .download-item-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .download-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .download-item-btns {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .paper-list {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+        }
+
+        .paper-item {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .paper-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .paper-item.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .paper-item.failed {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .paper-item h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .paper-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .paper-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .status-failed { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .status-draft { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .status-experimenting { background: rgba(245, 158, 11, 0.2); color: var(--accent-yellow); }
+
+        /* Hypotheses List */
+        .hypothesis-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .hypothesis-item {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .hypothesis-item h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .hypothesis-item p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover, .tab-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .tooltip h4 {
+            margin-bottom: 0.5rem;
+            color: var(--accent-blue);
+        }
+
+        .tooltip p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Download Button */
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .download-btn.data {
+            background: var(--accent-green);
+        }
+
+        .download-btn.data:hover {
+            background: #059669;
+        }
+
+        .download-btn.code {
+            background: var(--accent-purple);
+        }
+
+        .download-btn.code:hover {
+            background: #7c3aed;
+        }
+
+        .download-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Paper Actions */
+        .paper-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Experiment Actions */
+        .experiment-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .code-preview {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            color: var(--text-secondary);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Downloads Section */
+        .downloads-section {
+            display: none;
+        }
+
+        .downloads-section.active {
+            display: block;
+        }
+
+        .downloads-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .download-category {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .download-category:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .nav {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Grading Styles */
+        .grading-textarea {
+            width: 100%;
+            height: 300px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .grading-textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .grading-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .grading-btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .grading-btn.primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .grading-btn.success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .grading-btn.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .grading-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .grading-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .grading-loading {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Score Display */
+        .score-display {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .score-value.pass {
+            color: var(--accent-green);
+        }
+
+        .score-value.fail {
+            color: var(--accent-red);
+        }
+
+        .score-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .criteria-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .criteria-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+        }
+
+        .criteria-name {
+            font-weight: 500;
+        }
+
+        .criteria-score {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .criteria-comment {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .feedback-box {
+            padding: 1rem;
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent-yellow);
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+
+        .feedback-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-yellow);
+        }
+
+        .iteration-item {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .iteration-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .iteration-title {
+            font-weight: 600;
+        }
+
+        .iteration-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .iteration-badge.pass {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+
+        .iteration-badge.fail {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        .iteration-badge.retry {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .related-papers {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .related-paper-item {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        /* Research Control Panel */
+        .research-control {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: .75rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .control-btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .control-btn.primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
+            color: white;
+        }
+
+        .control-btn.success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .control-btn.warning {
+            background: linear-gradient(135deg, var(--accent-yellow) 0%, #d97706 100%);
+            color: white;
+        }
+
+        .control-btn.warning:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(135deg, var(--accent-red) 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .control-btn.danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .control-btn.secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .control-btn.secondary:hover {
+            background: var(--border-color);
+            border-color: var(--text-secondary);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .control-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
+
+        .branch-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            min-width: 200px;
+            cursor: pointer;
+        }
+
+        .branch-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .branch-select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.idle {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .status-badge.generating {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .status-badge.paused {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .status-badge.stopped {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-badge.generating .status-dot {
+            background: var(--accent-blue);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-badge.idle .status-dot { background: var(--text-secondary); }
+        .status-badge.paused .status-dot { background: var(--accent-yellow); }
+        .status-badge.stopped .status-dot { background: var(--accent-red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .stats-mini {
+            display: flex;
+            gap: 1rem;
+            margin-left: auto;
+        }
+
+        .stat-mini {
+            text-align: center;
+        }
+
+        .stat-mini-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .stat-mini-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Upload Modal */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: .5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .selected-file {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .selected-file-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .remove-file:hover {
+            color: var(--accent-red);
+        }
+
+        .paper-count-badge {
+            background: var(--accent-blue);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .branch-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>FARS</h1>
+        <p class="subtitle">Fully Automated Research System - 全自动科研系统</p>
+        <p class="subtitle" style="font-size: 0.85rem; margin-top: 0.5rem; color: #64748b;">
+            基于第一性原理的科研自动化 | 所有成功都建立在失败之上
+        </p>
+    </header>
+
+    <!-- Research Control Panel -->
+    <div class="research-control">
+        <div class="control-group">
+            <span class="control-label">分支:</span>
+            <select id="branch-select" class="branch-select" onchange="switchBranch(this.value)">
+                <option value="">加载中...</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <button id="btn-start" class="control-btn primary" onclick="startGeneration()">
+                ▶ 开始
+            </button>
+            <button id="btn-pause" class="control-btn warning" onclick="pauseGeneration()" style="display: none;">
+                ⏸ 暂停生成
+            </button>
+            <button id="btn-resume" class="control-btn success" onclick="resumeGeneration()" style="display: none;">
+                ▶ 继续
+            </button>
+            <button id="btn-stop" class="control-btn danger" onclick="stopGeneration()" style="display: none;">
+                ⏹ 停止
+            </button>
+            <button class="control-btn secondary" onclick="showRestartModal()">
+                🔄 重新开始
+            </button>
+            <button class="control-btn secondary" onclick="generateNextPaper()">
+                ➕ 生成下一篇
+            </button>
+            <button class="control-btn danger" onclick="resetFromZero()" title="备份后清空论文档案，保留种子文献">
+                🧹 从0开始
+            </button>
+        </div>
+
+        <div class="control-group">
+            <span id="research-status" class="status-badge idle">
+                <span class="status-dot"></span>
+                <span id="status-text">空闲</span>
+            </span>
+        </div>
+
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <div class="stat-mini-value" id="mini-papers">0</div>
+                <div class="stat-mini-label">论文</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-value" id="mini-branches">1</div>
+                <div class="stat-mini-label">分支</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-value" id="mini-iterations">0</div>
+                <div class="stat-mini-label">迭代</div>
+            </div>
+        </div>
+
+        <div id="branch-info" class="branch-info" style="display: none;">
+            当前分支: <span id="current-branch-name">-</span>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <button class="nav-btn active" data-view="topology">研究拓扑</button>
+        <button class="nav-btn" data-view="papers">论文列表</button>
+        <button class="nav-btn" data-view="hypotheses">假设管理</button>
+        <button class="nav-btn" data-view="experiments">实验记录</button>
+        <button class="nav-btn" data-view="downloads">📥 下载中心</button>
+        <button class="nav-btn" data-view="citations">🔗 引用关系图</button>
+        <button class="nav-btn" data-view="grading">📊 论文评分</button>
+        <button class="nav-btn" data-view="history">📜 历史记录</button>
+    </nav>
+
+    <main class="main-container">
+        <!-- Left Panel: Statistics + Topology -->
+        <div class="left-panel">
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-hypotheses">0</div>
+                    <div class="stat-label">总假设数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value success" id="stat-success">0</div>
+                    <div class="stat-label">成功</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value failed" id="stat-failed">0</div>
+                    <div class="stat-label">失败</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value warning" id="stat-experiments">0</div>
+                    <div class="stat-label">进行中</div>
+                </div>
+            </div>
+
+            <!-- Topology Graph -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>研究拓扑图</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                        拖拽节点 · 点击查看详情
+                    </span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="topology-container">
+                        <svg id="topology-graph"></svg>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--accent-blue);"></div>
+                                <span>假设 (Hypothesis)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--accent-yellow);"></div>
+                                <span>实验 (Experiment)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--accent-green);"></div>
+                                <span>成功论文 (Success)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--accent-red);"></div>
+                                <span>失败论文 (Failed)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Lists -->
+        <div class="right-panel">
+            <!-- Papers Section -->
+            <div id="papers-section" class="papers-section active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>论文列表</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="tabs">
+                            <button class="tab-btn active" data-filter="all">全部</button>
+                            <button class="tab-btn" data-filter="success">成功</button>
+                            <button class="tab-btn" data-filter="failed">失败</button>
+                        </div>
+                        <div id="papers-list" class="paper-list">
+                            <!-- Papers will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Downloads Section -->
+            <div id="downloads-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                        <h2>📥 资源下载中心</h2>
+                        <button type="button" class="btn-primary" id="btn-fetch-seeds" onclick="fetchNewSeedPapers()" style="font-size:0.85rem; padding:0.4rem 0.9rem;">
+                            🔄 获取最新文献 (近5年)
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="downloads-list">
+                            <!-- Downloads will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hypotheses Section -->
+            <div id="hypotheses-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>研究假设</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="hypotheses-list" class="hypothesis-list">
+                            <!-- Hypotheses will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiments Section -->
+            <div id="experiments-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>实验记录</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="experiments-list" class="hypothesis-list">
+                            <!-- Experiments will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Downloads Section (legacy, kept for structure) -->
+            <div id="downloads-section-legacy" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📥 下载中心</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="downloads-list-legacy">
+                            <!-- Legacy: 旧版硬编码内容已移除，现在统一从 API 动态加载 -->
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">📂 论文资源已迁移到上方的「资源下载中心」标签页</p>
+                        </div>
+                    </div>
+                </div>
+            <!-- Citations Section -->
+            <div id="citations-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🔗 论文引用关系图</h2>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                            拖拽节点 · 点击查看详情
+                        </span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="citations-container" style="height: 500px; background: var(--bg-secondary); position: relative;">
+                            <svg id="citations-graph"></svg>
+                            <div class="legend" style="bottom: 1rem; left: 1rem;">
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #10b981;"></div>
+                                    <span>AI生成论文 (成功)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #ef4444;"></div>
+                                    <span>AI生成论文 (失败)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-dot" style="background: #3b82f6;"></div>
+                                    <span>参考论文</span>
+                                </div>
+                                <div style="margin-top: 0.5rem; border-top: 1px solid #334155; padding-top: 0.5rem;">
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #10b981;"></div>
+                                        <span>直接引用</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #f59e0b;"></div>
+                                        <span>共同引用</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #8b5cf6;"></div>
+                                        <span> Bibliographic Coupling</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grading Section -->
+            <div id="grading-section" class="papers-section">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- 论文输入 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>📝 论文评分</h2>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">上传论文获取评分和评审意见</span>
+                        </div>
+                        <div class="card-body">
+                            <textarea id="paper-input" class="grading-textarea" placeholder="在此粘贴论文内容..."></textarea>
+                            <div class="grading-actions">
+                                <button onclick="scorePaper()" class="grading-btn primary">
+                                    ⭐ 开始评分
+                                </button>
+                                <button onclick="iterateImprove()" class="grading-btn success">
+                                    🔄 迭代改进
+                                </button>
+                                <button onclick="clearGrading()" class="grading-btn secondary">
+                                    🗑️ 清空
+                                </button>
+                            </div>
+                            <div id="grading-loading" class="grading-loading" style="display: none;">
+                                <div class="spinner"></div>
+                                <span>正在评分...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 评分结果 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>📊 评分结果</h2>
+                            <span id="grading-status" style="font-size: 0.8rem; color: var(--text-secondary);">等待评分</span>
+                        </div>
+                        <div class="card-body" id="grading-results">
+                            <div class="empty-state">
+                                <p>暂无评分结果</p>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary);">请在左侧输入论文内容并点击"开始评分"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 迭代历史 -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h2>🔄 迭代历史</h2>
+                    </div>
+                    <div class="card-body" id="iteration-history">
+                        <div class="empty-state">
+                            <p>暂无迭代记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div id="history-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📜 评分历史记录</h2>
+                        <button onclick="loadHistory()" class="grading-btn secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">
+                            🔄 刷新
+                        </button>
+                    </div>
+                    <div class="card-body" id="history-list">
+                        <div class="empty-state">
+                            <p>暂无历史记录</p>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">点击刷新加载历史记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="tooltip" class="tooltip" style="display: none;"></div>
+
+    <!-- Code Preview Modal -->
+    <div id="code-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">代码预览</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="code-content" class="code-preview"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restart Modal -->
+    <div id="restart-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🔄 重新开始研究</h3>
+                <button class="modal-close" onclick="closeRestartModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    上传新的综述文档，系统将创建一个与历史数据不相关的新分支来生成研究论文。
+                </p>
+
+                <div class="upload-area" id="upload-area" onclick="document.getElementById('review-file-input').click()">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-hint">
+                        点击或拖拽文件到此处<br>
+                        <small>支持 .md, .txt, .pdf 格式</small>
+                    </div>
+                </div>
+                <input type="file" id="review-file-input" class="file-input" accept=".md,.txt,.pdf"
+                    onchange="handleFileSelect(this.files[0])">
+
+                <div id="selected-file-container" style="display: none;">
+                    <div class="selected-file">
+                        <span id="selected-file-icon">📄</span>
+                        <span class="selected-file-name" id="selected-file-name"></span>
+                        <button class="remove-file" onclick="removeSelectedFile()">&times;</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label class="control-label" style="display: block; margin-bottom: 0.5rem;">新分支名称:</label>
+                    <input type="text" id="new-branch-name" class="grading-textarea"
+                        placeholder="输入新分支名称，如：布林带策略研究"
+                        style="height: 60px; margin-bottom: 0;">
+                </div>
+
+                <div class="grading-actions" style="justify-content: flex-end;">
+                    <button onclick="closeRestartModal()" class="grading-btn secondary">取消</button>
+                    <button id="btn-confirm-restart" onclick="confirmRestart()" class="grading-btn primary" disabled>
+                        ✅ 确认创建新分支
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FARS 运行时数据（初始为空，仅从 API 加载；非 cookie/localStorage）
+        let farsData = createEmptyFarsData();
+
+        function createEmptyFarsData() {
+            return {
+                filePaths: { papers: {}, experiments: {}, code: {} },
+                hypotheses: [],
+                experiments: [],
+                papers: [],
+                topology: { nodes: [], edges: [] },
+                statistics: {
+                    total_hypotheses: 0,
+                    total_experiments: 0,
+                    total_papers: 0,
+                    success_rate: 0,
+                    avg_quality_score: 0,
+                    status_distribution: {
+                        success: 0, failed: 0, experimenting: 0, hypothesis: 0, abandoned: 0
+                    }
+                },
+                citations: { aiPapers: [], references: [], edges: [] }
+            };
+        }
+
+        function computeStatistics(data) {
+            const papers = data.papers || [];
+            const hypotheses = data.hypotheses || [];
+            const experiments = data.experiments || [];
+            const dist = { success: 0, failed: 0, experimenting: 0, hypothesis: 0, abandoned: 0 };
+            papers.forEach(p => {
+                const s = p.status === 'generated' || p.status === 'success' ? 'success' : p.status;
+                if (dist[s] !== undefined) dist[s]++;
+            });
+            const scores = papers.map(p => parseFloat(p.quality_score)).filter(n => !isNaN(n));
+            return {
+                total_hypotheses: hypotheses.length,
+                total_experiments: experiments.length,
+                total_papers: papers.length,
+                success_rate: papers.length ? (dist.success / papers.length) : 0,
+                avg_quality_score: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+                status_distribution: dist
+            };
+        }
+
+        function buildTopologyFromPapers(papers, branches = []) {
+            const nodes = [];
+            const edges = [];
+            branches.forEach(b => {
+                nodes.push({
+                    id: `branch_${b.id}`,
+                    type: 'hypothesis',
+                    label: (b.name || `分支${b.id}`).slice(0, 12),
+                    status: b.status || 'active'
+                });
+            });
+            papers.forEach(p => {
+                const ok = ['generated', 'success', 'improved'].includes(p.status);
+                nodes.push({
+                    id: `paper_${p.id}`,
+                    type: ok ? 'paper-success' : 'paper-failed',
+                    label: (p.research_id || `P${p.id}`).slice(0, 14),
+                    status: p.status
+                });
+                if (p.branch_id) {
+                    edges.push({ source: `branch_${p.branch_id}`, target: `paper_${p.id}` });
+                }
+            });
+            return { nodes, edges };
+        }
+
+        function buildCitationsFromPapers(papers, seedRefs = []) {
+            const aiPapers = papers.map(p => ({
+                id: `paper_${p.id}`,
+                title: p.title,
+                status: ['generated', 'success', 'improved'].includes(p.status) ? 'success' : 'failed',
+                arxiv: p.research_id || null
+            }));
+            const references = (seedRefs || []).map((sp, i) => ({
+                id: `ref_${sp.id || i + 1}`,
+                title: sp.title,
+                authors: sp.authors || '',
+                arxiv: sp.arxiv_id || null,
+                year: sp.year,
+                key_contribution: (sp.key_topics || []).join(', ')
+            }));
+            return { aiPapers, references, edges: [] };
+        }
+
+        function applyFarsDataToUI() {
+            renderStatistics(farsData.statistics);
+            renderTopology(farsData.topology);
+            renderPapers(farsData.papers);
+            renderHypotheses(farsData.hypotheses);
+            renderExperiments(farsData.experiments);
+            renderCitations();
+            const dl = document.getElementById('downloads-list');
+            if (dl) renderDownloads();
+        }
+
+        let seedPaperLibrary = [];
+
+        /** 重置后清空前台所有面板（不依赖 cookie）；种子文献库单独保留 */
+        function resetFrontendToEmpty() {
+            farsData = createEmptyFarsData();
+            resetTopologyGraphState();
+            applyFarsDataToUI();
+            loadSeedPaperLibrary();
+            clearGrading();
+            const historyList = document.getElementById('history-list');
+            if (historyList) {
+                historyList.innerHTML = '<div class="empty-state"><p>暂无历史记录</p></div>';
+            }
+            document.getElementById('mini-papers').textContent = '0';
+            document.getElementById('mini-branches').textContent = '0';
+            document.getElementById('mini-iterations').textContent = '0';
+            const branchInfo = document.getElementById('branch-info');
+            if (branchInfo) branchInfo.style.display = 'none';
+        }
+
+        /* 以下为已弃用的静态演示数据，不再在页面加载时使用
+        const DEMO_FARS_DATA = {
+            // File paths for downloads
+            filePaths: {
+                papers: {
+                    "paper_001": {
+                        markdown: "../outputs/generated_paper.md",
+                        latex: "../workspace/projects/proj_20260620_131657_ed54dda9/papers/paper.tex",
+                        icml: "../workspace/projects/proj_20260620_131657_ed54dda9/papers/icml_submission.json",
+                        paperreview: "../workspace/projects/proj_20260620_131657_ed54dda9/papers/paperreview_submission.json",
+                        // 关联实验数据
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json",
+                        // 关联代码
+                        code: "../scripts/real_experiment.py"
+                    },
+                    "paper_002": {
+                        markdown: "../outputs/generated_paper.md",
+                        latex: "../workspace/projects/proj_20260620_131657_ed54dda9/papers/paper.tex",
+                        // 关联实验数据
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json",
+                        // 关联代码
+                        code: "../scripts/real_experiment.py"
+                    },
+                    "paper_003": {
+                        markdown: "../outputs/generated_paper.md",
+                        latex: "../workspace/projects/proj_20260620_131657_ed54dda9/papers/paper.tex",
+                        // 关联实验数据
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json",
+                        // 关联代码
+                        code: "../scripts/real_experiment.py"
+                    }
+                },
+                experiments: {
+                    "exp_001": {
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json"
+                    },
+                    "exp_002": {
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json"
+                    },
+                    "exp_003": {
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/backtest_results.json",
+                        indicators: "../workspace/projects/proj_20260620_131657_ed54dda9/indicator_sample.json"
+                    },
+                    "exp_004": {
+                        data: "../workspace/projects/proj_20260620_131657_ed54dda9/experiment_data.json"
+                    }
+                },
+                code: {
+                    "exp_001": "../scripts/real_experiment.py",
+                    "exp_002": "../scripts/real_experiment.py",
+                    "exp_003": "../scripts/real_experiment.py",
+                    "exp_004": "../scripts/real_experiment_v2.py",
+                    "backtest": "../src/tools/backtest.py"
+                }
+            },
+            hypotheses: [
+                {
+                    id: "hyp_001",
+                    title: "MA交叉策略在A股市场的有效性",
+                    description: "移动平均线交叉策略（MA5/MA20）在中国A股市场能够获取超额收益，年化超额收益预期大于2%",
+                    status: "success",
+                    created_at: "2026-06-20T10:00:00",
+                    tags: ["技术分析", "动量策略", "A股"],
+                    expected_outcome: "年化超额收益 > 2%",
+                    actual_outcome: "实验结果显示该策略未能战胜基准"
+                },
+                {
+                    id: "hyp_002",
+                    title: "RSI均值回归策略的有效性",
+                    description: "RSI指标在超买超卖区域具有均值回归特性，预期胜率大于55%",
+                    status: "failed",
+                    created_at: "2026-06-20T10:30:00",
+                    tags: ["技术分析", "均值回归", "RSI"],
+                    expected_outcome: "胜率 > 55%",
+                    actual_outcome: "RSI策略在测试期间胜率仅为42%"
+                },
+                {
+                    id: "hyp_003",
+                    title: "布林带策略的盈利性",
+                    description: "价格触及布林带下轨时买入，上轨时卖出能够获利，预期夏普比率大于1.0",
+                    status: "success",
+                    created_at: "2026-06-20T11:00:00",
+                    tags: ["技术分析", "布林带", "趋势跟踪"],
+                    expected_outcome: "夏普比率 > 1.0",
+                    actual_outcome: "布林带策略表现良好，夏普比率达到.45"
+                },
+                {
+                    id: "hyp_004",
+                    title: "成交量加权的动量效应",
+                    description: "高成交量时期的动量效应更强，预期IC大于0.05",
+                    status: "experimenting",
+                    created_at: "2026-06-20T11:30:00",
+                    tags: ["动量策略", "成交量", "因子投资"],
+                    expected_outcome: "IC > 0.05",
+                    actual_outcome: "待实验完成"
+                },
+                {
+                    id: "hyp_005",
+                    title: "PE估值因子的预测能力",
+                    description: "低PE股票在未来一年具有更高的收益，预期IC大于0.03",
+                    status: "hypothesis",
+                    created_at: "2026-06-20T12:00:00",
+                    tags: ["基本面", "估值因子", "价值投资"],
+                    expected_outcome: "IC > 0.03",
+                    actual_outcome: ""
+                },
+                {
+                    id: "hyp_006",
+                    title: "年报披露前的预期效应",
+                    description: "企业在年报披露前存在预期效应，机构提前布局导致价格异动",
+                    status: "abandoned",
+                    created_at: "2026-06-19T09:00:00",
+                    tags: ["事件驱动", "信息不对称"],
+                    expected_outcome: "异常收益 > 3%",
+                    actual_outcome: "数据获取困难，暂时放弃"
+                }
+            ],
+            experiments: [
+                {
+                    id: "exp_001",
+                    hypothesis_id: "hyp_001",
+                    title: "MA交叉策略回测实验",
+                    method: "量化回测",
+                    status: "success",
+                    started_at: "2026-06-20T10:05:00",
+                    completed_at: "2026-06-20T10:15:00",
+                    metrics: {
+                        total_return: -63.68,
+                        sharpe_ratio: -0.61,
+                        max_drawdown: -71.54
+                    }
+                },
+                {
+                    id: "exp_002",
+                    hypothesis_id: "hyp_002",
+                    title: "RSI均值回归策略回测",
+                    method: "量化回测",
+                    status: "failed",
+                    started_at: "2026-06-20T10:35:00",
+                    completed_at: "2026-06-20T10:45:00",
+                    metrics: {
+                        win_rate: 0.42,
+                        total_return: -65.89
+                    }
+                },
+                {
+                    id: "exp_003",
+                    hypothesis_id: "hyp_003",
+                    title: "布林带策略回测实验",
+                    method: "量化回测",
+                    status: "success",
+                    started_at: "2026-06-20T11:05:00",
+                    completed_at: "2026-06-20T11:20:00",
+                    metrics: {
+                        total_return: -30.43,
+                        sharpe_ratio: 0.45,
+                        max_drawdown: -38.77
+                    }
+                },
+                {
+                    id: "exp_004",
+                    hypothesis_id: "hyp_004",
+                    title: "成交量动量因子分析",
+                    method: "因子分析",
+                    status: "experimenting",
+                    started_at: "2026-06-20T11:35:00",
+                    metrics: {}
+                }
+            ],
+            papers: [
+                {
+                    id: "paper_001",
+                    title: "基于技术指标的A股量化交易策略实证研究",
+                    hypothesis_id: "hyp_001",
+                    status: "success",
+                    quality_score: 6.2,
+                    created_at: "2026-06-20T10:20:00",
+                    abstract: "本研究对中国A股市场中基于技术指标的量化交易策略进行了全面评估...",
+                    feedback: "论文方法论清晰，但结果需进一步讨论"
+                },
+                {
+                    id: "paper_002",
+                    title: "RSI均值回归策略在中国A股市场的实证分析",
+                    hypothesis_id: "hyp_002",
+                    status: "failed",
+                    quality_score: 4.5,
+                    created_at: "2026-06-20T10:50:00",
+                    abstract: "本文研究了RSI指标在A股市场的均值回归特性...",
+                    feedback: "策略表现不佳，建议重新设计指标参数"
+                },
+                {
+                    id: "paper_003",
+                    title: "布林带策略在中国A股市场的应用研究",
+                    hypothesis_id: "hyp_003",
+                    status: "success",
+                    quality_score: 5.8,
+                    created_at: "2026-06-20T11:25:00",
+                    abstract: "本文探讨了布林带策略在A股市场的盈利性和适用性...",
+                    feedback: ""
+                }
+            ],
+            topology: {
+                nodes: [
+                    { id: "hyp_001", type: "hypothesis", label: "MA交叉策略", status: "success" },
+                    { id: "hyp_002", type: "hypothesis", label: "RSI均值回归", status: "failed" },
+                    { id: "hyp_003", type: "hypothesis", label: "布林带策略", status: "success" },
+                    { id: "hyp_004", type: "hypothesis", label: "成交量动量", status: "experimenting" },
+                    { id: "hyp_005", type: "hypothesis", label: "PE估值因子", status: "hypothesis" },
+                    { id: "exp_001", type: "experiment", label: "MA回测", status: "success" },
+                    { id: "exp_002", type: "experiment", label: "RSI回测", status: "failed" },
+                    { id: "exp_003", type: "experiment", label: "布林带回测", status: "success" },
+                    { id: "exp_004", type: "experiment", label: "动量因子分析", status: "experimenting" },
+                    { id: "paper_001", type: "paper-success", label: "MA交叉论文", status: "success" },
+                    { id: "paper_002", type: "paper-failed", label: "RSI论文", status: "failed" },
+                    { id: "paper_003", type: "paper-success", label: "布林带论文", status: "success" }
+                ],
+                edges: [
+                    { source: "hyp_001", target: "exp_001" },
+                    { source: "hyp_002", target: "exp_002" },
+                    { source: "hyp_003", target: "exp_003" },
+                    { source: "hyp_004", target: "exp_004" },
+                    { source: "exp_001", target: "paper_001" },
+                    { source: "exp_002", target: "paper_002" },
+                    { source: "exp_003", target: "paper_003" }
+                ]
+            },
+            statistics: {
+                total_hypotheses: 6,
+                total_experiments: 4,
+                total_papers: 3,
+                success_rate: 0.5,
+                avg_quality_score: 5.5,
+                status_distribution: {
+                    success: 3,
+                    failed: 2,
+                    experimenting: 1,
+                    hypothesis: 1,
+                    abandoned: 1
+                }
+            },
+            // 引用关系数据
+            citations: {
+                // AI生成的论文
+                aiPapers: [
+                    { id: "paper_001", title: "基于技术指标的A股量化交易策略实证研究", status: "success", arxiv: "2409.06289" },
+                    { id: "paper_002", title: "RSI均值回归策略在中国A股市场的实证分析", status: "failed", arxiv: null },
+                    { id: "paper_003", title: "布林带策略在中国A股市场的应用研究", status: "success", arxiv: null }
+                ],
+                // 参考论文(被引用)
+                references: [
+                    { id: "ref_001", title: "Automate Strategy Finding with LLM in Quant Investment", authors: "Kou et al.", arxiv: "2409.06289", year: 2024, key_contribution: "三阶段框架:Seed Alpha Factory+多智能体评估+MLP权重优化" },
+                    { id: "ref_002", title: "AlphaPortfolio", authors: "Cong et al.", arxiv: null, year: 2024, key_contribution: "深度强化学习直接优化投资目标,夏普比率>2" },
+                    { id: "ref_003", title: "Towards Scientific Intelligence", authors: "Ren et al.", arxiv: "2503.24047", year: 2025, key_contribution: "LLM科学智能体的架构、设计、基准、应用和伦理考量" },
+                    { id: "ref_004", title: "From AI for Science to Agentic Science", authors: "Wei et al.", arxiv: "2508.14111", year: 2025, key_contribution: "Agentic Science的定义与框架,五大核心能力,四阶段工作流" },
+                    { id: "ref_005", title: "101 Formulaic Alphas", authors: "Kakushadze", arxiv: null, year: 2016, key_contribution: "101个公式化Alpha因子模板" },
+                    { id: "ref_006", title: "FinCon", authors: "Yu et al.", arxiv: null, year: 2024, key_contribution: "LLM多智能体系统用于金融决策" }
+                ],
+                // 边关系 - 不同类型的边用不同颜色表示
+                edges: [
+                    // 直接引用 (绿色 #10b981)
+                    { source: "paper_001", target: "ref_001", type: "citation", weight: 0.8 },
+                    { source: "paper_001", target: "ref_002", type: "citation", weight: 0.6 },
+                    { source: "paper_001", target: "ref_005", type: "citation", weight: 0.5 },
+                    { source: "paper_002", target: "ref_001", type: "citation", weight: 0.7 },
+                    { source: "paper_002", target: "ref_003", type: "citation", weight: 0.4 },
+                    { source: "paper_003", target: "ref_001", type: "citation", weight: 0.9 },
+                    { source: "paper_003", target: "ref_002", type: "citation", weight: 0.7 },
+                    { source: "paper_003", target: "ref_004", type: "citation", weight: 0.5 },
+                    // 共同引用 (橙色 #f59e0b) - 两篇AI论文引用同一参考文献
+                    { source: "paper_001", target: "paper_003", type: "co_citation", weight: 0.3 },
+                    // Bibliographic Coupling (紫色 #8b5cf6) - 互相引用相同的参考文献
+                    { source: "paper_001", target: "paper_002", type: "bibliographic_coupling", weight: 0.4 }
+                ]
+            }
+        }; */
+
+        // Initialize — 从 API 加载，不在每次打开页面时清空
+        document.addEventListener('DOMContentLoaded', () => {
+            initNavigation();
+            initResearchControl();
+        });
+
+        // Navigation
+        function initNavigation() {
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const view = btn.dataset.view;
+                    document.querySelectorAll('.papers-section').forEach(s => s.classList.remove('active'));
+
+                    if (view === 'topology') {
+                        // topology is always visible on left
+                    } else if (view === 'downloads') {
+                        document.getElementById('downloads-section').classList.add('active');
+                        renderDownloads();
+                    } else if (view === 'citations') {
+                        document.getElementById('citations-section').classList.add('active');
+                        // 重新渲染引用图以确保正确显示
+                        setTimeout(() => renderCitations(), 100);
+                    } else if (view === 'grading') {
+                        document.getElementById('grading-section').classList.add('active');
+                    } else if (view === 'history') {
+                        document.getElementById('history-section').classList.add('active');
+                        loadHistory();
+                    } else {
+                        document.getElementById(`${view}-section`).classList.add('active');
+                    }
+                });
+            });
+
+            // Paper filter tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderPapers(farsData.papers, btn.dataset.filter);
+                });
+            });
+        }
+
+        // Statistics
+        function renderStatistics(stats) {
+            document.getElementById('stat-hypotheses').textContent = stats.total_hypotheses;
+            document.getElementById('stat-success').textContent = stats.status_distribution.success || 0;
+            document.getElementById('stat-failed').textContent = (stats.status_distribution.failed || 0) + (stats.status_distribution.abandoned || 0);
+            document.getElementById('stat-experiments').textContent = stats.status_distribution.experimenting || 0;
+        }
+
+        // Topology Graph — 增量更新，仅新节点有入场动画
+        const topologyGraphState = {
+            nodePositions: new Map(),
+            knownNodeIds: new Set(),
+            simulation: null,
+            tickHandler: null,
+        };
+
+        function resetTopologyGraphState() {
+            if (topologyGraphState.simulation) {
+                topologyGraphState.simulation.stop();
+            }
+            topologyGraphState.nodePositions.clear();
+            topologyGraphState.knownNodeIds.clear();
+            topologyGraphState.simulation = null;
+            topologyGraphState.tickHandler = null;
+            d3.select('#topology-graph').selectAll('*').remove();
+        }
+
+        function renderTopology(topology) {
+            const container = document.getElementById('topology-container');
+            const svg = d3.select('#topology-graph');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            if (width === 0 || height === 0) return;
+
+            svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+            const nodes = topology.nodes.map(n => {
+                const saved = topologyGraphState.nodePositions.get(n.id);
+                const node = { ...n };
+                if (saved) {
+                    node.x = saved.x;
+                    node.y = saved.y;
+                    if (saved.fx != null) node.fx = saved.fx;
+                    if (saved.fy != null) node.fy = saved.fy;
+                }
+                return node;
+            });
+
+            const nodeMap = new Map(nodes.map(n => [n.id, n]));
+            const links = topology.edges.map(e => ({
+                id: `${e.source}->${e.target}`,
+                source: nodeMap.get(e.source),
+                target: nodeMap.get(e.target),
+            })).filter(l => l.source && l.target);
+
+            const currentIds = new Set(nodes.map(n => n.id));
+            const newNodeIds = nodes.filter(n => !topologyGraphState.knownNodeIds.has(n.id)).map(n => n.id);
+            const hasNewNodes = newNodeIds.length > 0;
+            const isFirstRender = topologyGraphState.knownNodeIds.size === 0 && nodes.length > 0;
+
+            // 新节点：在关联父节点附近或画布中心出现
+            newNodeIds.forEach(id => {
+                const node = nodeMap.get(id);
+                const parentLink = links.find(l => l.target.id === id || l.source.id === id);
+                const anchor = parentLink
+                    ? (parentLink.target.id === id ? parentLink.source : parentLink.target)
+                    : null;
+                if (anchor && anchor.x != null) {
+                    node.x = anchor.x + (Math.random() - 0.5) * 60;
+                    node.y = anchor.y + (Math.random() - 0.5) * 60;
+                } else {
+                    node.x = width / 2 + (Math.random() - 0.5) * 80;
+                    node.y = height / 2 + (Math.random() - 0.5) * 80;
+                }
+            });
+
+            // 首次渲染：分散初始位置，避免从中心弹出
+            if (isFirstRender) {
+                nodes.forEach((n, i) => {
+                    const angle = (2 * Math.PI * i) / Math.max(nodes.length, 1);
+                    const r = Math.min(width, height) * 0.28;
+                    n.x = width / 2 + r * Math.cos(angle);
+                    n.y = height / 2 + r * Math.sin(angle);
+                });
+            }
+
+            let simulation = topologyGraphState.simulation;
+            if (!simulation) {
+                simulation = d3.forceSimulation(nodes)
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+                    .force('charge', d3.forceManyBody().strength(-200))
+                    .force('center', d3.forceCenter(width / 2, height / 2))
+                    .force('collision', d3.forceCollide().radius(30));
+                topologyGraphState.simulation = simulation;
+            } else {
+                simulation.nodes(nodes);
+                simulation.force('link').links(links);
+                simulation.force('center', d3.forceCenter(width / 2, height / 2));
+            }
+
+            const linkLayer = svg.selectAll('g.topology-links').data([0]).join('g').attr('class', 'topology-links');
+            const link = linkLayer.selectAll('line')
+                .data(links, d => d.id)
+                .join(
+                    enter => enter.append('line')
+                        .attr('class', 'link')
+                        .attr('stroke', '#334155')
+                        .attr('stroke-width', 1.5)
+                        .attr('opacity', 0)
+                        .call(e => e.transition().duration(hasNewNodes ? 400 : 0).attr('opacity', 1)),
+                    update => update,
+                    exit => exit.transition().duration(300).attr('opacity', 0).remove()
+                );
+
+            const nodeLayer = svg.selectAll('g.topology-nodes').data([0]).join('g').attr('class', 'topology-nodes');
+            const node = nodeLayer.selectAll('g.node')
+                .data(nodes, d => d.id)
+                .join(
+                    enter => {
+                        const g = enter.append('g')
+                            .attr('class', 'node')
+                            .attr('transform', d => `translate(${d.x},${d.y})`)
+                            .style('opacity', 0)
+                            .call(d3.drag()
+                                .on('start', dragstarted)
+                                .on('drag', dragged)
+                                .on('end', dragended));
+                        g.append('circle')
+                            .attr('r', d => d.type === 'hypothesis' ? 15 : d.type.startsWith('paper') ? 18 : 12)
+                            .attr('fill', nodeFill)
+                            .attr('stroke', '#1e293b')
+                            .attr('stroke-width', 2);
+                        g.append('text')
+                            .text(d => (d.label || '').substring(0, 8))
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', 25)
+                            .attr('fill', '#94a3b8')
+                            .attr('font-size', '10px');
+                        g.on('mouseover', nodeMouseover).on('mouseout', nodeMouseout);
+                        g.transition().duration(500).style('opacity', 1);
+                        return g;
+                    },
+                    update => {
+                        update.select('circle').attr('fill', nodeFill);
+                        update.select('text').text(d => (d.label || '').substring(0, 8));
+                        return update;
+                    },
+                    exit => exit.transition().duration(300).style('opacity', 0).remove()
+                );
+
+            if (topologyGraphState.tickHandler) {
+                simulation.on('tick', null);
+            }
+
+            const tickHandler = () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+                nodes.forEach(n => {
+                    topologyGraphState.nodePositions.set(n.id, {
+                        x: n.x, y: n.y, fx: n.fx, fy: n.fy,
+                    });
+                });
+            };
+            topologyGraphState.tickHandler = tickHandler;
+            simulation.on('tick', tickHandler);
+
+            if (hasNewNodes || isFirstRender) {
+                simulation.alpha(hasNewNodes ? 0.35 : 0.5).restart();
+            } else {
+                simulation.stop();
+                tickHandler();
+            }
+
+            topologyGraphState.knownNodeIds = currentIds;
+
+            function nodeFill(d) {
+                if (d.type === 'hypothesis') {
+                    return d.status === 'success' ? '#10b981'
+                        : d.status === 'failed' ? '#ef4444'
+                        : d.status === 'experimenting' ? '#f59e0b' : '#3b82f6';
+                }
+                return d.type === 'paper-success' ? '#10b981' : '#ef4444';
+            }
+
+            function nodeMouseover(event, d) {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.innerHTML = `
+                    <h4>${d.label}</h4>
+                    <p><strong>类型:</strong> ${d.type}</p>
+                    <p><strong>状态:</strong> ${d.status}</p>
+                    ${d.metrics ? `<p><strong>指标:</strong> ${JSON.stringify(d.metrics).substring(0, 50)}...</p>` : ''}
+                `;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+            }
+
+            function nodeMouseout() {
+                document.getElementById('tooltip').style.display = 'none';
+            }
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.15).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+                topologyGraphState.nodePositions.set(d.id, { x: d.x, y: d.y, fx: null, fy: null });
+            }
+        }
+
+        // Papers
+        function renderPapers(papers, filter = 'all') {
+            const container = document.getElementById('papers-list');
+            let filtered = papers;
+
+            if (filter === 'success') {
+                filtered = papers.filter(p => p.status === 'success');
+            } else if (filter === 'failed') {
+                filtered = papers.filter(p => p.status === 'failed');
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无论文</p></div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(paper => {
+                const files = farsData.filePaths.papers[paper.id] || {};
+                const researchLabel = paper.research_id ? `<span style="color:var(--accent-purple)">${paper.research_id}</span> · ` : '';
+                const abstract = paper.abstract || '';
+                return `
+                <div class="paper-item ${paper.status}">
+                    <h3>${paper.title}</h3>
+                    <div class="paper-meta">
+                        ${researchLabel}<span>创建: ${new Date(paper.created_at).toLocaleDateString()}</span>
+                        <span>质量分: ${paper.quality_score}</span>
+                    </div>
+                    ${abstract ? `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                        ${abstract.substring(0, 100)}${abstract.length > 100 ? '...' : ''}
+                    </p>` : ''}
+                    <span class="paper-status status-${paper.status}">${getStatusText(paper.status)}</span>
+                    ${paper.feedback ? `<p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--accent-yellow);">审稿意见: ${paper.feedback}</p>` : ''}
+                    <div class="paper-actions">
+                        <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">论文:</span>
+                        ${files.markdown ? `<a href="${files.markdown}" download class="download-btn" title="下载Markdown">📄 MD</a>` : ''}
+                        ${files.latex ? `<a href="${files.latex}" download class="download-btn" title="下载LaTeX">📜 LaTeX</a>` : ''}
+                        ${files.icml ? `<a href="${files.icml}" download class="download-btn" title="下载ICML投稿">📋 ICML</a>` : ''}
+                    </div>
+                    ${files.data || files.code ? `
+                    <div class="paper-actions" style="margin-top: 0.5rem;">
+                        <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">数据:</span>
+                        ${files.data ? `<a href="${files.data}" download class="download-btn data" title="下载实验数据">📊 数据</a>` : ''}
+                        ${files.indicators ? `<a href="${files.indicators}" download class="download-btn data" title="下载指标数据">📈 指标</a>` : ''}
+                    </div>
+                    <div class="paper-actions" style="margin-top: 0.5rem;">
+                        <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">代码:</span>
+                        ${files.code ? `<a href="${files.code}" download class="download-btn code" title="下载实验代码">🐍 实验代码</a>` : ''}
+                        ${files.backtest ? `<a href="${files.backtest}" download class="download-btn code" title="下载回测引擎">⚙️ 回测引擎</a>` : ''}
+                        ${files.code ? `<button onclick="previewCode('${files.code}')" class="download-btn code" title="预览代码" style="margin-left: 0.25rem;">👁️ 预览</button>` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            `}).join('');
+        }
+
+        // Hypotheses
+        function renderHypotheses(hypotheses) {
+            const container = document.getElementById('hypotheses-list');
+
+            if (hypotheses.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无假设</p></div>';
+                return;
+            }
+
+            container.innerHTML = hypotheses.map(hyp => `
+                <div class="hypothesis-item">
+                    <h4 style="color: ${getStatusColor(hyp.status)};">${hyp.title}</h4>
+                    <p>${hyp.description}</p>
+                    <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${(hyp.tags || []).map(tag => `<span style="background: var(--bg-card); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${tag}</span>`).join('')}
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.8rem;">
+                        <span class="paper-status status-${hyp.status}">${getStatusText(hyp.status)}</span>
+                        ${hyp.expected_outcome ? `<span style="margin-left: 0.5rem; color: var(--text-secondary);">预期: ${hyp.expected_outcome}</span>` : ''}
+                    </div>
+                    ${hyp.actual_outcome ? `<p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-green);">实际: ${hyp.actual_outcome}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Experiments
+        function renderExperiments(experiments) {
+            const container = document.getElementById('experiments-list');
+
+            if (experiments.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无实验</p></div>';
+                return;
+            }
+
+            container.innerHTML = experiments.map(exp => {
+                const expFiles = farsData.filePaths.experiments[exp.id] || {};
+                const codeFiles = farsData.filePaths.code;
+                return `
+                <div class="hypothesis-item">
+                    <h4 style="color: ${getStatusColor(exp.status)};">${exp.title}</h4>
+                    <h4 style="color: ${getStatusColor(exp.status)};">${exp.title}</h4>
+                    <p><strong>方法:</strong> ${exp.method}</p>
+                    <p style="margin-top: 0.25rem;"><strong>时间:</strong> ${new Date(exp.started_at).toLocaleString()} - ${exp.completed_at ? new Date(exp.completed_at).toLocaleString() : '进行中'}</p>
+                    ${Object.keys(exp.metrics).length > 0 ? `
+                        <div style="margin-top: 0.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
+                            ${Object.entries(exp.metrics).map(([k, v]) => `<span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${k}: ${typeof v === 'number' ? v.toFixed(2) : v}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <span class="paper-status status-${exp.status}" style="margin-top: 0.5rem;">${getStatusText(exp.status)}</span>
+                    <div class="experiment-actions">
+                        ${expFiles && expFiles.data ? `<a href="${expFiles.data}" download class="download-btn data" title="下载实验数据">📊 数据</a>` : ''}
+                        ${expFiles && expFiles.indicators ? `<a href="${expFiles.indicators}" download class="download-btn data" title="下载指标数据">📈 指标</a>` : ''}
+                        ${codeFiles && codeFiles[exp.id] ? `<button onclick="previewCode('${codeFiles[exp.id]}')" class="download-btn code" title="预览代码">💻 代码</button>` : ''}
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        async function loadSeedPaperLibrary() {
+            try {
+                const res = await fetch('/api/seed-papers');
+                const data = await res.json();
+                if (data.success) {
+                    seedPaperLibrary = data.papers || [];
+                    window.seedPaperLibrary = seedPaperLibrary;
+                    renderDownloads();
+                }
+            } catch (e) {
+                console.error('加载种子文献失败', e);
+            }
+        }
+
+        function renderSeedPapersSection() {
+            if (!seedPaperLibrary.length) return '';
+            let html = `<div class="download-category">
+                <h3 style="color: #22d3ee; margin-bottom: 0.75rem;">📚 参考论文库（近5年 · 量化 / 信号 / 金融工程 / LLM）</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    重置研究时保留 · 共 ${seedPaperLibrary.length} 篇 · 支持 PDF 下载
+                </p>
+                <div class="download-grid">`;
+            seedPaperLibrary.forEach(p => {
+                const topics = (p.key_topics || []).slice(0, 4).join(' · ');
+                html += `
+                <div class="download-item">
+                    <div class="download-item-title">${p.title}</div>
+                    <div class="download-item-meta">${p.authors || ''} | ${p.year || ''} | ${p.venue || 'arXiv'}</div>
+                    ${topics ? `<div class="download-item-meta" style="margin-top:0.25rem; font-size:0.8rem;">${topics}</div>` : ''}
+                    <div class="download-item-btns">
+                        ${p.has_pdf && p.pdf_url ? `<a href="${p.pdf_url}" download class="download-btn">📕 PDF</a>` : '<span class="download-btn" style="opacity:0.45; cursor:default;">PDF 缺失</span>'}
+                        ${p.arxiv_url ? `<a href="${p.arxiv_url}" target="_blank" rel="noopener" class="download-btn data">🔗 arXiv</a>` : ''}
+                    </div>
+                </div>`;
+            });
+            html += '</div></div>';
+            return html;
+        }
+
+        async function fetchNewSeedPapers() {
+            const btn = document.getElementById('btn-fetch-seeds');
+            if (!btn) return;
+            if (!confirm('将从 arXiv 检索近5年量化/信号/金融工程/LLM 相关论文并下载 PDF（约 15 篇），可能需要几分钟。继续？')) return;
+            btn.disabled = true;
+            btn.textContent = '⏳ 正在下载...';
+            try {
+                const res = await fetch('/api/seed-papers/fetch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count: 15 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`完成：新下载 ${data.downloaded_count} 篇，库内共 ${data.total_in_library} 篇`);
+                    await loadSeedPaperLibrary();
+                    await loadDataRegistry();
+                } else {
+                    alert('获取失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('获取失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 获取最新文献 (近5年)';
+            }
+        }
+
+        // 下载中心
+        function renderDownloads() {
+            const container = document.getElementById('downloads-list');
+            if (!container) return;
+
+            let html = renderSeedPapersSection();
+
+            // 收集所有可下载资源
+            const resources = {
+                papers: [],
+                experiments: [],
+                code: []
+            };
+
+            // 论文资源
+            if (farsData.papers && farsData.filePaths) {
+                farsData.papers.forEach(paper => {
+                    const files = farsData.filePaths.papers[paper.id] || {};
+                    if (files.markdown || files.latex || files.data || files.code) {
+                        resources.papers.push({
+                            id: paper.id,
+                            title: paper.title,
+                            status: paper.status,
+                            ...files
+                        });
+                    }
+                });
+            }
+
+            // 实验数据资源
+            if (farsData.experiments && farsData.filePaths) {
+                farsData.experiments.forEach(exp => {
+                    const expFiles = farsData.filePaths.experiments[exp.id] || {};
+                    if (expFiles.data || expFiles.indicators) {
+                        resources.experiments.push({
+                            id: exp.id,
+                            title: exp.title,
+                            status: exp.status,
+                            ...expFiles
+                        });
+                    }
+                });
+            }
+
+            // 代码资源
+            if (farsData.filePaths && farsData.filePaths.code) {
+                Object.entries(farsData.filePaths.code).forEach(([key, path]) => {
+                    resources.code.push({
+                        id: key,
+                        title: key === 'backtest' ? '回测引擎' : `实验代码 ${key}`,
+                        path: path
+                    });
+                });
+            }
+
+            // 论文下载区
+            if (resources.papers.length > 0) {
+                html += `<div class="download-category">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 1rem;">📄 论文资源</h3>
+                    <div class="download-grid">`;
+                resources.papers.forEach(paper => {
+                    html += `
+                    <div class="download-item">
+                        <div class="download-item-title">${paper.title}</div>
+                        <div class="download-item-meta">状态: ${paper.status} | ID: ${paper.id}</div>
+                        <div class="download-item-btns">
+                            ${paper.markdown ? `<a href="${paper.markdown}" download class="download-btn">📄 MD</a>` : ''}
+                            ${paper.latex ? `<a href="${paper.latex}" download class="download-btn">📜 LaTeX</a>` : ''}
+                            ${paper.data ? `<a href="${paper.data}" download class="download-btn data">📊 数据</a>` : ''}
+                            ${paper.code ? `<a href="${paper.code}" download class="download-btn code">🐍 代码</a>` : ''}
+                        </div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // 实验数据下载区
+            if (resources.experiments.length > 0) {
+                html += `<div class="download-category">
+                    <h3 style="color: var(--accent-green); margin-bottom: 1rem; margin-top: 1.5rem;">📊 实验数据</h3>
+                    <div class="download-grid">`;
+                resources.experiments.forEach(exp => {
+                    html += `
+                    <div class="download-item">
+                        <div class="download-item-title">${exp.title}</div>
+                        <div class="download-item-meta">状态: ${exp.status} | ID: ${exp.id}</div>
+                        <div class="download-item-btns">
+                            ${exp.data ? `<a href="${exp.data}" download class="download-btn data">📊 回测结果</a>` : ''}
+                            ${exp.indicators ? `<a href="${exp.indicators}" download class="download-btn data">📈 指标数据</a>` : ''}
+                        </div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // 代码下载区
+            if (resources.code.length > 0) {
+                html += `<div class="download-category">
+                    <h3 style="color: var(--accent-purple); margin-bottom: 1rem; margin-top: 1.5rem;">🐍 实验代码</h3>
+                    <div class="download-grid">`;
+                resources.code.forEach(item => {
+                    html += `
+                    <div class="download-item">
+                        <div class="download-item-title">${item.title}</div>
+                        <div class="download-item-meta">路径: ${item.path}</div>
+                        <div class="download-item-btns">
+                            <a href="${item.path}" download class="download-btn code">📥 下载</a>
+                            <button onclick="previewCode('${item.path}')" class="download-btn code">👁️ 预览</button>
+                        </div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            if (!html && resources.papers.length === 0 && resources.experiments.length === 0 && resources.code.length === 0) {
+                html = '<div class="empty-state"><p>暂无可下载的研究产出（参考论文库见上方）</p></div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 引用关系图
+        function renderCitations() {
+            const container = document.getElementById('citations-container');
+            const svg = d3.select('#citations-graph');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            if (width === 0 || height === 0) return;
+
+            svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+            // Clear previous
+            svg.selectAll('*').remove();
+
+            const citations = farsData.citations;
+
+            // 创建节点映射
+            const nodeMap = new Map();
+
+            // 添加AI论文节点
+            citations.aiPapers.forEach(paper => {
+                nodeMap.set(paper.id, {
+                    id: paper.id,
+                    type: 'ai-paper',
+                    label: paper.title.substring(0, 15) + '...',
+                    fullLabel: paper.title,
+                    status: paper.status,
+                    arxiv: paper.arxiv
+                });
+            });
+
+            // 添加参考论文节点
+            citations.references.forEach(ref => {
+                nodeMap.set(ref.id, {
+                    id: ref.id,
+                    type: 'reference',
+                    label: ref.title.substring(0, 12) + '...',
+                    fullLabel: ref.title,
+                    authors: ref.authors,
+                    arxiv: ref.arxiv,
+                    year: ref.year,
+                    key_contribution: ref.key_contribution
+                });
+            });
+
+            // 边颜色映射
+            const edgeColorMap = {
+                'citation': '#10b981',           // 绿色 - 直接引用
+                'co_citation': '#f59e0b',        // 橙色 - 共同引用
+                'bibliographic_coupling': '#8b5cf6'  // 紫色 - Bibliographic Coupling
+            };
+
+            // 创建链接
+            const links = citations.edges.map(e => ({
+                source: nodeMap.get(e.source),
+                target: nodeMap.get(e.target),
+                type: e.type,
+                weight: e.weight,
+                color: edgeColorMap[e.type] || '#64748b'
+            })).filter(l => l.source && l.target);
+
+            // Force simulation
+            const simulation = d3.forceSimulation(Array.from(nodeMap.values()))
+                .force('link', d3.forceLink(links).id(d => d.id).distance(d => {
+                    // 引用关系距离更近
+                    return d.type === 'citation' ? 120 : 180;
+                }))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(50))
+                .force('x', d3.forceX(width / 2).strength(0.05))
+                .force('y', d3.forceY(height / 2).strength(0.05));
+
+            // 绘制边
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .join('line')
+                .attr('stroke', d => d.color)
+                .attr('stroke-opacity', 0.6)
+                .attr('stroke-width', d => Math.max(1, d.weight * 4));
+
+            // 边标签
+            const linkLabel = svg.append('g')
+                .selectAll('text')
+                .data(links.filter(l => l.type !== 'citation'))
+                .join('text')
+                .text(d => {
+                    if (d.type === 'co_citation') return '共引';
+                    if (d.type === 'bibliographic_coupling') return '耦合';
+                    return '';
+                })
+                .attr('fill', d => d.color)
+                .attr('font-size', '9px')
+                .attr('text-anchor', 'middle')
+                .attr('opacity', 0.8);
+
+            // 节点组
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(Array.from(nodeMap.values()))
+                .join('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // 节点形状
+            node.append('circle')
+                .attr('r', d => d.type === 'ai-paper' ? 20 : 15)
+                .attr('fill', d => {
+                    if (d.type === 'ai-paper') {
+                        return d.status === 'success' ? '#10b981' : '#ef4444';
+                    }
+                    return '#3b82f6';
+                })
+                .attr('stroke', '#1e293b')
+                .attr('stroke-width', 2);
+
+            // 节点标签
+            node.append('text')
+                .text(d => d.label)
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => d.type === 'ai-paper' ? 32 : 28)
+                .attr('fill', '#94a3b8')
+                .attr('font-size', '9px');
+
+            // 节点类型图标
+            node.append('text')
+                .text(d => d.type === 'ai-paper' ? '🤖' : '📚')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 4)
+                .attr('font-size', '12px');
+
+            // Tooltip
+            node.on('mouseover', (event, d) => {
+                const tooltip = document.getElementById('tooltip');
+                let content = `<h4>${d.fullLabel || d.label}</h4>`;
+                content += `<p><strong>类型:</strong> ${d.type === 'ai-paper' ? 'AI生成论文' : '参考论文'}</p>`;
+                if (d.type === 'ai-paper') {
+                    content += `<p><strong>状态:</strong> ${getStatusText(d.status)}</p>`;
+                }
+                if (d.authors) content += `<p><strong>作者:</strong> ${d.authors}</p>`;
+                if (d.year) content += `<p><strong>年份:</strong> ${d.year}</p>`;
+                if (d.arxiv) content += `<p><strong>arXiv:</strong> ${d.arxiv}</p>`;
+                if (d.key_contribution) content += `<p><strong>贡献:</strong> ${d.key_contribution}</p>`;
+
+                tooltip.innerHTML = content;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+            }).on('mouseout', () => {
+                document.getElementById('tooltip').style.display = 'none';
+            });
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabel
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        // Modal Functions
+        function openModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('code-content').textContent = content;
+            document.getElementById('code-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('code-modal').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        document.getElementById('code-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('code-modal')) closeModal();
+        });
+
+        async function previewCode(filePath) {
+            try {
+                const response = await fetch(filePath);
+                if (response.ok) {
+                    const content = await response.text();
+                    openModal('实验代码预览', content);
+                } else {
+                    openModal('代码预览', '// 文件无法加载\n// 路径: ' + filePath);
+                }
+            } catch (error) {
+                openModal('代码预览', '// 无法加载文件: ' + error.message + '\n// 路径: ' + filePath);
+            }
+        }
+
+        // Helpers
+        function getStatusText(status) {
+            const map = {
+                'success': '✓ 成功',
+                'failed': '✗ 失败',
+                'experimenting': '◐ 进行中',
+                'hypothesis': '○ 假设阶段',
+                'abandoned': '⊘ 已放弃',
+                'draft': '✎ 草稿',
+                'published': '✓ 已发表',
+                'rejected': '✗ 被拒绝'
+            };
+            return map[status] || status;
+        }
+
+        function getStatusColor(status) {
+            const map = {
+                'success': '#10b981',
+                'failed': '#ef4444',
+                'experimenting': '#f59e0b',
+                'hypothesis': '#3b82f6',
+                'abandoned': '#6b7280',
+                'draft': '#3b82f6'
+            };
+            return map[status] || '#94a3b8';
+        }
+
+        // ==================== Grading Functions ====================
+
+        async function scorePaper() {
+            const paperContent = document.getElementById('paper-input').value.trim();
+            if (!paperContent) {
+                alert('请输入论文内容');
+                return;
+            }
+
+            const loading = document.getElementById('grading-loading');
+            loading.style.display = 'flex';
+
+            try {
+                const response = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paper: paperContent })
+                });
+
+                const result = await response.json();
+                displayScoreResult(result);
+            } catch (error) {
+                console.error('评分失败:', error);
+                // 模拟评分结果
+                const mockResult = {
+                    total_score: 6.5,
+                    pass: false,
+                    criteria: {
+                        innovation: { score: 2, comment: '有一定的创新点' },
+                        methodology: { score: 1, comment: '方法基本可行' },
+                        experiment: { score: 1.5, comment: '实验较充分' },
+                        writing: { score: 1.5, comment: '写作流畅' },
+                        overfitting: { score: 0.5, comment: '存在轻微过拟合风险' }
+                    },
+                    feedback: '论文整体较好，建议加强实验验证和降低过拟合风险。'
+                };
+                displayScoreResult(mockResult);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function iterateImprove() {
+            const paperContent = document.getElementById('paper-input').value.trim();
+            if (!paperContent) {
+                alert('请输入论文内容');
+                return;
+            }
+
+            const loading = document.getElementById('grading-loading');
+            loading.style.display = 'flex';
+            loading.querySelector('span').textContent = '正在迭代改进...';
+
+            try {
+                const response = await fetch('/api/iterate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        paper: paperContent,
+                        topic: '量化交易策略',
+                        max_iterations: 3
+                    })
+                });
+
+                const result = await response.json();
+                displayIterationResult(result);
+            } catch (error) {
+                console.error('迭代失败:', error);
+                alert('迭代过程出错，请重试');
+            } finally {
+                loading.style.display = 'none';
+                loading.querySelector('span').textContent = '正在评分...';
+            }
+        }
+
+        function displayScoreResult(result) {
+            const container = document.getElementById('grading-results');
+            const status = document.getElementById('grading-status');
+
+            if (result.error) {
+                container.innerHTML = `<div class="empty-state"><p style="color: var(--accent-red);">错误: ${result.error}</p></div>`;
+                status.textContent = '评分失败';
+                return;
+            }
+
+            const pass = result.pass;
+            status.textContent = pass ? '✅ 通过 (≥7分)' : '❌ 未通过 (<7分)';
+            status.style.color = pass ? 'var(--accent-green)' : 'var(--accent-red)';
+
+            const criteriaHtml = Object.entries(result.criteria).map(([key, val]) => {
+                const names = {
+                    innovation: '创新性',
+                    methodology: '方法论',
+                    experiment: '实验验证',
+                    writing: '写作质量',
+                    overfitting: '避免过拟合'
+                };
+                const maxScores = { innovation: 3, methodology: 2, experiment: 2, writing: 2, overfitting: 1 };
+                return `
+                    <div class="criteria-item">
+                        <div>
+                            <div class="criteria-name">${names[key]}</div>
+                            <div class="criteria-comment">${val.comment}</div>
+                        </div>
+                        <div class="criteria-score">${val.score}/${maxScores[key]}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="score-display">
+                    <div class="score-header">
+                        <div>
+                            <div class="score-value ${pass ? 'pass' : 'fail'}">${result.total_score.toFixed(1)}</div>
+                            <div class="score-label">总分 (7分通过)</div>
+                        </div>
+                        <div class="iteration-badge ${pass ? 'pass' : 'fail'}">
+                            ${pass ? '✅ 通过' : '❌ 未通过'}
+                        </div>
+                    </div>
+                    <div class="criteria-list">
+                        ${criteriaHtml}
+                    </div>
+                </div>
+                ${result.feedback ? `
+                <div class="feedback-box">
+                    <div class="feedback-title">💬 评审意见</div>
+                    <p>${result.feedback}</p>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function displayIterationResult(result) {
+            console.log('迭代结果:', result);
+            const historyContainer = document.getElementById('iteration-history');
+            const resultsContainer = document.getElementById('grading-results');
+
+            // 显示最新结果
+            if (result.final_paper) {
+                displayScoreResult(result.final_score);
+                const statusEl = document.getElementById('grading-status');
+                if (statusEl) {
+                    statusEl.textContent = result.final_status === 'passed' ? '✅ 迭代成功!' : '⚠️ 达到最大迭代次数';
+                }
+            }
+
+            // 显示迭代历史
+            if (result.iterations && Array.isArray(result.iterations) && result.iterations.length > 0) {
+                const historyHtml = result.iterations.map((iter, idx) => {
+                    const score = iter.score || {};
+                    const pass = score.pass === true;
+                    const action = iter.action || (pass ? '通过' : '重生成');
+                    const totalScore = score.total_score ? score.total_score.toFixed(1) : 'N/A';
+
+                    return `
+                        <div class="iteration-item">
+                            <div class="iteration-header">
+                                <div class="iteration-title">第 ${iter.iteration || (idx + 1)} 轮迭代</div>
+                                <div>
+                                    <span class="iteration-badge ${pass ? 'pass' : 'fail'}">
+                                        ${pass ? '✅ 通过' : '❌ 未通过'}
+                                    </span>
+                                    <span class="iteration-badge retry">${action}</span>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">评分: ${totalScore}/10</div>
+                            ${iter.failed_aspects && iter.failed_aspects.length > 0 ? `
+                                <div style="font-size: 0.85rem; color: var(--accent-red); margin-bottom: 0.5rem;">
+                                    问题: ${Array.isArray(iter.failed_aspects) ? iter.failed_aspects.join(', ') : iter.failed_aspects}
+                                </div>
+                            ` : ''}
+                            ${iter.related_papers ? `
+                                <div class="related-papers">
+                                    <div style="font-weight: 500; margin-bottom: 0.5rem;">📚 相关参考论文:</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">${typeof iter.related_papers === 'string' ? iter.related_papers : JSON.stringify(iter.related_papers)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                historyContainer.innerHTML = historyHtml;
+            } else {
+                historyContainer.innerHTML = '<div class="empty-state"><p>暂无迭代记录</p></div>';
+            }
+        }
+
+        function clearGrading() {
+            document.getElementById('paper-input').value = '';
+            document.getElementById('grading-results').innerHTML = `
+                <div class="empty-state">
+                    <p>暂无评分结果</p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">请在左侧输入论文内容并点击"开始评分"</p>
+                </div>
+            `;
+            document.getElementById('grading-status').textContent = '等待评分';
+            document.getElementById('grading-status').style.color = 'var(--text-secondary)';
+            document.getElementById('iteration-history').innerHTML = `
+                <div class="empty-state">
+                    <p>暂无迭代记录</p>
+                </div>
+            `;
+        }
+
+        // History Functions
+        async function loadHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = '<div class="grading-loading" style="display:flex;"><div class="spinner"></div><span>加载历史记录...</span></div>';
+
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+
+                if (!data.history || data.history.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p>暂无历史记录</p>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">进行评分后将自动保存历史</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const historyHtml = data.history.map(record => {
+                    const typeLabels = {
+                        'score': '评分',
+                        'regenerate': '重生成',
+                        'find_papers': '查论文',
+                        'iterate': '迭代'
+                    };
+                    const typeBadgeColors = {
+                        'score': 'var(--accent-blue)',
+                        'regenerate': 'var(--accent-yellow)',
+                        'find_papers': 'var(--accent-purple)',
+                        'iterate': 'var(--accent-green)'
+                    };
+
+                    return `
+                        <div class="iteration-item" onclick="viewHistoryDetail(${record.id})" style="cursor:pointer;">
+                            <div class="iteration-header">
+                                <div class="iteration-title">#${record.id} - ${typeLabels[record.type] || record.type}</div>
+                                <span class="iteration-badge" style="background: ${typeBadgeColors[record.type] || 'var(--accent-blue)'}">
+                                    ${record.result_summary || (record.topic ? '主题: ' + record.topic : '')}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                                ${record.paper_preview || record.topic || ''}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                ${record.timestamp ? new Date(record.timestamp).toLocaleString('zh-CN') : ''}
+                                ${record.iterations_count ? ` | ${record.iterations_count}轮迭代` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = historyHtml;
+            } catch (error) {
+                console.error('加载历史失败:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="color: var(--accent-red);">加载历史失败</p>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function viewHistoryDetail(recordId) {
+            try {
+                const response = await fetch('/api/history/' + recordId);
+                const record = await response.json();
+
+                let content = '';
+                if (record.type === 'iterate') {
+                    content = `
+                        <div style="margin-bottom: 1rem;">
+                            <strong>迭代主题:</strong> ${record.topic || 'N/A'}<br>
+                            <strong>最大迭代:</strong> ${record.max_iterations || 'N/A'}<br>
+                            <strong>最终状态:</strong> ${record.results?.final_status === 'passed' ? '✅ 通过' : '⚠️ 未通过'}
+                        </div>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; max-height: 400px; overflow-y: auto;">
+                            <pre style="white-space: pre-wrap; font-size: 0.85rem;">${record.initial_paper_preview || 'N/A'}</pre>
+                        </div>
+                    `;
+                } else if (record.type === 'score') {
+                    content = `
+                        <div style="margin-bottom: 1rem;">
+                            <strong>评分结果:</strong> ${record.result?.total_score || 'N/A'}/10
+                            ${record.result?.pass ? '✅ 通过' : '❌ 未通过'}
+                        </div>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; max-height: 400px; overflow-y: auto;">
+                            <pre style="white-space: pre-wrap; font-size: 0.85rem;">${record.paper_preview || 'N/A'}</pre>
+                        </div>
+                    `;
+                } else {
+                    content = `
+                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; max-height: 400px; overflow-y: auto;">
+                            <pre style="white-space: pre-wrap; font-size: 0.85rem;">${JSON.stringify(record, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+
+                openModal('历史记录 #' + recordId, content);
+            } catch (error) {
+                console.error('加载详情失败:', error);
+                alert('加载详情失败: ' + error.message);
+            }
+        }
+
+        function openModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('code-content').textContent = content;
+            document.getElementById('code-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('code-modal').style.display = 'none';
+        }
+
+        // ==================== Research Control Functions ====================
+
+        let researchState = {
+            isGenerating: false,
+            isPaused: false,
+            currentBranchId: null,
+            papers: [],
+            branches: [],
+            activity: { phase: 'idle', message: '等待开始', progress: 0 },
+            lastPaperCount: 0,
+        };
+
+        let selectedReviewFile = null;
+        let statePollInterval = null;
+
+        async function initResearchControl() {
+            await loadBranches();
+            await loadSeedPaperLibrary();
+            await loadDataRegistry();
+            await loadPaperArchives();
+            await loadResearchState();
+            startStatePolling();
+        }
+
+        async function loadDataRegistry() {
+            try {
+                const res = await fetch('/api/data/registry');
+                const data = await res.json();
+                if (data.success) {
+                    window.dataRegistry = data.registry;
+                    console.log('[数据注册表]', data.registry.paths);
+                    const md = data.registry.mongodb_market_data;
+                    if (md && !md.available) {
+                        console.warn('[MongoDB 市场数据]', md.error || '暂无 daily_bars 数据');
+                    }
+                    const seeds = data.registry.seed_papers?.papers || [];
+                    if (seeds.length) {
+                        farsData.citations = buildCitationsFromPapers(farsData.papers, seeds);
+                        renderCitations();
+                    }
+                }
+            } catch (e) {
+                console.error('加载数据注册表失败', e);
+            }
+        }
+
+        async function refreshAllPanels() {
+            await loadBranches();
+            await loadSeedPaperLibrary();
+            await loadDataRegistry();
+            await loadPaperArchives();
+            await loadResearchState();
+            await loadHistory();
+        }
+
+        async function resetFromZero() {
+            const msg = '将从 0 开始：\n'
+                + '• 现有论文与研究档案会先备份到 data/bac/\n'
+                + '• 种子文献 seed_papers/ 与资源下载中心默认保留\n'
+                + '• 文献调研进度 research_state.json 默认保留\n'
+                + '• 前台所有面板将清空并重新从 API 加载\n\n'
+                + '确定继续？';
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await fetch('/api/research/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keep_seed_papers: true, keep_workflow: true })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    resetFrontendToEmpty();
+                    alert(`重置完成\n备份: ${result.backup_dir}\n移除档案: ${(result.removed_archives || []).length} 个\n\n将自动启动研究…`);
+                    await refreshAllPanels();
+                    await startGeneration();
+                } else {
+                    alert('重置失败: ' + (result.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('重置失败: ' + e.message);
+            }
+        }
+
+        async function loadPaperArchives() {
+            try {
+                const response = await fetch('/api/papers');
+                const data = await response.json();
+                const apiPapers = (data.papers || []).map(p => ({
+                    id: p.id,
+                    research_id: p.research_id,
+                    branch_id: p.branch_id,
+                    title: p.title,
+                    status: p.status,
+                    quality_score: p.quality_score ?? 'N/A',
+                    created_at: p.created_at,
+                    abstract: p.content_preview || p.topic || '',
+                }));
+
+                // 仅用 API 数据，不合并演示数据
+                farsData.papers = apiPapers;
+                farsData.filePaths = farsData.filePaths || { papers: {}, experiments: {}, code: {} };
+                farsData.filePaths.papers = {};
+                farsData.filePaths.experiments = {};
+                farsData.filePaths.code = {};
+
+                data.papers.forEach(p => {
+                    const a = p.artifacts || {};
+                    farsData.filePaths.papers[p.id] = {
+                        markdown: a.markdown,
+                        latex: a.latex,
+                        data: a.backtest_results || a.experiment_data,
+                        indicators: a.indicator_sample,
+                        code: a.code,
+                    };
+                });
+
+                farsData.topology = buildTopologyFromPapers(apiPapers, researchState.branches || []);
+                farsData.statistics = computeStatistics(farsData);
+                const seeds = window.dataRegistry?.seed_papers?.papers || [];
+                farsData.citations = buildCitationsFromPapers(apiPapers, seeds);
+
+                researchState.papers = apiPapers;
+                updateStats();
+                applyFarsDataToUI();
+            } catch (error) {
+                console.error('加载论文档案失败:', error);
+            }
+        }
+
+        async function loadBranches() {
+            try {
+                const response = await fetch('/api/branches');
+                const data = await response.json();
+
+                researchState.branches = data.branches || [];
+                renderBranchSelect(researchState.branches, data.current_branch_id);
+
+                if (data.current_branch_id && researchState.branches.length) {
+                    researchState.currentBranchId = data.current_branch_id;
+                    updateBranchInfo(data.current_branch_id, researchState.branches);
+                } else {
+                    const branchInfo = document.getElementById('branch-info');
+                    if (branchInfo) branchInfo.style.display = 'none';
+                }
+
+                document.getElementById('mini-branches').textContent = researchState.branches.length;
+                // 分支变化后刷新拓扑
+                farsData.topology = buildTopologyFromPapers(farsData.papers, researchState.branches);
+                renderTopology(farsData.topology);
+            } catch (error) {
+                console.error('加载分支失败:', error);
+                researchState.branches = [];
+                renderBranchSelect([], null);
+            }
+        }
+
+        function renderBranchSelect(branches, currentId) {
+            const select = document.getElementById('branch-select');
+            if (!branches.length) {
+                select.innerHTML = '<option value="">暂无分支（点击开始自动创建）</option>';
+            } else {
+                select.innerHTML = branches.map(b => `
+                <option value="${b.id}" ${b.id === currentId ? 'selected' : ''}>
+                    ${b.name}
+                </option>
+            `).join('');
+            }
+
+            document.getElementById('mini-branches').textContent = branches.length;
+        }
+
+        function updateBranchInfo(branchId, branches) {
+            const branch = branches.find(b => b.id === branchId);
+            if (branch) {
+                document.getElementById('current-branch-name').textContent = branch.name;
+                document.getElementById('branch-info').style.display = 'flex';
+            }
+        }
+
+        async function loadResearchState() {
+            try {
+                const response = await fetch('/api/research/state');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                if (!data.success && data.error) {
+                    throw new Error(data.error);
+                }
+
+                researchState.isGenerating = !!data.is_generating;
+                researchState.isPaused = !!data.is_paused;
+                researchState.papers = data.papers || [];
+                researchState.activity = data.research_activity || { phase: 'idle', message: '等待开始' };
+
+                if (!farsData.filePaths) {
+                    farsData.filePaths = { papers: {}, experiments: {}, code: {} };
+                }
+
+                // 假设与实验（研究流水线产出）
+                farsData.hypotheses = data.hypotheses || [];
+                farsData.experiments = (data.experiments || []).map(exp => ({
+                    id: exp.id,
+                    title: exp.title,
+                    status: exp.status,
+                    hypothesis_id: exp.hypothesis_id,
+                }));
+                farsData.filePaths.experiments = {};
+                (data.experiments || []).forEach(exp => {
+                    if (exp.artifacts) {
+                        farsData.filePaths.experiments[exp.id] = exp.artifacts;
+                    }
+                });
+                farsData.statistics = computeStatistics(farsData);
+
+                updateControlButtons();
+                updateStatus();
+                updateStats();
+                applyFarsDataToUI();
+
+                const paperCount = (data.papers || []).length;
+                const shouldReloadPapers = paperCount !== researchState.lastPaperCount;
+                if (shouldReloadPapers && paperCount > 0) {
+                    researchState.lastPaperCount = paperCount;
+                    await loadPaperArchives();
+                } else if (!paperCount) {
+                    researchState.lastPaperCount = 0;
+                }
+            } catch (error) {
+                console.error('加载研究状态失败:', error);
+            }
+        }
+
+        function updateControlButtons() {
+            const btnStart = document.getElementById('btn-start');
+            const btnPause = document.getElementById('btn-pause');
+            const btnResume = document.getElementById('btn-resume');
+            const btnStop = document.getElementById('btn-stop');
+
+            if (researchState.isGenerating) {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'inline-flex';
+                btnResume.style.display = 'none';
+                btnStop.style.display = 'inline-flex';
+            } else if (researchState.isPaused) {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'none';
+                btnResume.style.display = 'inline-flex';
+                btnStop.style.display = 'inline-flex';
+            } else {
+                btnStart.style.display = 'inline-flex';
+                btnPause.style.display = 'none';
+                btnResume.style.display = 'none';
+                btnStop.style.display = 'none';
+            }
+        }
+
+        function updateStatus() {
+            const statusEl = document.getElementById('research-status');
+            const statusText = document.getElementById('status-text');
+            const act = researchState.activity || {};
+
+            statusEl.classList.remove('idle', 'generating', 'paused', 'stopped');
+
+            if (researchState.isGenerating) {
+                statusEl.classList.add('generating');
+                const phaseLabels = {
+                    starting: '启动中',
+                    literature_review: '文献调研',
+                    hypothesis: '假设生成',
+                    experimenting: '实验运行',
+                    writing: '论文撰写',
+                    completed: '已完成',
+                    error: '出错'
+                };
+                const phase = phaseLabels[act.phase] || '研究中';
+                const msg = act.message && act.phase !== 'completed' ? act.message : (act.message || '请稍候…');
+                statusText.textContent = `${phase} · ${msg}`;
+            } else if (researchState.isPaused) {
+                statusEl.classList.add('paused');
+                statusText.textContent = '已暂停';
+            } else if (act.phase === 'completed' && act.message) {
+                statusEl.classList.add('idle');
+                statusText.textContent = act.message;
+            } else if (act.phase === 'error' && act.message) {
+                statusEl.classList.add('stopped');
+                statusText.textContent = act.message;
+            } else {
+                statusEl.classList.add('idle');
+                statusText.textContent = '空闲';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('mini-papers').textContent = researchState.papers.length;
+
+            // 计算总迭代次数
+            const iterations = researchState.papers.reduce((sum, p) => sum + (p.iteration || 0), 0);
+            document.getElementById('mini-iterations').textContent = iterations;
+        }
+
+        function startStatePolling() {
+            if (statePollInterval) clearInterval(statePollInterval);
+            statePollInterval = setInterval(loadResearchState, 3000);
+        }
+
+        function startFastPolling() {
+            if (statePollInterval) clearInterval(statePollInterval);
+            statePollInterval = setInterval(async () => {
+                await loadResearchState();
+                if (!researchState.isGenerating) {
+                    clearInterval(statePollInterval);
+                    statePollInterval = setInterval(loadResearchState, 3000);
+                }
+            }, 800);
+        }
+
+        async function startGeneration() {
+            try {
+                const btn = document.getElementById('btn-start');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div> 启动中...';
+
+                const branchId = document.getElementById('branch-select').value;
+                const response = await fetch('/api/generate/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ branch_id: branchId || null })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    researchState.isGenerating = true;
+                    researchState.activity = result.research_activity || {
+                        phase: 'starting',
+                        message: '正在启动研究…'
+                    };
+                    updateControlButtons();
+                    updateStatus();
+                    startFastPolling();
+                    await loadBranches();
+                    await loadResearchState();
+                } else {
+                    alert('启动失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('启动生成失败:', error);
+                alert('启动失败: ' + error.message);
+            } finally {
+                const btn = document.getElementById('btn-start');
+                btn.disabled = false;
+                btn.innerHTML = '▶ 开始';
+            }
+        }
+
+        async function pauseGeneration() {
+            try {
+                const btn = document.getElementById('btn-pause');
+                btn.disabled = true;
+
+                const response = await fetch('/api/generate/pause', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    researchState.isPaused = true;
+                    researchState.isGenerating = false;
+                    updateControlButtons();
+                    updateStatus();
+                } else {
+                    alert('暂停失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('暂停失败:', error);
+            } finally {
+                document.getElementById('btn-pause').disabled = false;
+            }
+        }
+
+        async function resumeGeneration() {
+            try {
+                const btn = document.getElementById('btn-resume');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div>';
+
+                const response = await fetch('/api/generate/resume', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    researchState.isPaused = false;
+                    researchState.isGenerating = true;
+                    updateControlButtons();
+                    updateStatus();
+                } else {
+                    alert('继续失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('继续失败:', error);
+            } finally {
+                const btn = document.getElementById('btn-resume');
+                btn.disabled = false;
+                btn.innerHTML = '▶ 继续';
+            }
+        }
+
+        async function stopGeneration() {
+            if (!confirm('确定要停止生成吗？')) return;
+
+            try {
+                const btn = document.getElementById('btn-stop');
+                btn.disabled = true;
+
+                const response = await fetch('/api/generate/stop', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    researchState.isGenerating = false;
+                    researchState.isPaused = false;
+                    updateControlButtons();
+                    updateStatus();
+                } else {
+                    alert('停止失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('停止失败:', error);
+            } finally {
+                document.getElementById('btn-stop').disabled = false;
+            }
+        }
+
+        async function generateNextPaper() {
+            const btn = document.querySelector('[onclick="generateNextPaper()"]');
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<div class="spinner"></div>';
+                }
+
+                const branchId = document.getElementById('branch-select').value;
+                const response = await fetch('/api/generate/next', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ branch_id: branchId || null })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await loadPaperArchives();
+                    await loadResearchState();
+                    alert('已生成下一篇论文: ' + (result.paper?.research_id || ''));
+                } else {
+                    alert('生成失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('生成失败:', error);
+                alert('生成失败: ' + error.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '➕ 生成下一篇';
+                }
+            }
+        }
+
+        async function switchBranch(branchId) {
+            if (!branchId) return;
+
+            try {
+                const response = await fetch(`/api/branches/switch/${branchId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    researchState.currentBranchId = parseInt(branchId);
+                    updateBranchInfo(parseInt(branchId), researchState.branches);
+                    await loadResearchState();
+                } else {
+                    alert('切换分支失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('切换分支失败:', error);
+            }
+        }
+
+        // ==================== Restart Modal Functions ====================
+
+        function showRestartModal() {
+            document.getElementById('restart-modal').classList.add('active');
+            selectedReviewFile = null;
+            document.getElementById('selected-file-container').style.display = 'none';
+            document.getElementById('review-file-input').value = '';
+            document.getElementById('new-branch-name').value = '';
+            document.getElementById('btn-confirm-restart').disabled = true;
+        }
+
+        function closeRestartModal() {
+            document.getElementById('restart-modal').classList.remove('active');
+        }
+
+        function handleFileSelect(file) {
+            if (!file) return;
+
+            const validTypes = ['.md', '.txt', '.pdf'];
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!validTypes.includes(ext)) {
+                alert('不支持的文件格式，请上传 .md, .txt 或 .pdf 文件');
+                return;
+            }
+
+            selectedReviewFile = file;
+            document.getElementById('selected-file-name').textContent = file.name;
+            document.getElementById('selected-file-icon').textContent = ext === '.pdf' ? '📕' : '📄';
+            document.getElementById('selected-file-container').style.display = 'flex';
+            document.getElementById('btn-confirm-restart').disabled = false;
+
+            // 自动填充分支名称
+            if (!document.getElementById('new-branch-name').value) {
+                const name = file.name.replace(/\.(md|txt|pdf)$/i, '');
+                document.getElementById('new-branch-name').value = name;
+            }
+        }
+
+        function removeSelectedFile() {
+            selectedReviewFile = null;
+            document.getElementById('selected-file-container').style.display = 'none';
+            document.getElementById('review-file-input').value = '';
+            document.getElementById('btn-confirm-restart').disabled = true;
+        }
+
+        // 拖拽上传
+        const uploadArea = document.getElementById('upload-area');
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) handleFileSelect(file);
+            });
+        }
+
+        async function confirmRestart() {
+            if (!selectedReviewFile) {
+                alert('请选择要上传的综述文件');
+                return;
+            }
+
+            const branchName = document.getElementById('new-branch-name').value.trim();
+            if (!branchName) {
+                alert('请输入新分支名称');
+                return;
+            }
+
+            try {
+                const btn = document.getElementById('btn-confirm-restart');
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div> 上传中...';
+
+                // 读取文件内容
+                const fileContent = await readFileAsText(selectedReviewFile);
+
+                // 创建新分支并启动研究
+                const createResponse = await fetch('/api/generate/restart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        branch_name: branchName,
+                        review_content: fileContent
+                    })
+                });
+
+                const createResult = await createResponse.json();
+                const newBranchId = createResult.branch?.id;
+                if (createResponse.ok && newBranchId) {
+                    await fetch(`/api/branches/switch/${newBranchId}`, { method: 'POST' });
+                    resetFrontendToEmpty();
+                    await refreshAllPanels();
+                    closeRestartModal();
+                    researchState.isGenerating = true;
+                    researchState.activity = createResult.research?.research_activity || {
+                        phase: 'starting', message: '正在启动研究…'
+                    };
+                    updateControlButtons();
+                    updateStatus();
+                    startFastPolling();
+                    alert(`新分支 "${branchName}" 已创建，研究已启动`);
+                } else {
+                    alert('创建分支失败: ' + (createResult.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('创建分支失败:', error);
+                alert('创建失败: ' + error.message);
+            } finally {
+                const btn = document.getElementById('btn-confirm-restart');
+                btn.disabled = false;
+                btn.innerHTML = '✅ 确认创建新分支';
+            }
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('restart-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('restart-modal')) {
+                closeRestartModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeRestartModal();
+            }
+        });
+    </script>
+</body>
+</html>
