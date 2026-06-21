@@ -10,11 +10,12 @@ import json
 import re
 import requests
 import threading
+import time
 import subprocess
 import mimetypes
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -47,6 +48,10 @@ from core.data_registry import (
 )
 from core.mongo_index import index_paper_record, query_papers, check_market_data
 from core.research_reset import reset_research
+from core.research_graphs import (
+    build_author_network_from_seed_papers,
+    build_citation_network,
+)
 from core.seed_library import list_seed_papers, get_pdf_path, fetch_new_papers
 from core.research_runner import ResearchRunner
 from core.research_engine import (
@@ -73,6 +78,102 @@ _app_config: Dict[str, Any] = {}
 _llm_config: Dict[str, Any] = {}
 _llm_providers: Dict[str, Any] = {}
 _config_mtime_ns: Tuple[Optional[int], Optional[int]] = (None, None)
+
+#region debug-point writing-stuck-078-reporter
+_DBG_CACHE: Dict[str, str] = {}
+_DBG_CTX = threading.local()
+
+def _dbg_load() -> None:
+    if _DBG_CACHE.get("loaded") == "1":
+        return
+    _DBG_CACHE["loaded"] = "1"
+    if os.environ.get("DEBUG_SERVER_URL"):
+        _DBG_CACHE["url"] = os.environ["DEBUG_SERVER_URL"]
+        _DBG_CACHE["session"] = os.environ.get("DEBUG_SESSION_ID", "")
+        return
+    env_path = Path(__file__).resolve().parent / ".dbg" / "writing-stuck-078.env"
+    if not env_path.exists():
+        return
+    try:
+        for line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = v.strip()
+            if k == "DEBUG_SERVER_URL":
+                _DBG_CACHE["url"] = v
+            elif k == "DEBUG_SESSION_ID":
+                _DBG_CACHE["session"] = v
+    except Exception:
+        return
+
+def _dbg_set_context(*, research_id: str, research_dir: str) -> None:
+    try:
+        _DBG_CTX.research_id = str(research_id or "")
+        _DBG_CTX.research_dir = str(research_dir or "")
+    except Exception:
+        return
+
+def _dbg_clear_context() -> None:
+    try:
+        _DBG_CTX.research_id = ""
+        _DBG_CTX.research_dir = ""
+    except Exception:
+        return
+
+def _dbg_log_path() -> Optional[Path]:
+    research_dir = getattr(_DBG_CTX, "research_dir", "") or ""
+    if not research_dir:
+        return None
+    root = Path(research_dir)
+    return root / "logs" / "trae-debug-log-writing-stuck-078.ndjson"
+
+def _dbg_console_line(body: Dict[str, Any]) -> str:
+    payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+    keys = [
+        ("run_id", payload.get("run_id")),
+        ("research_id", payload.get("research_id")),
+        ("phase", payload.get("phase")),
+        ("step", payload.get("step")),
+        ("attempt", payload.get("attempt")),
+        ("elapsed_s", payload.get("elapsed_s")),
+        ("status", payload.get("status")),
+        ("error", payload.get("error")),
+    ]
+    tail = " ".join([f"{k}={v}" for k, v in keys if v not in (None, "", 0, 0.0)])
+    return f"[dbg:{body.get('session','')}] {body.get('ts','')} {body.get('event','')} {tail}".rstrip()
+
+def _dbg_event(name: str, payload: Dict[str, Any]) -> None:
+    _dbg_load()
+    body = {
+        "ts": datetime.now().isoformat(),
+        "event": name,
+        "session": _DBG_CACHE.get("session", "writing-stuck-078"),
+        "payload": payload,
+    }
+    try:
+        line = _dbg_console_line(body)
+        if line:
+            app.logger.info(line)
+    except Exception:
+        pass
+    try:
+        log_path = _dbg_log_path()
+        if log_path:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with log_path.open("a", encoding="utf-8", errors="replace") as f:
+                f.write(json.dumps(body, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    url = _DBG_CACHE.get("url")
+    if not url:
+        return
+    try:
+        requests.post(url, json=body, timeout=0.8)
+    except Exception:
+        return
+#endregion debug-point writing-stuck-078-reporter
 
 
 def _file_mtime_ns(path: Path) -> Optional[int]:
@@ -224,16 +325,211 @@ def _llm_available(cfg: Dict[str, Any]) -> Tuple[bool, str]:
     return True, ""
 
 
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content or "", encoding="utf-8", errors="replace")
+
+
+def _write_json(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8", errors="replace")
+
+
+def _build_author_network_from_seed_papers(papers: List[dict]) -> Dict[str, Any]:
+    return build_author_network_from_seed_papers(papers)
+
+
+def _tokenize_for_overlap(text: str) -> List[str]:
+    return []
+
+
+def _build_citation_network(*, papers_data: dict, seed_papers: List[dict]) -> Dict[str, Any]:
+    return build_citation_network(papers_data=papers_data, seed_papers=seed_papers)
+
+
+_LLM_USAGE_LOCK = threading.Lock()
+_LLM_USAGE_BUFFER: Dict[str, Dict[str, Dict[str, int]]] = {}
+_LLM_USAGE_META: Dict[str, Dict[str, str]] = {}
+_LLM_USAGE_LAST_FLUSH_TS = 0.0
+
+
+def _bump_llm_usage(
+    *,
+    run_id: str,
+    phase: str,
+    provider: str,
+    model: str,
+    usage: Optional[Dict[str, Any]] = None,
+    ok: bool = True,
+) -> None:
+    if not run_id:
+        return
+    p = str(phase or "unknown")
+    with _LLM_USAGE_LOCK:
+        by_phase = _LLM_USAGE_BUFFER.setdefault(run_id, {})
+        row = by_phase.setdefault(p, {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+        row["calls"] += 1
+        if not ok:
+            row["errors"] += 1
+        if isinstance(usage, dict):
+            pt = int(usage.get("prompt_tokens") or 0)
+            ct = int(usage.get("completion_tokens") or 0)
+            tt = int(usage.get("total_tokens") or (pt + ct))
+            row["prompt_tokens"] += pt
+            row["completion_tokens"] += ct
+            row["total_tokens"] += tt
+        _LLM_USAGE_META[run_id] = {"provider": str(provider or ""), "model": str(model or "")}
+
+
+def _flush_llm_usage(papers_data: Dict[str, Any]) -> bool:
+    global _LLM_USAGE_LAST_FLUSH_TS
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    run_id = current_run.get("run_id") or ""
+    if not run_id:
+        return False
+
+    with _LLM_USAGE_LOCK:
+        buffered = _LLM_USAGE_BUFFER.get(run_id)
+        meta = _LLM_USAGE_META.get(run_id) or {}
+        if not buffered:
+            return False
+
+        existing = papers_data.get("run_metrics") if isinstance(papers_data.get("run_metrics"), dict) else {}
+        if existing.get("run_id") != run_id:
+            existing = {"run_id": run_id, "phases": {}}
+        phases = existing.get("phases") if isinstance(existing.get("phases"), dict) else {}
+
+        for phase, row in buffered.items():
+            dst = phases.get(phase) if isinstance(phases.get(phase), dict) else {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            for k in ("calls", "errors", "prompt_tokens", "completion_tokens", "total_tokens"):
+                dst[k] = int(dst.get(k) or 0) + int(row.get(k) or 0)
+            phases[phase] = dst
+
+        existing["phases"] = phases
+        existing["provider"] = meta.get("provider") or existing.get("provider")
+        existing["model"] = meta.get("model") or existing.get("model")
+        existing["updated_at"] = datetime.now().isoformat()
+        papers_data["run_metrics"] = existing
+
+        _LLM_USAGE_BUFFER.pop(run_id, None)
+        if not _LLM_USAGE_BUFFER:
+            _LLM_USAGE_META.pop(run_id, None)
+
+        _LLM_USAGE_LAST_FLUSH_TS = time.time()
+        return True
+
+
+def _decorate_stage_experiments(papers_data: Dict[str, Any]) -> List[dict]:
+    experiments = papers_data.get("experiments") or []
+    if not experiments:
+        return []
+
+    activity = papers_data.get("research_activity") if isinstance(papers_data.get("research_activity"), dict) else {}
+    phase = str(activity.get("phase") or "idle")
+    overall_progress = float(activity.get("progress") or 0.0)
+
+    registry = get_registry() or {}
+    seed_count = int((registry.get("seed_papers") or {}).get("count") or 0)
+    hypotheses_count = len(papers_data.get("hypotheses") or [])
+    papers_count = len(papers_data.get("papers") or [])
+
+    run_metrics = papers_data.get("run_metrics") if isinstance(papers_data.get("run_metrics"), dict) else {}
+    phase_metrics = run_metrics.get("phases") if isinstance(run_metrics.get("phases"), dict) else {}
+
+    def _elapsed_seconds(row: Dict[str, Any]) -> float:
+        if not isinstance(row, dict):
+            return 0.0
+        try:
+            started_at = row.get("started_at")
+            completed_at = row.get("completed_at")
+            if not started_at:
+                return 0.0
+            started = datetime.fromisoformat(str(started_at))
+            finished = datetime.fromisoformat(str(completed_at)) if completed_at else datetime.now()
+            return max(0.0, (finished - started).total_seconds())
+        except Exception:
+            return 0.0
+
+    def _sum_usage(phases: List[str]) -> Dict[str, int]:
+        total = {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        for p in phases:
+            row = phase_metrics.get(p)
+            if not isinstance(row, dict):
+                continue
+            for k in total.keys():
+                total[k] += int(row.get(k) or 0)
+        return total
+
+    decorated = []
+    for exp in experiments:
+        exp_dict = dict(exp)
+        stage_phases = exp_dict.get("stage_phases") if isinstance(exp_dict.get("stage_phases"), list) else []
+        usage = _sum_usage([str(p) for p in stage_phases])
+
+        progress_pct = 0.0
+        if exp_dict.get("status") == "success":
+            progress_pct = 100.0
+        elif exp_dict.get("status") == "experimenting":
+            if exp_dict.get("id") == "exp_1":
+                progress_pct = {"starting": 10.0, "literature_review": 45.0, "hypothesis": 80.0}.get(phase, overall_progress * 100.0)
+            elif exp_dict.get("id") == "exp_2":
+                progress_pct = 50.0
+            else:
+                progress_pct = max(0.0, min(100.0, overall_progress * 100.0))
+
+        metrics: Dict[str, Any] = {
+            "进度%": progress_pct,
+            "LLM调用": usage["calls"],
+            "Token": usage["total_tokens"],
+            "失败": usage["errors"],
+        }
+        if exp_dict.get("id") == "exp_1":
+            metrics["种子论文"] = seed_count
+            metrics["假设数"] = hypotheses_count
+            lit_row = phase_metrics.get("literature_review") if isinstance(phase_metrics.get("literature_review"), dict) else {}
+            hyp_row = phase_metrics.get("hypothesis") if isinstance(phase_metrics.get("hypothesis"), dict) else {}
+            metrics["阅读耗时(s)"] = lit_row.get("read_seconds") or 0.0
+            metrics["分析耗时(s)"] = lit_row.get("analysis_seconds") or 0.0
+            metrics["单篇阅读(s)"] = lit_row.get("avg_read_seconds_per_paper") or 0.0
+            metrics["单篇分析(s)"] = lit_row.get("avg_analysis_seconds_per_paper") or 0.0
+            metrics["假设耗时(s)"] = _elapsed_seconds(hyp_row)
+        if exp_dict.get("id") == "exp_3":
+            metrics["产物论文"] = papers_count
+            write_row = phase_metrics.get("writing") if isinstance(phase_metrics.get("writing"), dict) else {}
+            metrics["写作用时(s)"] = write_row.get("writing_seconds") or _elapsed_seconds(write_row)
+        if exp_dict.get("id") == "exp_2":
+            graph_row = phase_metrics.get("experimenting") if isinstance(phase_metrics.get("experimenting"), dict) else {}
+            metrics["图谱耗时(s)"] = graph_row.get("graph_build_seconds") or _elapsed_seconds(graph_row)
+            metrics["作者数"] = graph_row.get("author_count") or 0
+            metrics["机构数"] = graph_row.get("institution_count") or 0
+            metrics["引用边"] = graph_row.get("citation_edge_count") or 0
+
+        exp_dict["metrics"] = metrics
+        decorated.append(exp_dict)
+
+    return decorated
+
+
 def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Optional[int] = None) -> str:
     cfg = get_effective_llm_config()
     ok, reason = _llm_available(cfg)
     if not ok:
         return f"LLM 未就绪: {reason}"
 
+    session = requests.Session()
+    session.trust_env = False
+
     provider = cfg["provider"]
     model = str(cfg.get("model") or ("abab6.5s-chat" if provider == "minimax" else "gpt-4o"))
     temp = float(temperature if temperature is not None else cfg.get("temperature", 0.7))
     mt = int(max_tokens if max_tokens is not None else cfg.get("max_tokens", 4096))
+    timeout_s = 600 if provider == "minimax" else 180
+    papers_ctx = load_papers()
+    run_id = ((papers_ctx.get("current_run") or {}).get("run_id") if isinstance(papers_ctx.get("current_run"), dict) else "") or ""
+    phase = str((papers_ctx.get("research_activity") or {}).get("phase") if isinstance(papers_ctx.get("research_activity"), dict) else "unknown")
+    prompt_len = len(prompt or "")
+    prompt_sample = (prompt or "")[:200]
+    _dbg_event("llm_call_prepare", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "timeout_s": timeout_s, "max_tokens": mt, "temperature": temp, "prompt_len": prompt_len, "prompt_sample": prompt_sample})
 
     if provider == "gemini":
         base = _llm_endpoint(provider, str(cfg.get("base_url") or "")).rstrip("/")
@@ -243,14 +539,17 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": temp, "maxOutputTokens": mt},
         }
-        resp = requests.post(url, json=body, timeout=180)
+        resp = session.post(url, json=body, timeout=timeout_s)
         data = resp.json()
         if "error" in data:
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=False)
             raise RuntimeError(data["error"].get("message") or str(data["error"]))
         candidates = data.get("candidates") or []
         if not candidates:
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True)
             return ""
         content = (candidates[0].get("content") or {}).get("parts") or []
+        _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True)
         return (content[0].get("text") if content else "") or ""
 
     url = _llm_chat_url(provider, str(cfg.get("base_url") or ""))
@@ -267,16 +566,55 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
     else:
         payload["max_tokens"] = mt
 
-    resp = requests.post(url, headers=headers, json=payload, timeout=180)
-    data = resp.json()
-    if "error" in data:
-        err = data["error"].get("message") if isinstance(data["error"], dict) else str(data["error"])
-        raise RuntimeError(err or "llm error")
-    return (
-        (data.get("choices") or [{}])[0].get("message", {}).get("content")
-        or (data.get("choices") or [{}])[0].get("text", "")
-        or ""
-    )
+    last_exc: Optional[Exception] = None
+    for attempt in range(3):
+        try:
+            req_id = str(uuid4())
+            stop_evt = threading.Event()
+
+            def _hb():
+                t0 = time.time()
+                while not stop_evt.wait(10.0):
+                    _dbg_event("llm_call_heartbeat", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "elapsed_s": round(time.time() - t0, 2), "timeout_s": timeout_s, "prompt_len": prompt_len})
+
+            threading.Thread(target=_hb, daemon=True).start()
+            _dbg_event("llm_call_start", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "url": url, "timeout_s": timeout_s, "max_tokens": mt})
+            resp = session.post(url, headers=headers, json=payload, timeout=timeout_s)
+            stop_evt.set()
+            try:
+                data = resp.json()
+            except ValueError:
+                snippet = (resp.text or "")[:200]
+                _dbg_event("llm_call_non_json", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "snippet": snippet})
+                raise RuntimeError(f"非JSON响应: HTTP {resp.status_code} {snippet}")
+            if "error" in data:
+                err = data["error"].get("message") if isinstance(data["error"], dict) else str(data["error"])
+                _dbg_event("llm_call_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "error": err})
+                raise RuntimeError(err or "llm error")
+            content = (
+                (data.get("choices") or [{}])[0].get("message", {}).get("content")
+                or (data.get("choices") or [{}])[0].get("text", "")
+                or ""
+            )
+            _dbg_event("llm_call_ok", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "usage": (data.get("usage") if isinstance(data.get("usage"), dict) else None), "content_len": len(content), "content_sample": content[:200]})
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, usage=(data.get("usage") if isinstance(data.get("usage"), dict) else None), ok=True)
+            return content
+        except requests.exceptions.Timeout as exc:
+            last_exc = exc
+            _dbg_event("llm_call_timeout", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
+        except requests.exceptions.ConnectionError as exc:
+            last_exc = exc
+            _dbg_event("llm_call_conn_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
+        except RuntimeError as exc:
+            last_exc = exc
+            _dbg_event("llm_call_runtime_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
+        if attempt < 2:
+            time.sleep(1.5 * (attempt + 1))
+    if last_exc:
+        _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=False)
+        raise last_exc
+    _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=False)
+    raise RuntimeError("llm request failed")
 
 
 _reload_config()
@@ -468,6 +806,8 @@ def load_papers() -> dict:
         "papers": [], "current_paper_id": None, "next_research_seq": 1,
         "generation_queue": [], "is_generating": False, "is_paused": False,
         "hypotheses": [], "experiments": [],
+        "live_graphs": {},
+        "run_metrics": {},
         "current_run": None, "runs": [],
         "research_activity": {"phase": "idle", "message": "等待开始", "progress": 0},
         "settings": {"auto_continue": True, "pause_after_next": False},
@@ -1041,10 +1381,17 @@ def api_history_detail(record_id: int):
 def api_research_state():
     """获取研究状态"""
     papers_data = load_papers()
+    dirty = _flush_llm_usage(papers_data)
     branches_data = load_branches()
     workflow = load_workflow_state()
     current_branch = get_current_branch()
     current_branch_id = branches_data.get('current_branch_id') or branches_data.get('current_branch')
+
+    experiments = _decorate_stage_experiments(papers_data)
+    if experiments:
+        papers_data["experiments"] = experiments
+    if dirty:
+        save_papers(papers_data)
 
     return jsonify({
         "success": True,
@@ -1057,6 +1404,8 @@ def api_research_state():
         "papers_count": len(papers_data.get('papers', [])),
         "hypotheses": papers_data.get('hypotheses', []),
         "experiments": papers_data.get('experiments', []),
+        "run_metrics": papers_data.get("run_metrics", {}),
+        "live_graphs": papers_data.get("live_graphs", {}),
         "current_run": papers_data.get('current_run'),
         "runs": papers_data.get('runs', []),
         "research_activity": papers_data.get('research_activity', {}),
@@ -1068,6 +1417,24 @@ def api_research_state():
             "research_archives_count": len(get_registry().get("research_archives", [])),
         },
     })
+
+
+def _live_graphs_payload(papers_data: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    papers_data = papers_data or load_papers()
+    live = papers_data.get("live_graphs") if isinstance(papers_data.get("live_graphs"), dict) else None
+    if not live:
+        return None
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    run_id = current_run.get("run_id") or ""
+    status = current_run.get("status") or ""
+    phase = (papers_data.get("research_activity") or {}).get("phase") or ""
+    if live.get("run_id") != run_id:
+        return None
+    if status not in ("in_progress", "paused"):
+        return None
+    if phase not in ("experimenting", "writing", "paused"):
+        return None
+    return live
 
 
 @app.route('/api/research/run', methods=['GET'])
@@ -1221,74 +1588,22 @@ def api_research_resume_checkpoint(research_id: str):
 
 @app.route('/api/research/author-network/latest', methods=['GET'])
 def api_author_network_latest():
+    papers_data = load_papers()
+    live = _live_graphs_payload(papers_data)
+    if live and isinstance(live.get("author_network"), dict):
+        return jsonify({"success": True, "author_network": live.get("author_network"), "source": "live"})
     papers = list_seed_papers()
-    if not papers:
-        return jsonify({"success": True, "author_network": {"authors": [], "institutions": [], "papers": [], "collaborations": []}})
+    return jsonify({"success": True, "author_network": _build_author_network_from_seed_papers(papers), "source": "seed"})
 
-    authors = []
-    institutions_map: Dict[str, Dict[str, Any]] = {}
-    collaborations = []
-    paper_records = []
 
-    def _inst_type(name: str) -> str:
-        n = name or ""
-        if any(k in n for k in ("大学", "学院", "University", "Institute of Technology")):
-            return "university"
-        if any(k in n for k in ("公司", "Inc", "Corp", "Research", "研究院", "实验室", "Lab")):
-            return "company"
-        return "university"
-
-    for sp in papers:
-        paper_id = sp.get("arxiv_id") or str(sp.get("id") or "")
-        paper_title = sp.get("title") or paper_id
-        raw = sp.get("authors") or ""
-        names = [a.strip() for a in raw.split(",") if a.strip()]
-        paper_records.append({"id": paper_id, "title": paper_title, "authors": names})
-
-        node_ids = []
-        for idx, name in enumerate(names):
-            role = "other"
-            if idx == 0:
-                role = "first"
-            elif idx == 1:
-                role = "second"
-            if names and idx == len(names) - 1 and len(names) > 1:
-                role = "corresponding"
-
-            institution = sp.get("institution") or "未知机构"
-            inst_type = _inst_type(institution)
-            if institution not in institutions_map:
-                institutions_map[institution] = {
-                    "id": f"inst_{len(institutions_map) + 1}",
-                    "name": institution,
-                    "type": inst_type,
-                }
-
-            aid = f"a_{paper_id}_{idx}"
-            authors.append({
-                "id": aid,
-                "name": name,
-                "role": role,
-                "institution": institution,
-                "type": inst_type,
-                "paper_id": paper_id,
-            })
-            node_ids.append(aid)
-
-        for i in range(len(node_ids) - 1):
-            collaborations.append({"author1": node_ids[i], "author2": node_ids[i + 1], "paper_id": paper_id})
-        if len(node_ids) > 2:
-            collaborations.append({"author1": node_ids[0], "author2": node_ids[-1], "paper_id": paper_id})
-
-    return jsonify({
-        "success": True,
-        "author_network": {
-            "authors": authors,
-            "institutions": list(institutions_map.values()),
-            "papers": paper_records,
-            "collaborations": collaborations,
-        },
-    })
+@app.route('/api/research/citation-network/latest', methods=['GET'])
+def api_citation_network_latest():
+    papers_data = load_papers()
+    live = _live_graphs_payload(papers_data)
+    if live and isinstance(live.get("citation_network"), dict):
+        return jsonify({"success": True, "citation_network": live.get("citation_network"), "source": "live"})
+    seed_papers = list_seed_papers()
+    return jsonify({"success": True, "citation_network": _build_citation_network(papers_data=papers_data, seed_papers=seed_papers), "source": "computed"})
 
 
 @app.route('/api/branches', methods=['GET'])
@@ -1511,6 +1826,130 @@ def _run_experiment_and_collect(*, root: Path, research_id: str) -> Dict[str, An
     return result
 
 
+def _persist_experiment_documents(
+    *,
+    root: Path,
+    research_id: str,
+    topic: str,
+    papers_data: dict,
+    experiment_bundle: Optional[Dict[str, Any]] = None,
+) -> None:
+    hypotheses = papers_data.get("hypotheses") or []
+    experiments = papers_data.get("experiments") or []
+
+    spec_path = root / "experiments" / f"{research_id}_experiment_data_spec.md"
+    _write_text(
+        spec_path,
+        "\n".join([
+            f"# 实验数据说明（{research_id}）",
+            "",
+            "本研究档案目录包含以下实验相关文件：",
+            "",
+            f"- data/{research_id}_experiment_data.json：实验配置与中间数据（可复现输入/输出字段）",
+            f"- data/{research_id}_indicator_sample.json：指标样本（特征列、时间索引、示例记录）",
+            f"- metrics/{research_id}_backtest_results.json：回测结果（收益、风险、基准对比、统计检验）",
+            f"- code/{research_id}_experiment.py：实验代码（可直接运行）",
+            "",
+            "约定：所有表格与结论必须以以上 JSON 的真实字段为依据，不得编造。",
+            "",
+        ])
+    )
+
+    hyp_lines = [f"# 研究假设（{research_id}）", "", f"主题：{topic}", ""]
+    if not hypotheses:
+        hyp_lines.append("暂无假设记录。")
+    else:
+        for idx, h in enumerate(hypotheses, start=1):
+            hyp_lines.extend([
+                f"## H{idx:02d}. {h.get('title') or h.get('id')}",
+                "",
+                f"- id: {h.get('id')}",
+                f"- status: {h.get('status')}",
+                f"- tags: {', '.join(h.get('tags') or [])}",
+                f"- expected_outcome: {h.get('expected_outcome')}",
+                "",
+                (h.get("description") or "").strip(),
+                "",
+            ])
+            if h.get("actual_outcome"):
+                hyp_lines.extend([f"- actual_outcome: {h.get('actual_outcome')}", ""])
+    _write_text(root / "experiments" / f"{research_id}_hypotheses.md", "\n".join(hyp_lines))
+
+    seed_papers = list_seed_papers()
+    try:
+        author_network = _build_author_network_from_seed_papers(seed_papers)
+    except Exception:
+        author_network = {"authors": [], "institutions": [], "papers": [], "collaborations": []}
+
+    citation_network = _build_citation_network(papers_data=papers_data, seed_papers=seed_papers)
+
+    _write_json(root / "graphs" / f"{research_id}_author_network.json", author_network)
+    _write_json(root / "graphs" / f"{research_id}_citation_network.json", citation_network)
+
+    author_md = "\n".join([
+        f"# 作者-机构合作网络（{research_id}）",
+        "",
+        f"- authors: {len(author_network.get('authors') or [])}",
+        f"- institutions: {len(author_network.get('institutions') or [])}",
+        f"- collaborations: {len(author_network.get('collaborations') or [])}",
+        "",
+        "JSON 文件：",
+        f"- graphs/{research_id}_author_network.json",
+        "",
+    ])
+    _write_text(root / "graphs" / f"{research_id}_author_network.md", author_md)
+
+    citation_md = "\n".join([
+        f"# 引用关系网络（{research_id}）",
+        "",
+        f"- aiPapers: {len(citation_network.get('aiPapers') or [])}",
+        f"- references: {len(citation_network.get('references') or [])}",
+        f"- edges: {len(citation_network.get('edges') or [])}",
+        "",
+        "JSON 文件：",
+        f"- graphs/{research_id}_citation_network.json",
+        "",
+    ])
+    _write_text(root / "graphs" / f"{research_id}_citation_network.md", citation_md)
+
+    res_lines = [f"# 实验结果与记录（{research_id}）", "", f"主题：{topic}", ""]
+    if experiments:
+        res_lines.append("## 实验记录（编号）")
+        res_lines.append("")
+        for idx, exp in enumerate(experiments, start=1):
+            res_lines.extend([
+                f"- EXP{idx:03d} {exp.get('id')}: {exp.get('title')}",
+                f"  - status: {exp.get('status')}",
+                f"  - method: {exp.get('method')}",
+            ])
+        res_lines.append("")
+
+    if experiment_bundle:
+        res_lines.extend([
+            "## 实验执行",
+            "",
+            f"- ran: {experiment_bundle.get('ran')}",
+            f"- ok: {experiment_bundle.get('ok')}",
+            f"- error: {experiment_bundle.get('error')}",
+            "",
+            "## 产物路径",
+            "",
+        ])
+        paths = experiment_bundle.get("paths") if isinstance(experiment_bundle.get("paths"), dict) else {}
+        for k, v in paths.items():
+            res_lines.append(f"- {k}: {v}")
+        res_lines.append("")
+
+    res_lines.extend([
+        "## 图谱文件",
+        "",
+        f"- graphs/{research_id}_author_network.json",
+        f"- graphs/{research_id}_citation_network.json",
+        "",
+    ])
+    _write_text(root / "experiments" / f"{research_id}_experiment_results.md", "\n".join(res_lines))
+
+
 def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None) -> dict:
     """创建并持久化一篇论文记录"""
     papers_data = load_papers()
@@ -1545,29 +1984,70 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
         parent_research_id=parent_research_id,
     )
     root = Path(workspace["research_dir"])
-    experiment_bundle = _run_experiment_and_collect(root=root, research_id=research_id)
-    paper_content = generate_paper_content(
-        topic,
-        branch_papers,
-        branch_review=branch_review,
-        research_id=research_id,
-        experiment_bundle=experiment_bundle,
-    )
-    title = extract_title(paper_content) or provisional_title
-    save_article_markdown(root, research_id, paper_content)
-    write_meta(
-        root,
-        research_id=research_id,
-        paper_id=paper_id,
-        branch_id=branch_id,
-        title=title,
-        topic=topic,
-        status="generated",
-        parent_research_id=parent_research_id,
-    )
-    workspace["file_path"] = str(root / "article" / f"{research_id}_paper.md")
-    workspace["artifacts"] = artifacts_for_api(root, research_id)
-    bump_research_seq(papers_data, research_id)
+    _dbg_set_context(research_id=research_id, research_dir=str(root))
+    _dbg_event("paper_create_start", {"research_id": research_id, "paper_id": paper_id, "branch_id": branch_id, "topic": topic})
+    try:
+        exp_started = time.perf_counter()
+        _dbg_event("paper_experiment_start", {"research_id": research_id, "paper_id": paper_id})
+        experiment_bundle = _run_experiment_and_collect(root=root, research_id=research_id)
+        _dbg_event("paper_experiment_done", {
+            "research_id": research_id,
+            "paper_id": paper_id,
+            "elapsed_s": round(max(0.0, time.perf_counter() - exp_started), 3),
+            "ran": (experiment_bundle.get("ran") if isinstance(experiment_bundle, dict) else None),
+            "ok": (experiment_bundle.get("ok") if isinstance(experiment_bundle, dict) else None),
+            "error": (str(experiment_bundle.get("error"))[:300] if isinstance(experiment_bundle, dict) and experiment_bundle.get("error") else None),
+        })
+
+        persist_started = time.perf_counter()
+        _dbg_event("paper_persist_docs_start", {"research_id": research_id, "paper_id": paper_id})
+        _persist_experiment_documents(root=root, research_id=research_id, topic=topic, papers_data=papers_data, experiment_bundle=experiment_bundle)
+        _dbg_event("paper_persist_docs_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - persist_started), 3)})
+
+        writing_started = time.perf_counter()
+        _dbg_event("paper_writing_start", {"research_id": research_id, "paper_id": paper_id})
+        paper_content = generate_paper_content(
+            topic,
+            branch_papers,
+            branch_review=branch_review,
+            research_id=research_id,
+            experiment_bundle=experiment_bundle,
+        )
+        _dbg_event("paper_writing_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - writing_started), 3), "content_len": len(paper_content or ""), "content_sample": (paper_content or "")[:200]})
+
+        status = "generated"
+        if isinstance(paper_content, str) and ("论文生成失败:" in paper_content or paper_content.startswith("LLM 未就绪:")):
+            status = "failed"
+        title = extract_title(paper_content) or provisional_title
+
+        save_started = time.perf_counter()
+        _dbg_event("paper_save_markdown_start", {"research_id": research_id, "paper_id": paper_id})
+        save_article_markdown(root, research_id, paper_content)
+        _dbg_event("paper_save_markdown_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - save_started), 3)})
+
+        meta_started = time.perf_counter()
+        _dbg_event("paper_write_meta_start", {"research_id": research_id, "paper_id": paper_id, "status": status})
+        write_meta(
+            root,
+            research_id=research_id,
+            paper_id=paper_id,
+            branch_id=branch_id,
+            title=title,
+            topic=topic,
+            status=status,
+            parent_research_id=parent_research_id,
+        )
+        _dbg_event("paper_write_meta_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - meta_started), 3)})
+
+        workspace["file_path"] = str(root / "article" / f"{research_id}_paper.md")
+        workspace["artifacts"] = artifacts_for_api(root, research_id)
+        bump_research_seq(papers_data, research_id)
+    except Exception as e:
+        _dbg_event("paper_create_exception", {"research_id": research_id, "paper_id": paper_id, "error": str(e)[:600]})
+        raise
+    finally:
+        _dbg_event("paper_create_finish", {"research_id": research_id, "paper_id": paper_id})
+        _dbg_clear_context()
 
     paper_record = {
         "id": paper_id,
@@ -1576,7 +2056,7 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
         "topic": topic,
         "content": paper_content,
         "title": title,
-        "status": "generated",
+        "status": status,
         "quality_score": None,
         "iteration_count": 0,
         "created_at": datetime.now().isoformat(),
@@ -1602,7 +2082,7 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
         "branch_id": branch_id,
         "topic": topic,
         "title": paper_record['title'],
-        "status": "generated"
+        "status": status
     })
 
     mongo_result = index_paper_to_mongo(paper_record)
@@ -1751,12 +2231,39 @@ def generate_paper_content(
         max_output_tokens = min(max_output_tokens, cfg_max)
 
     try:
-        content = call_llm(prompt, temperature=0.7, max_tokens=max_output_tokens)
+        def _call_with_backoff(p: str, *, temperature: float, max_tokens: int) -> str:
+            tokens = int(max_tokens)
+            last_err: Optional[Exception] = None
+            for attempt in range(5):
+                try:
+                    _dbg_event("writing_llm_attempt", {"topic": topic, "stage": "call_with_backoff", "attempt": attempt + 1, "max_tokens": tokens, "prompt_len": len(p or ""), "prompt_sample": (p or "")[:200]})
+                    return call_llm(p, temperature=temperature, max_tokens=tokens)
+                except Exception as exc:
+                    last_err = exc
+                    msg = str(exc)
+                    _dbg_event("writing_llm_error", {"topic": topic, "stage": "call_with_backoff", "attempt": attempt + 1, "max_tokens": tokens, "error": msg[:400]})
+                    if ("HTTP 504" in msg) or ("Gateway Time-out" in msg) or ("Gateway Timeout" in msg):
+                        tokens = max(1024, tokens // 2)
+                        continue
+                    raise
+            if last_err:
+                raise last_err
+            raise RuntimeError("llm request failed")
+
+        chunk_tokens = max_output_tokens
+        if cfg_max > 0:
+            chunk_tokens = max(1024, min(max_output_tokens, cfg_max // 4 if cfg_max >= 4096 else cfg_max))
+        else:
+            chunk_tokens = max(1024, min(max_output_tokens, 4096))
+
+        _dbg_event("writing_start", {"topic": topic, "min_chars": min_chars, "chunk_tokens": chunk_tokens, "max_output_tokens": max_output_tokens, "prompt_len": len(prompt), "data_context_len": len(data_context or "")})
+        content = _call_with_backoff(prompt, temperature=0.7, max_tokens=chunk_tokens)
+        _dbg_event("writing_first_chunk_done", {"topic": topic, "content_len": len(content or ""), "content_sample": (content or "")[:200]})
         if not content:
             return ""
         if content.startswith("LLM 未就绪"):
             return content
-        for _ in range(3):
+        for idx in range(10):
             if len(content) >= min_chars and "## 参考文献" in content:
                 break
             tail = content[-1800:]
@@ -1771,12 +2278,17 @@ def generate_paper_content(
 已写内容末尾：
 {tail}
 """
-            more = call_llm(cont_prompt, temperature=0.7, max_tokens=max_output_tokens)
+            _dbg_event("writing_continue_prepare", {"topic": topic, "step": idx + 1, "tail_len": len(tail), "tail_sample": tail[:200], "min_chars": min_chars, "has_refs": ("## 参考文献" in content), "content_len": len(content)})
+            more = _call_with_backoff(cont_prompt, temperature=0.7, max_tokens=chunk_tokens)
+            _dbg_event("writing_continue_done", {"topic": topic, "step": idx + 1, "more_len": len(more or ""), "more_sample": (more or "")[:200]})
             if not more:
+                break
+            if more.strip() in content:
                 break
             content = content.rstrip() + "\n\n" + more.lstrip()
         return content
     except Exception as e:
+        _dbg_event("writing_failed", {"topic": topic, "error": str(e)[:600]})
         return f"# {topic}\n\n论文生成失败: {str(e)}"
 
 
@@ -2348,6 +2860,18 @@ def api_get_research_logs_summary():
 @app.route('/')
 def index():
     return app.send_static_file('fars_dashboard.html')
+
+
+@app.route('/v2/')
+def index_v2():
+    """FARS v2 前端入口"""
+    return app.send_static_file('v2/index.html')
+
+
+@app.route('/v2/<path:static_file>')
+def index_v2_static(static_file):
+    """FARS v2 静态资源（CSS/JS/组件）"""
+    return app.send_from_directory(os.path.join(app.static_folder, 'v2'), static_file)
 
 
 @app.route('/health')
