@@ -1,0 +1,204 @@
+{
+  "papers": [],
+  "current_paper_id": null,
+  "next_research_seq": 1,
+  "generation_queue": [
+    {
+      "topic": "基于注意力机制的量化选股策略研究",
+      "branch_id": 1,
+      "added_at": "2026-06-21T17:41:49.279608",
+      "priority": "normal",
+      "status": "completed",
+      "paper_id": 4,
+      "run_id": "RUN-20260621171855-d818b974"
+    }
+  ],
+  "is_generating": false,
+  "is_paused": false,
+  "hypotheses": [
+    {
+      "id": "hyp_1",
+      "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+      "description": "围绕「构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。」提出可验证假设，结合真实种子论文分析结果与研究主题「基于注意力机制的量化选股策略研究」。核心问题：LLM 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "论文与实验产物已落盘，研究编号 RS-20260621-100",
+      "run_id": "RUN-20260621171855-d818b974"
+    },
+    {
+      "id": "hyp_2",
+      "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+      "description": "围绕「针对 LLM 建立与传统量化因子/基线策略的系统比较框架。」提出可验证假设，结合真实种子论文分析结果与研究主题「基于注意力机制的量化选股策略研究」。核心问题：量化交易 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "论文与实验产物已落盘，研究编号 RS-20260621-100",
+      "run_id": "RUN-20260621171855-d818b974"
+    },
+    {
+      "id": "hyp_3",
+      "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+      "description": "围绕「将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。」提出可验证假设，结合真实种子论文分析结果与研究主题「基于注意力机制的量化选股策略研究」。核心问题：风险控制 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "论文与实验产物已落盘，研究编号 RS-20260621-100",
+      "run_id": "RUN-20260621171855-d818b974"
+    },
+    {
+      "id": "hyp_4",
+      "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+      "description": "围绕「要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。」提出可验证假设，结合真实种子论文分析结果与研究主题「基于注意力机制的量化选股策略研究」。核心问题：多智能体 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "论文与实验产物已落盘，研究编号 RS-20260621-100",
+      "run_id": "RUN-20260621171855-d818b974"
+    },
+    {
+      "id": "hyp_5",
+      "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+      "description": "围绕「构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。」提出可验证假设，结合真实种子论文分析结果与研究主题「基于注意力机制的量化选股策略研究」。核心问题：种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "论文与实验产物已落盘，研究编号 RS-20260621-100",
+      "run_id": "RUN-20260621171855-d818b974"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp_1",
+      "title": "实验1: 文献综述与假设生成",
+      "status": "success",
+      "paper_id": 4,
+      "method": "种子论文解析 + 主题抽取 + 研究空白/创新点 → 假设",
+      "topic": "基于注意力机制的量化选股策略研究",
+      "run_id": "RUN-20260621171855-d818b974",
+      "created_at": "2026-06-21T17:18:55.765392",
+      "stage_phases": [
+        "starting",
+        "literature_review",
+        "hypothesis"
+      ],
+      "started_at": "2026-06-21T17:18:55.766805",
+      "completed_at": "2026-06-21T17:41:48.943738",
+      "updated_at": "2026-06-21T17:41:48.943738",
+      "metrics": {
+        "进度%": 100.0,
+        "LLM调用": 0,
+        "Token": 0,
+        "失败": 0,
+        "种子论文": 23,
+        "假设数": 5,
+        "阅读耗时(s)": 0.0017222079914063215,
+        "分析耗时(s)": 0.003318666946142912,
+        "单篇阅读(s)": 7.487860832201397e-05,
+        "单篇分析(s)": 0.00014428986722360486,
+        "假设耗时(s)": 0.00191
+      },
+      "artifacts": {
+        "docs": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/experiments/RS-20260621-100_hypotheses.md",
+        "data_spec": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/experiments/RS-20260621-100_experiment_data_spec.md"
+      }
+    },
+    {
+      "id": "exp_2",
+      "title": "实验2: 引用/作者图谱构建",
+      "status": "success",
+      "paper_id": 4,
+      "method": "引用关系图 + 作者-机构合作网络",
+      "topic": "基于注意力机制的量化选股策略研究",
+      "run_id": "RUN-20260621171855-d818b974",
+      "created_at": "2026-06-21T17:18:55.765392",
+      "stage_phases": [
+        "experimenting"
+      ],
+      "started_at": "2026-06-21T17:18:55.779124",
+      "completed_at": "2026-06-21T17:41:48.943738",
+      "updated_at": "2026-06-21T17:41:48.943738",
+      "metrics": {
+        "进度%": 100.0,
+        "LLM调用": 0,
+        "Token": 0,
+        "失败": 0,
+        "图谱耗时(s)": 0.33593216608278453,
+        "作者数": 61,
+        "机构数": 33,
+        "引用边": 175
+      },
+      "artifacts": {
+        "author_network": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/graphs/RS-20260621-100_author_network.json",
+        "citation_network": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/graphs/RS-20260621-100_citation_network.json",
+        "docs": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/graphs/RS-20260621-100_author_network.md"
+      }
+    },
+    {
+      "id": "exp_3",
+      "title": "实验3: 写作与产物落盘",
+      "status": "success",
+      "paper_id": 4,
+      "method": "论文生成 + 实验产物聚合 + 下载中心落盘",
+      "topic": "基于注意力机制的量化选股策略研究",
+      "run_id": "RUN-20260621171855-d818b974",
+      "created_at": "2026-06-21T17:18:55.765392",
+      "stage_phases": [
+        "writing",
+        "completed"
+      ],
+      "started_at": "2026-06-21T17:18:56.119429",
+      "completed_at": "2026-06-21T17:41:48.943738",
+      "updated_at": "2026-06-21T17:41:48.943738",
+      "metrics": {
+        "进度%": 78.0,
+        "LLM调用": 1,
+        "Token": 0,
+        "失败": 1,
+        "产物论文": 4,
+        "写作用时(s)": 905.4590570831206
+      },
+      "artifacts": {
+        "data": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/metrics/RS-20260621-100_backtest_results.json",
+        "indicators": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/data/RS-20260621-100_indicator_sample.json",
+        "code": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/code/RS-20260621-100_experiment.py",
+        "docs": "/research_files/data/research/RS-20260621-100_基于注意力机制的量化选股策略研究/experiments/RS-20260621-100_experiment_results.md"
+      }
+    }
+  ],
+  "live_graphs": {},
+  "run_metrics": {},
+  "current_run": null,
+  "runs": [],
+  "research_activity": {
+    "phase": "completed",
+    "message": "已停止（完成当前一篇）· RS-20260621-100",
+    "progress": 1.0,
+    "updated_at": "2026-06-21T17:41:49.282183"
+  },
+  "settings": {
+    "auto_continue": true,
+    "pause_after_next": false
+  },
+  "stop_requested": false
+}

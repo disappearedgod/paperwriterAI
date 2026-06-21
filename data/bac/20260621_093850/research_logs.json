@@ -1,0 +1,60 @@
+[
+  {
+    "id": 5,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621093819-6899ef67"
+    },
+    "timestamp": "2026-06-21T09:38:21.559124"
+  },
+  {
+    "id": 4,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621093819-6899ef67"
+    },
+    "timestamp": "2026-06-21T09:38:20.553290"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621093818-0fce5374"
+    },
+    "timestamp": "2026-06-21T09:38:20.433780"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621093818-0fce5374"
+    },
+    "timestamp": "2026-06-21T09:38:19.430069"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621093819-6899ef67"
+    },
+    "timestamp": "2026-06-21T09:38:19.346588"
+  }
+]

@@ -216,7 +216,7 @@ LLM_PROVIDER_CONFIG = {
     LLMProvider.MINIMAX: {
         "name": "MiniMax",
         "models": ["MiniMax-M2.7-highspeed", "MiniMax-M2.8-32K"],
-        "base_url": "https://token.juda.dev/v1",
+        "base_url": "https://minnimax.chat/v1",
         "context_window": 196608,
         "supports_streaming": True
     },
@@ -424,13 +424,93 @@ def save_config():
         json.dump(CONFIG, f, ensure_ascii=False, indent=2)
 
 
+def _deep_merge(a, b):
+    if isinstance(a, dict) and isinstance(b, dict):
+        merged = dict(a)
+        for k, v in b.items():
+            if k in merged:
+                merged[k] = _deep_merge(merged[k], v)
+            else:
+                merged[k] = v
+        return merged
+    return b
+
+
+def _read_json(path: Path) -> Dict:
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    return {}
+
+
+def _provider_env_var(provider: str) -> Optional[str]:
+    p = (provider or "").lower()
+    if p == "minimax":
+        return "MINIMAX_API_KEY"
+    if p == "openai":
+        return "OPENAI_API_KEY"
+    if p == "gemini":
+        return "GEMINI_API_KEY"
+    if p == "anthropic":
+        return "ANTHROPIC_API_KEY"
+    if p == "deepseek":
+        return "DEEPSEEK_API_KEY"
+    return None
+
+
+def load_effective_config() -> Dict:
+    base = _read_json(PROJECT_ROOT / "config.json") or dict(CONFIG)
+    local = _read_json(PROJECT_ROOT / "config.local.json")
+    merged = _deep_merge(base, local)
+
+    llm = merged.get("llm") if isinstance(merged.get("llm"), dict) else {}
+    provider = str(llm.get("provider") or "minimax").lower()
+    env_key = _provider_env_var(provider)
+    env_value = os.environ.get(env_key) if env_key else None
+    if env_value:
+        llm_providers = merged.get("llm_providers") if isinstance(merged.get("llm_providers"), dict) else {}
+        provider_cfg = llm_providers.get(provider) if isinstance(llm_providers.get(provider), dict) else {}
+        provider_cfg = dict(provider_cfg)
+        provider_cfg["api_key"] = env_value
+        llm_providers = dict(llm_providers)
+        llm_providers[provider] = provider_cfg
+        merged["llm_providers"] = llm_providers
+
+        llm = dict(llm)
+        llm["api_key"] = env_value
+        merged["llm"] = llm
+
+    return merged
+
+
+def get_effective_llm_config() -> Dict:
+    cfg = load_effective_config()
+    llm = cfg.get("llm") if isinstance(cfg.get("llm"), dict) else {}
+    llm_providers = cfg.get("llm_providers") if isinstance(cfg.get("llm_providers"), dict) else {}
+
+    provider = str(llm.get("provider") or "minimax").lower()
+    provider_cfg = llm_providers.get(provider) if isinstance(llm_providers.get(provider), dict) else {}
+
+    model = llm.get("model") or provider_cfg.get("model") or ""
+    base_url = llm.get("base_url") or provider_cfg.get("base_url") or ""
+    temperature = llm.get("temperature", provider_cfg.get("temperature", 0.7))
+    max_tokens = llm.get("max_tokens", provider_cfg.get("max_tokens", 4096))
+    api_key = llm.get("api_key") or provider_cfg.get("api_key") or ""
+
+    return {
+        "provider": provider,
+        "model": model,
+        "base_url": base_url,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "api_key": api_key,
+    }
+
+
 def load_config() -> Dict:
     """从文件加载配置"""
-    config_path = PROJECT_ROOT / "config.json"
-    if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return CONFIG
+    return load_effective_config()
 
 
 # ============== 数据Schema定义 ==============

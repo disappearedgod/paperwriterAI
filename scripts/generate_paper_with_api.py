@@ -16,22 +16,28 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scripts.chunked_paper_generator import ChunkedPaperGenerator, ChunkConfig
 from src.tools.fetchers import LLMCaller
-
-# MiniMax API 配置
-MINIMAX_CONFIG = {
-    "base_url": "https://token.juda.dev/v1",
-    "api_key": "sk-EM9y8cMhuiSEWEZb13Df397b7d274eAfBbC9227fAeE8Db2b",
-    "model": "MiniMax-M2.7-highspeed"
-}
+from src.core.config import get_effective_llm_config, load_effective_config
 
 
-def create_minimax_caller() -> LLMCaller:
-    """创建MiniMax API调用器"""
+_EFFECTIVE_LLM = None
+_RUNTIME_CFG = None
+
+
+def _resolve_llm_runtime_config(overrides: dict) -> dict:
+    cfg = get_effective_llm_config()
+    merged = dict(cfg)
+    for k, v in (overrides or {}).items():
+        if v is not None and v != "":
+            merged[k] = v
+    return merged
+
+
+def create_llm_caller(runtime_cfg: dict) -> LLMCaller:
     return LLMCaller(
-        provider="minimax",
-        model=MINIMAX_CONFIG["model"],
-        api_key=MINIMAX_CONFIG["api_key"],
-        base_url=MINIMAX_CONFIG["base_url"]
+        provider=runtime_cfg["provider"],
+        model=runtime_cfg["model"],
+        api_key=runtime_cfg["api_key"],
+        base_url=runtime_cfg["base_url"]
     )
 
 
@@ -49,11 +55,16 @@ def api_caller_wrapper(system_prompt: str, user_prompt: str, max_tokens: int = 1
     """
     print(f"    [API调用] max_tokens={max_tokens}, prompt长度={len(user_prompt)}字符")
 
-    llm = create_minimax_caller()
+    global _EFFECTIVE_LLM
+    global _RUNTIME_CFG
+    if _EFFECTIVE_LLM is None:
+        raise RuntimeError("LLM caller 未初始化")
+
+    llm = _EFFECTIVE_LLM
     response = llm.call(
         prompt=user_prompt,
         system_prompt=system_prompt,
-        temperature=0.7,
+        temperature=float((_RUNTIME_CFG or {}).get("temperature", 0.7)),
         max_tokens=max_tokens
     )
 
@@ -86,9 +97,12 @@ def generate_paper(
         生成结果字典
     """
     print("=" * 70)
-    print("FARS - MiniMax API 论文生成器")
+    print("FARS - API 论文生成器")
     print("=" * 70)
-    print(f"模型: {MINIMAX_CONFIG['model']}")
+    runtime_cfg = get_effective_llm_config()
+    print(f"Provider: {runtime_cfg.get('provider')}")
+    print(f"Model: {runtime_cfg.get('model')}")
+    print(f"Base URL: {runtime_cfg.get('base_url')}")
     print(f"标题: {title}")
     print()
 
@@ -124,7 +138,10 @@ def generate_simple_paper(title: str, content_type: str = "abstract") -> str:
     Returns:
         生成的内容
     """
-    llm = create_minimax_caller()
+    global _EFFECTIVE_LLM
+    if _EFFECTIVE_LLM is None:
+        raise RuntimeError("LLM caller 未初始化")
+    llm = _EFFECTIVE_LLM
 
     prompts = {
         "abstract": f"请为论文《{title}》撰写200-300字的摘要，包含研究问题、方法、主要发现和结论。使用规范的学术中文写作。",
@@ -215,14 +232,37 @@ def save_paper(result: dict, output_path: str = None):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="FARS - 使用MiniMax API生成分块论文")
+    parser = argparse.ArgumentParser(description="FARS - 使用配置驱动的 LLM API 生成分块论文")
     parser.add_argument("--title", type=str, default=None, help="论文标题")
     parser.add_argument("--authors", type=str, default="魏宏", help="作者列表")
     parser.add_argument("--mock", action="store_true", help="使用模拟数据（不调用API）")
     parser.add_argument("--test", action="store_true", help="测试模式：生成单个摘要")
     parser.add_argument("--output", type=str, default=None, help="输出文件路径")
+    parser.add_argument("--provider", type=str, default=None, help="覆盖 provider（例如 minimax/openai/gemini/custom）")
+    parser.add_argument("--model", type=str, default=None, help="覆盖 model")
+    parser.add_argument("--base-url", type=str, default=None, help="覆盖 base_url")
+    parser.add_argument("--api-key", type=str, default=None, help="覆盖 api_key（不建议；优先使用 config.local.json 或环境变量）")
+    parser.add_argument("--temperature", type=float, default=None, help="覆盖 temperature")
+    parser.add_argument("--max-tokens", type=int, default=None, help="覆盖 max_tokens（用于单次调用默认值）")
 
     args = parser.parse_args()
+
+    runtime_cfg = _resolve_llm_runtime_config({
+        "provider": args.provider,
+        "model": args.model,
+        "base_url": args.base_url,
+        "api_key": args.api_key,
+        "temperature": args.temperature,
+        "max_tokens": args.max_tokens,
+    })
+
+    if not args.mock:
+        if not runtime_cfg.get("provider") or not runtime_cfg.get("model") or not runtime_cfg.get("base_url"):
+            raise RuntimeError("LLM 配置不完整：请在 config.json/config.local.json 或 CLI 参数中提供 provider/model/base_url")
+        if not runtime_cfg.get("api_key"):
+            raise RuntimeError("LLM 未配置 api_key：请在 config.local.json 或环境变量中配置，或使用 --api-key 覆盖")
+        _RUNTIME_CFG = runtime_cfg
+        _EFFECTIVE_LLM = create_llm_caller(runtime_cfg)
 
     if args.test:
         # 测试模式：生成单个章节

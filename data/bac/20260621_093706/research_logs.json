@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "E2E API Test Topic",
+      "run_id": "RUN-20260621093705-48f294ec"
+    },
+    "timestamp": "2026-06-21T09:37:05.869043"
+  }
+]

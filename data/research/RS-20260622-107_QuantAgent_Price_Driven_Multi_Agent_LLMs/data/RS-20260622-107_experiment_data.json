@@ -1,0 +1,26 @@
+{
+  "research_id": "RS-20260622-107",
+  "stock": "000001 平安银行 (sz.000001)",
+  "data_range": "2019-01-03 至 2024-12-31",
+  "data_points": 1453,
+  "best_strategy": "ma_crossover",
+  "metrics": {
+    "total_return": 7.69,
+    "annual_return": 1.29,
+    "sharpe_ratio": -0.06,
+    "max_drawdown": -36.78,
+    "win_rate": 50.91,
+    "total_trades": 1367,
+    "annual_vol": 30.84
+  },
+  "quantagent_metrics": {
+    "total_return": -60.86,
+    "annual_return": -15.01,
+    "sharpe_ratio": -0.66,
+    "max_drawdown": -66.26,
+    "win_rate": 49.38,
+    "total_trades": 1049,
+    "annual_vol": 27.27
+  },
+  "created_at": "2026-06-22T01:17:08.945084"
+}

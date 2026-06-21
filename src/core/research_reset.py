@@ -34,6 +34,8 @@ def _empty_papers_state() -> dict:
         "is_paused": False,
         "hypotheses": [],
         "experiments": [],
+        "live_graphs": {},
+        "run_metrics": {},
         "current_run": None,
         "runs": [],
         "research_activity": {"phase": "idle", "message": "等待开始", "progress": 0},

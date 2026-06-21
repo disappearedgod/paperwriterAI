@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-055",
+  "paper_id": 4,
+  "branch_id": 1,
+  "title": "QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading（扩展 083607）",
+  "topic": "QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading（扩展 083607）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T08:36:11.054897",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-055_QuantAgent_Price_Driven_Multi_Agent_LLMs/article/RS-20260621-055_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-055_QuantAgent_Price_Driven_Multi_Agent_LLMs/data/RS-20260621-055_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-055_QuantAgent_Price_Driven_Multi_Agent_LLMs/data/RS-20260621-055_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-055_QuantAgent_Price_Driven_Multi_Agent_LLMs/metrics/RS-20260621-055_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-055_QuantAgent_Price_Driven_Multi_Agent_LLMs/code/RS-20260621-055_experiment.py"
+  }
+}

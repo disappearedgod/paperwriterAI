@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-010",
+  "paper_id": 4,
+  "branch_id": 1,
+  "title": "未命名论文",
+  "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T05:47:13.218240",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-010_054120_054330_054707/article/RS-20260621-010_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-010_054120_054330_054707/data/RS-20260621-010_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-010_054120_054330_054707/data/RS-20260621-010_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-010_054120_054330_054707/metrics/RS-20260621-010_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-010_054120_054330_054707/code/RS-20260621-010_experiment.py"
+  }
+}

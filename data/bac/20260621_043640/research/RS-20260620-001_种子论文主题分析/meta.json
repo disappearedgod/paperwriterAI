@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260620-001",
+  "paper_id": 1,
+  "branch_id": 1,
+  "title": "种子论文主题分析",
+  "topic": "种子论文主题分析",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-20T17:59:56.850644",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260620-001_种子论文主题分析/article/RS-20260620-001_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260620-001_种子论文主题分析/data/RS-20260620-001_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260620-001_种子论文主题分析/data/RS-20260620-001_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260620-001_种子论文主题分析/metrics/RS-20260620-001_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260620-001_种子论文主题分析/code/RS-20260620-001_experiment.py"
+  }
+}

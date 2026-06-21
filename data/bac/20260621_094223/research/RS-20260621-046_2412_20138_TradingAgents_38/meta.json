@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-046",
+  "paper_id": 18,
+  "branch_id": 1,
+  "title": "2412.20138 - TradingAgents (38页)",
+  "topic": "2412.20138 - TradingAgents (38页)",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T07:12:43.201498",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-046_2412_20138_TradingAgents_38/article/RS-20260621-046_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-046_2412_20138_TradingAgents_38/data/RS-20260621-046_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-046_2412_20138_TradingAgents_38/data/RS-20260621-046_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-046_2412_20138_TradingAgents_38/metrics/RS-20260621-046_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-046_2412_20138_TradingAgents_38/code/RS-20260621-046_experiment.py"
+  }
+}

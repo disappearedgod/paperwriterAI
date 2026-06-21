@@ -1,0 +1,15 @@
+{
+    "id": null,
+    "branch_id": null,
+    "title": null,
+    "content": null,
+    "status": "draft",
+    "quality_score": null,
+    "grading_result": null,
+    "improvement_ideas": [],
+    "iteration_count": 0,
+    "created_at": null,
+    "updated_at": null,
+    "parent_paper_id": null,
+    "review_content": null
+}

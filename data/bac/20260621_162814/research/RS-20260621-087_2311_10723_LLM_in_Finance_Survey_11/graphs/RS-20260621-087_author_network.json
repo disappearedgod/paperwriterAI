@@ -1,0 +1,2149 @@
+{
+  "authors": [
+    {
+      "id": "author_3c8b22d492d8",
+      "name": "Yinheng Li",
+      "role": "first",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_209a9b39dab3",
+      "name": "Shaofei Wang",
+      "role": "second",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2311.10723"
+      ]
+    },
+    {
+      "id": "author_9b45f76c5326",
+      "name": "Han Ding",
+      "role": "first",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_ef71c27b941f",
+      "name": "Hang Chen",
+      "role": "corresponding",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_e0c291841283",
+      "name": "Junhao Wang",
+      "role": "other",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_bee1c35cfb1c",
+      "name": "Doudou Guo",
+      "role": "other",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_d784c8727f87",
+      "name": "Yunbai Zhang",
+      "role": "corresponding",
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ],
+      "institution_ids": [
+        "inst_fafc34740067",
+        "inst_3712daeb456f"
+      ],
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "id": "author_433dff58a932",
+      "name": "Yijia Xiao",
+      "role": "first",
+      "institutions": [
+        "1University of California, Los Angeles (UCLA)",
+        "2Massachusetts Institute of Technology (MIT)"
+      ],
+      "institution_ids": [
+        "inst_0c87aa119b20",
+        "inst_6a3704529556"
+      ],
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "id": "author_966b9bd08a4e",
+      "name": "Edward Sun",
+      "role": "second",
+      "institutions": [
+        "1University of California, Los Angeles (UCLA)",
+        "2Massachusetts Institute of Technology (MIT)"
+      ],
+      "institution_ids": [
+        "inst_0c87aa119b20",
+        "inst_6a3704529556"
+      ],
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "id": "author_2d3465641e3c",
+      "name": "Di Luo",
+      "role": "other",
+      "institutions": [
+        "1University of California, Los Angeles (UCLA)",
+        "2Massachusetts Institute of Technology (MIT)"
+      ],
+      "institution_ids": [
+        "inst_0c87aa119b20",
+        "inst_6a3704529556"
+      ],
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "id": "author_b417b50c4c16",
+      "name": "Wei Wang",
+      "role": "corresponding",
+      "institutions": [
+        "1University of California, Los Angeles (UCLA)",
+        "2Massachusetts Institute of Technology (MIT)"
+      ],
+      "institution_ids": [
+        "inst_0c87aa119b20",
+        "inst_6a3704529556"
+      ],
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "id": "author_aa9fed0fe013",
+      "name": "Fei Xiong",
+      "role": "first",
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ],
+      "institution_ids": [
+        "inst_853105d4776d",
+        "inst_4f6d82eb542c"
+      ],
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "id": "author_ae9c7fc5db9b",
+      "name": "Xiang Zhang",
+      "role": "second",
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ],
+      "institution_ids": [
+        "inst_853105d4776d",
+        "inst_4f6d82eb542c"
+      ],
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "id": "author_6700bf076cb6",
+      "name": "Aosong Feng",
+      "role": "other",
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ],
+      "institution_ids": [
+        "inst_853105d4776d",
+        "inst_4f6d82eb542c"
+      ],
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "id": "author_d84ea47880bc",
+      "name": "Siqi Sun",
+      "role": "other",
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ],
+      "institution_ids": [
+        "inst_853105d4776d",
+        "inst_4f6d82eb542c"
+      ],
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "id": "author_97a59420f3e4",
+      "name": "Chenyu You",
+      "role": "corresponding",
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ],
+      "institution_ids": [
+        "inst_853105d4776d",
+        "inst_4f6d82eb542c"
+      ],
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "id": "author_dbfb6a85b988",
+      "name": "Weilong Fu",
+      "role": "first",
+      "institutions": [
+        "∗Columbia University,"
+      ],
+      "institution_ids": [
+        "inst_729573cb88df"
+      ],
+      "paper_ids": [
+        "2510.05533"
+      ]
+    },
+    {
+      "id": "author_ece41858251c",
+      "name": "Masahiro Kato",
+      "role": "first",
+      "institutions": [
+        "Mizuho-DL Financial Technology, Co., Ltd."
+      ],
+      "institution_ids": [
+        "inst_1c5071cdb5d6"
+      ],
+      "paper_ids": [
+        "2606.20041"
+      ]
+    },
+    {
+      "id": "author_cd056b502787",
+      "name": "Aijie Shu",
+      "role": "first",
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge"
+      ],
+      "institution_ids": [
+        "inst_de588502f2ed",
+        "inst_54e7907f44be",
+        "inst_940c5db9f6a5"
+      ],
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "id": "author_e4dec03a112b",
+      "name": "Bowei Chen",
+      "role": "second",
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge"
+      ],
+      "institution_ids": [
+        "inst_de588502f2ed",
+        "inst_54e7907f44be",
+        "inst_940c5db9f6a5"
+      ],
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "id": "author_45ff0c1c882e",
+      "name": "Wenbin Wu",
+      "role": "first",
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge",
+        "Cambridge Centre for Alternative Finance, University of Cambridge"
+      ],
+      "institution_ids": [
+        "inst_de588502f2ed",
+        "inst_54e7907f44be",
+        "inst_940c5db9f6a5",
+        "inst_928a31e987f7"
+      ],
+      "paper_ids": [
+        "2606.19501",
+        "2606.02528"
+      ]
+    },
+    {
+      "id": "author_f0ab155d2b60",
+      "name": "Cathy Yi-Hsuan Chen",
+      "role": "other",
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge"
+      ],
+      "institution_ids": [
+        "inst_de588502f2ed",
+        "inst_54e7907f44be",
+        "inst_940c5db9f6a5"
+      ],
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "id": "author_ce740312e83e",
+      "name": "Fengxiang He",
+      "role": "corresponding",
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge"
+      ],
+      "institution_ids": [
+        "inst_de588502f2ed",
+        "inst_54e7907f44be",
+        "inst_940c5db9f6a5"
+      ],
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "id": "author_5f55b9a0e333",
+      "name": "Matthew Francis Dixon",
+      "role": "first",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.17383",
+        "2606.15473"
+      ]
+    },
+    {
+      "id": "author_594a6e2a2bc2",
+      "name": "Henry Han",
+      "role": "first",
+      "institutions": [
+        "HENRY HAN,Data Science and Artificial Intelligence Innovation Laboratory, School of Engineering and Computer",
+        "Science, Baylor University, USA",
+        "Baylor University, Waco, TX, USA, ."
+      ],
+      "institution_ids": [
+        "inst_f46dcc9993b8",
+        "inst_8892f0775a17",
+        "inst_71bed9843c22"
+      ],
+      "paper_ids": [
+        "2606.16059"
+      ]
+    },
+    {
+      "id": "author_4b9f84b1eab8",
+      "name": "Li Xia",
+      "role": "first",
+      "institutions": [
+        "School of Economics and Management, Tsinghua University"
+      ],
+      "institution_ids": [
+        "inst_aa237862ef4b"
+      ],
+      "paper_ids": [
+        "2606.14386"
+      ]
+    },
+    {
+      "id": "author_67ed57b14ece",
+      "name": "Baoxun Wang",
+      "role": "corresponding",
+      "institutions": [
+        "School of Economics and Management, Tsinghua University"
+      ],
+      "institution_ids": [
+        "inst_aa237862ef4b"
+      ],
+      "paper_ids": [
+        "2606.14386"
+      ]
+    },
+    {
+      "id": "author_a497bcc2a8a1",
+      "name": "John R. Graham",
+      "role": "first",
+      "institutions": [
+        "†Duke University and NBER ‡Georgia State University",
+        "Duke University, Fuqua School of Business, Fuqua Drive, Durham, NC . Email: ."
+      ],
+      "institution_ids": [
+        "inst_1841d4b14679",
+        "inst_7236613337e3"
+      ],
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "id": "author_1061c2d32e59",
+      "name": "Campbell R. Harvey",
+      "role": "second",
+      "institutions": [
+        "†Duke University and NBER ‡Georgia State University",
+        "Duke University, Fuqua School of Business, Fuqua Drive, Durham, NC . Email: ."
+      ],
+      "institution_ids": [
+        "inst_1841d4b14679",
+        "inst_7236613337e3"
+      ],
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "id": "author_f6de33f5113f",
+      "name": "Manish Jha",
+      "role": "corresponding",
+      "institutions": [
+        "†Duke University and NBER ‡Georgia State University",
+        "Duke University, Fuqua School of Business, Fuqua Drive, Durham, NC . Email: ."
+      ],
+      "institution_ids": [
+        "inst_1841d4b14679",
+        "inst_7236613337e3"
+      ],
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "id": "author_e18feca2a7f0",
+      "name": "Junyi Yao",
+      "role": "first",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.08285"
+      ]
+    },
+    {
+      "id": "author_aa5e0d10d481",
+      "name": "Zihao Zheng",
+      "role": "corresponding",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.08285"
+      ]
+    },
+    {
+      "id": "author_e200b27b6ff0",
+      "name": "Yiqing Wang",
+      "role": "first",
+      "institutions": [
+        "bUniversity of California San Diego, La Jolla, California",
+        "cGeorgia Institute of Technology, Atlanta, Georgia",
+        "dTulane University, New Orleans, Louisiana"
+      ],
+      "institution_ids": [
+        "inst_79262252dc61",
+        "inst_be7b58be6eb6",
+        "inst_5b8ac92020fd"
+      ],
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "id": "author_4c2754ece741",
+      "name": "Dehao Dai",
+      "role": "second",
+      "institutions": [
+        "bUniversity of California San Diego, La Jolla, California",
+        "cGeorgia Institute of Technology, Atlanta, Georgia",
+        "dTulane University, New Orleans, Louisiana"
+      ],
+      "institution_ids": [
+        "inst_79262252dc61",
+        "inst_be7b58be6eb6",
+        "inst_5b8ac92020fd"
+      ],
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "id": "author_1639af330c50",
+      "name": "Ding Ma",
+      "role": "other",
+      "institutions": [
+        "bUniversity of California San Diego, La Jolla, California",
+        "cGeorgia Institute of Technology, Atlanta, Georgia",
+        "dTulane University, New Orleans, Louisiana"
+      ],
+      "institution_ids": [
+        "inst_79262252dc61",
+        "inst_be7b58be6eb6",
+        "inst_5b8ac92020fd"
+      ],
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "id": "author_61c34573c9c4",
+      "name": "Kerui Geng",
+      "role": "corresponding",
+      "institutions": [
+        "bUniversity of California San Diego, La Jolla, California",
+        "cGeorgia Institute of Technology, Atlanta, Georgia",
+        "dTulane University, New Orleans, Louisiana"
+      ],
+      "institution_ids": [
+        "inst_79262252dc61",
+        "inst_be7b58be6eb6",
+        "inst_5b8ac92020fd"
+      ],
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "id": "author_17381c939d2f",
+      "name": "Yuqi Li",
+      "role": "first",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "id": "author_ec74cfe5d966",
+      "name": "Siyuan Liu",
+      "role": "second",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "id": "author_f5dfa56aea71",
+      "name": "Bingjun Liu",
+      "role": "corresponding",
+      "institutions": [
+        "未知机构"
+      ],
+      "institution_ids": [
+        "inst_67c71e60d28a"
+      ],
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "id": "author_605068bca745",
+      "name": "Robert D. Lieberthal",
+      "role": "first",
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ],
+      "institution_ids": [
+        "inst_7dd777334331",
+        "inst_50c60ac437e4"
+      ],
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "id": "author_1286094af836",
+      "name": "Richard Tran",
+      "role": "second",
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ],
+      "institution_ids": [
+        "inst_7dd777334331",
+        "inst_50c60ac437e4"
+      ],
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "id": "author_59d7ce5c2646",
+      "name": "Vietbao Phan",
+      "role": "other",
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ],
+      "institution_ids": [
+        "inst_7dd777334331",
+        "inst_50c60ac437e4"
+      ],
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "id": "author_367ba56ebf4e",
+      "name": "Jawand Singh",
+      "role": "other",
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ],
+      "institution_ids": [
+        "inst_7dd777334331",
+        "inst_50c60ac437e4"
+      ],
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "id": "author_0d37c8301eae",
+      "name": "Elizabeth Sottung",
+      "role": "corresponding",
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ],
+      "institution_ids": [
+        "inst_7dd777334331",
+        "inst_50c60ac437e4"
+      ],
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "id": "author_99eb8cbe892e",
+      "name": "Ziyao Wang",
+      "role": "first",
+      "institutions": [
+        "Texas Tech University"
+      ],
+      "institution_ids": [
+        "inst_a52d116a6eaf"
+      ],
+      "paper_ids": [
+        "2606.17423"
+      ]
+    },
+    {
+      "id": "author_d97b3b2ff07a",
+      "name": "Hao-Hsuan Chen",
+      "role": "first",
+      "institutions": [
+        "National Chengchi University"
+      ],
+      "institution_ids": [
+        "inst_9aaf41865214"
+      ],
+      "paper_ids": [
+        "2605.25632"
+      ]
+    },
+    {
+      "id": "author_63f9db56a469",
+      "name": "Yurii Kvasiuk",
+      "role": "first",
+      "institutions": [
+        "1Department of Physics, University of Wisconsin–Madison",
+        "2Event Horizon Labs"
+      ],
+      "institution_ids": [
+        "inst_009598500397",
+        "inst_513d489d1db9"
+      ],
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "id": "author_73c0a0e4e12b",
+      "name": "Tianyi Li",
+      "role": "second",
+      "institutions": [
+        "1Department of Physics, University of Wisconsin–Madison",
+        "2Event Horizon Labs"
+      ],
+      "institution_ids": [
+        "inst_009598500397",
+        "inst_513d489d1db9"
+      ],
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "id": "author_ae3799713cf4",
+      "name": "Owen Colegrove",
+      "role": "other",
+      "institutions": [
+        "1Department of Physics, University of Wisconsin–Madison",
+        "2Event Horizon Labs"
+      ],
+      "institution_ids": [
+        "inst_009598500397",
+        "inst_513d489d1db9"
+      ],
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "id": "author_36ac4880094a",
+      "name": "Moritz Münchmeyer",
+      "role": "corresponding",
+      "institutions": [
+        "1Department of Physics, University of Wisconsin–Madison",
+        "2Event Horizon Labs"
+      ],
+      "institution_ids": [
+        "inst_009598500397",
+        "inst_513d489d1db9"
+      ],
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "id": "author_27dd2ecfa994",
+      "name": "Fan Zhang",
+      "role": "first",
+      "institutions": [
+        "1The University of Tokyo"
+      ],
+      "institution_ids": [
+        "inst_234ead630ece"
+      ],
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "id": "author_6caff28daff8",
+      "name": "Zhen Li",
+      "role": "second",
+      "institutions": [
+        "1The University of Tokyo"
+      ],
+      "institution_ids": [
+        "inst_234ead630ece"
+      ],
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "id": "author_a2ea75c2d49d",
+      "name": "Sijia Peng",
+      "role": "other",
+      "institutions": [
+        "1The University of Tokyo"
+      ],
+      "institution_ids": [
+        "inst_234ead630ece"
+      ],
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "id": "author_dabd86a08a16",
+      "name": "Yu Chen",
+      "role": "corresponding",
+      "institutions": [
+        "1The University of Tokyo"
+      ],
+      "institution_ids": [
+        "inst_234ead630ece"
+      ],
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "id": "author_ac6a2722abcc",
+      "name": "Adil Reghai",
+      "role": "first",
+      "institutions": [
+        "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+        "5ADIA Lab"
+      ],
+      "institution_ids": [
+        "inst_e9de360d4f16",
+        "inst_db7bc29b33fd"
+      ],
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "id": "author_4f60224bcc2e",
+      "name": "Lama Tarsissi",
+      "role": "second",
+      "institutions": [
+        "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+        "5ADIA Lab"
+      ],
+      "institution_ids": [
+        "inst_e9de360d4f16",
+        "inst_db7bc29b33fd"
+      ],
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "id": "author_a18af9651e7d",
+      "name": "Gérard Biau",
+      "role": "other",
+      "institutions": [
+        "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+        "5ADIA Lab"
+      ],
+      "institution_ids": [
+        "inst_e9de360d4f16",
+        "inst_db7bc29b33fd"
+      ],
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "id": "author_1cc7ec03d4d9",
+      "name": "Alex Lipton",
+      "role": "corresponding",
+      "institutions": [
+        "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+        "5ADIA Lab"
+      ],
+      "institution_ids": [
+        "inst_e9de360d4f16",
+        "inst_db7bc29b33fd"
+      ],
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "id": "author_405f63c0b59f",
+      "name": "Mohammad Al Ridhawi",
+      "role": "first",
+      "institutions": [
+        "School of Electrical Engineering and Computer Science,",
+        "University of Ottawa, Ottawa, Canada"
+      ],
+      "institution_ids": [
+        "inst_fff496926c97",
+        "inst_5126576de7bc"
+      ],
+      "paper_ids": [
+        "2605.05739"
+      ]
+    },
+    {
+      "id": "author_ef13ccc8b0a4",
+      "name": "Mahtab Haj Ali",
+      "role": "second",
+      "institutions": [
+        "School of Electrical Engineering and Computer Science,",
+        "University of Ottawa, Ottawa, Canada"
+      ],
+      "institution_ids": [
+        "inst_fff496926c97",
+        "inst_5126576de7bc"
+      ],
+      "paper_ids": [
+        "2605.05739"
+      ]
+    },
+    {
+      "id": "author_2cc3f9df1dd6",
+      "name": "Hussein Al Osman",
+      "role": "corresponding",
+      "institutions": [
+        "School of Electrical Engineering and Computer Science,",
+        "University of Ottawa, Ottawa, Canada"
+      ],
+      "institution_ids": [
+        "inst_fff496926c97",
+        "inst_5126576de7bc"
+      ],
+      "paper_ids": [
+        "2605.05739"
+      ]
+    }
+  ],
+  "institutions": [
+    {
+      "id": "inst_fafc34740067",
+      "name": "Columbia University",
+      "type": "university"
+    },
+    {
+      "id": "inst_3712daeb456f",
+      "name": "New York University",
+      "type": "university"
+    },
+    {
+      "id": "inst_0c87aa119b20",
+      "name": "1University of California, Los Angeles (UCLA)",
+      "type": "university"
+    },
+    {
+      "id": "inst_6a3704529556",
+      "name": "2Massachusetts Institute of Technology (MIT)",
+      "type": "university"
+    },
+    {
+      "id": "inst_853105d4776d",
+      "name": "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+      "type": "university"
+    },
+    {
+      "id": "inst_4f6d82eb542c",
+      "name": "University, 5Fudan University",
+      "type": "university"
+    },
+    {
+      "id": "inst_729573cb88df",
+      "name": "∗Columbia University,",
+      "type": "university"
+    },
+    {
+      "id": "inst_1c5071cdb5d6",
+      "name": "Mizuho-DL Financial Technology, Co., Ltd.",
+      "type": "company"
+    },
+    {
+      "id": "inst_de588502f2ed",
+      "name": "University of Edinburgh",
+      "type": "university"
+    },
+    {
+      "id": "inst_54e7907f44be",
+      "name": "University of Glasgow",
+      "type": "university"
+    },
+    {
+      "id": "inst_940c5db9f6a5",
+      "name": "University of Cambridge",
+      "type": "university"
+    },
+    {
+      "id": "inst_67c71e60d28a",
+      "name": "未知机构",
+      "type": "university"
+    },
+    {
+      "id": "inst_f46dcc9993b8",
+      "name": "HENRY HAN,Data Science and Artificial Intelligence Innovation Laboratory, School of Engineering and Computer",
+      "type": "university"
+    },
+    {
+      "id": "inst_8892f0775a17",
+      "name": "Science, Baylor University, USA",
+      "type": "university"
+    },
+    {
+      "id": "inst_71bed9843c22",
+      "name": "Baylor University, Waco, TX, USA, .",
+      "type": "university"
+    },
+    {
+      "id": "inst_aa237862ef4b",
+      "name": "School of Economics and Management, Tsinghua University",
+      "type": "university"
+    },
+    {
+      "id": "inst_1841d4b14679",
+      "name": "†Duke University and NBER ‡Georgia State University",
+      "type": "university"
+    },
+    {
+      "id": "inst_7236613337e3",
+      "name": "Duke University, Fuqua School of Business, Fuqua Drive, Durham, NC . Email: .",
+      "type": "university"
+    },
+    {
+      "id": "inst_79262252dc61",
+      "name": "bUniversity of California San Diego, La Jolla, California",
+      "type": "university"
+    },
+    {
+      "id": "inst_be7b58be6eb6",
+      "name": "cGeorgia Institute of Technology, Atlanta, Georgia",
+      "type": "university"
+    },
+    {
+      "id": "inst_5b8ac92020fd",
+      "name": "dTulane University, New Orleans, Louisiana",
+      "type": "university"
+    },
+    {
+      "id": "inst_7dd777334331",
+      "name": "3Thomas Jefferson University",
+      "type": "university"
+    },
+    {
+      "id": "inst_50c60ac437e4",
+      "name": "University",
+      "type": "university"
+    },
+    {
+      "id": "inst_928a31e987f7",
+      "name": "Cambridge Centre for Alternative Finance, University of Cambridge",
+      "type": "university"
+    },
+    {
+      "id": "inst_a52d116a6eaf",
+      "name": "Texas Tech University",
+      "type": "university"
+    },
+    {
+      "id": "inst_9aaf41865214",
+      "name": "National Chengchi University",
+      "type": "university"
+    },
+    {
+      "id": "inst_009598500397",
+      "name": "1Department of Physics, University of Wisconsin–Madison",
+      "type": "university"
+    },
+    {
+      "id": "inst_513d489d1db9",
+      "name": "2Event Horizon Labs",
+      "type": "company"
+    },
+    {
+      "id": "inst_234ead630ece",
+      "name": "1The University of Tokyo",
+      "type": "university"
+    },
+    {
+      "id": "inst_e9de360d4f16",
+      "name": "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+      "type": "university"
+    },
+    {
+      "id": "inst_db7bc29b33fd",
+      "name": "5ADIA Lab",
+      "type": "company"
+    },
+    {
+      "id": "inst_fff496926c97",
+      "name": "School of Electrical Engineering and Computer Science,",
+      "type": "university"
+    },
+    {
+      "id": "inst_5126576de7bc",
+      "name": "University of Ottawa, Ottawa, Canada",
+      "type": "university"
+    }
+  ],
+  "papers": [
+    {
+      "id": "2311.10723",
+      "title": "Large Language Models in Finance: A Survey",
+      "authors": [
+        "Yinheng Li",
+        "Shaofei Wang",
+        "Han Ding",
+        "Hang Chen"
+      ],
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ]
+    },
+    {
+      "id": "2408.06361",
+      "title": "Large Language Model Agent in Financial Trading: A Survey",
+      "authors": [
+        "Han Ding",
+        "Yinheng Li",
+        "Junhao Wang",
+        "Hang Chen",
+        "Doudou Guo",
+        "Yunbai Zhang"
+      ],
+      "institutions": [
+        "Columbia University",
+        "New York University"
+      ]
+    },
+    {
+      "id": "2412.20138",
+      "title": "TradingAgents: Multi-Agents LLM Financial Trading Framework",
+      "authors": [
+        "Yijia Xiao",
+        "Edward Sun",
+        "Di Luo",
+        "Wei Wang"
+      ],
+      "institutions": [
+        "1University of California, Los Angeles (UCLA)",
+        "2Massachusetts Institute of Technology (MIT)"
+      ]
+    },
+    {
+      "id": "2509.09995",
+      "title": "QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading",
+      "authors": [
+        "Fei Xiong",
+        "Xiang Zhang",
+        "Aosong Feng",
+        "Siqi Sun",
+        "Chenyu You"
+      ],
+      "institutions": [
+        "1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale",
+        "University, 5Fudan University"
+      ]
+    },
+    {
+      "id": "2510.05533",
+      "title": "The New Quant: A Survey of Large Language Models in Financial Prediction and Trading",
+      "authors": [
+        "Weilong Fu"
+      ],
+      "institutions": [
+        "∗Columbia University,"
+      ]
+    },
+    {
+      "id": "2606.20041",
+      "title": "AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "institutions": [
+        "Mizuho-DL Financial Technology, Co., Ltd."
+      ]
+    },
+    {
+      "id": "2606.19501",
+      "title": "DeXposure-Claw: An Agentic System for DeFi Risk Supervision",
+      "authors": [
+        "Aijie Shu",
+        "Bowei Chen",
+        "Wenbin Wu",
+        "Cathy Yi-Hsuan Chen",
+        "Fengxiang He"
+      ],
+      "institutions": [
+        "University of Edinburgh",
+        "University of Glasgow",
+        "University of Cambridge"
+      ]
+    },
+    {
+      "id": "2606.17383",
+      "title": "Model Validation of Agentic AI Systems: A POMDP-Based Framework for Belief-State, Forecast, and Policy Validation",
+      "authors": [
+        "Matthew Francis Dixon"
+      ],
+      "institutions": [
+        "未知机构"
+      ]
+    },
+    {
+      "id": "2606.16059",
+      "title": "Mojo: A Promising Tool for Scalable Financial AI Efficiency",
+      "authors": [
+        "Henry Han"
+      ],
+      "institutions": [
+        "HENRY HAN,Data Science and Artificial Intelligence Innovation Laboratory, School of Engineering and Computer",
+        "Science, Baylor University, USA",
+        "Baylor University, Waco, TX, USA, ."
+      ]
+    },
+    {
+      "id": "2606.15473",
+      "title": "Belief at Risk: Quantifying Agentic AI Model Risk with LLM-Inferred Bayesian State Filters",
+      "authors": [
+        "Matthew Francis Dixon"
+      ],
+      "institutions": [
+        "未知机构"
+      ]
+    },
+    {
+      "id": "2606.14386",
+      "title": "Discovery under Hypothesis Redundancy: A Geometric Theory of Discovery Bottlenecks",
+      "authors": [
+        "Li Xia",
+        "Baoxun Wang"
+      ],
+      "institutions": [
+        "School of Economics and Management, Tsinghua University"
+      ]
+    },
+    {
+      "id": "2606.13812",
+      "title": "CFOs Meet LLMs",
+      "authors": [
+        "John R. Graham",
+        "Campbell R. Harvey",
+        "Manish Jha"
+      ],
+      "institutions": [
+        "†Duke University and NBER ‡Georgia State University",
+        "Duke University, Fuqua School of Business, Fuqua Drive, Durham, NC . Email: ."
+      ]
+    },
+    {
+      "id": "2606.08285",
+      "title": "Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Based Trading Systems",
+      "authors": [
+        "Junyi Yao",
+        "Zihao Zheng"
+      ],
+      "institutions": [
+        "未知机构"
+      ]
+    },
+    {
+      "id": "2606.08283",
+      "title": "Macro Economists in the Machine: A Multi-Agent LLM Framework for Commodity-Related ETF Portfolio Construction",
+      "authors": [
+        "Yiqing Wang",
+        "Dehao Dai",
+        "Ding Ma",
+        "Kerui Geng"
+      ],
+      "institutions": [
+        "bUniversity of California San Diego, La Jolla, California",
+        "cGeorgia Institute of Technology, Atlanta, Georgia",
+        "dTulane University, New Orleans, Louisiana"
+      ]
+    },
+    {
+      "id": "2606.06823",
+      "title": "PandaAI: A Practical Agent CQ2 for Neuro-symbolic Data Analysis And Integrated Decision-Making in Quantitative Finance",
+      "authors": [
+        "Yuqi Li",
+        "Siyuan Liu",
+        "Bingjun Liu"
+      ],
+      "institutions": [
+        "未知机构"
+      ]
+    },
+    {
+      "id": "2606.06089",
+      "title": "Leveraging LLMs for Unstructured Claims Data Analysis",
+      "authors": [
+        "Robert D. Lieberthal",
+        "Richard Tran",
+        "Vietbao Phan",
+        "Jawand Singh",
+        "Elizabeth Sottung"
+      ],
+      "institutions": [
+        "3Thomas Jefferson University",
+        "University"
+      ]
+    },
+    {
+      "id": "2606.02528",
+      "title": "Auditing Asset-Specific Preferences in Financial Large Language Models: Evidence from Bitcoin Representations and Portfolio Allocation",
+      "authors": [
+        "Wenbin Wu"
+      ],
+      "institutions": [
+        "Cambridge Centre for Alternative Finance, University of Cambridge"
+      ]
+    },
+    {
+      "id": "2606.17423",
+      "title": "Martingale Doppelgänger-Eval: An Identification Framework for Auditing Candlestick Understanding in Vision-Language Models",
+      "authors": [
+        "Ziyao Wang"
+      ],
+      "institutions": [
+        "Texas Tech University"
+      ]
+    },
+    {
+      "id": "2605.25632",
+      "title": "Insuring Every Action: An Authority Frontier Framework for Runtime Actuarial Control of Autonomous AI Agents",
+      "authors": [
+        "Hao-Hsuan Chen"
+      ],
+      "institutions": [
+        "National Chengchi University"
+      ]
+    },
+    {
+      "id": "2605.23007",
+      "title": "MadEvolve: Evolutionary Optimization of Trading Systems with Large Language Models",
+      "authors": [
+        "Yurii Kvasiuk",
+        "Tianyi Li",
+        "Owen Colegrove",
+        "Moritz Münchmeyer"
+      ],
+      "institutions": [
+        "1Department of Physics, University of Wisconsin–Madison",
+        "2Event Horizon Labs"
+      ]
+    },
+    {
+      "id": "2605.23959",
+      "title": "When Alpha Disappears: A One-Switch Benchmark for Decision-Time Leakage in Financial Backtests",
+      "authors": [
+        "Fan Zhang",
+        "Zhen Li",
+        "Sijia Peng",
+        "Yu Chen"
+      ],
+      "institutions": [
+        "1The University of Tokyo"
+      ]
+    },
+    {
+      "id": "2605.06604",
+      "title": "A Geometry-Aware Residual Correction of Hagan's SABR Implied Volatility Formula",
+      "authors": [
+        "Adil Reghai",
+        "Lama Tarsissi",
+        "Gérard Biau",
+        "Alex Lipton"
+      ],
+      "institutions": [
+        "2SAFIR, Sorbonne University Abu Dhabi (SUAD)",
+        "5ADIA Lab"
+      ]
+    },
+    {
+      "id": "2605.05739",
+      "title": "Multi-Dimensional Behavioral Evaluation of Agentic Stock Prediction Systems Using Large Language Model Judges with Closed-Loop Reinforcement Learning Feedback",
+      "authors": [
+        "Mohammad Al Ridhawi",
+        "Mahtab Haj Ali",
+        "Hussein Al Osman"
+      ],
+      "institutions": [
+        "School of Electrical Engineering and Computer Science,",
+        "University of Ottawa, Ottawa, Canada"
+      ]
+    }
+  ],
+  "collaborations": [
+    {
+      "author1": "author_209a9b39dab3",
+      "author2": "author_3c8b22d492d8",
+      "weight": 1,
+      "paper_ids": [
+        "2311.10723"
+      ]
+    },
+    {
+      "author1": "author_3c8b22d492d8",
+      "author2": "author_9b45f76c5326",
+      "weight": 2,
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_3c8b22d492d8",
+      "author2": "author_ef71c27b941f",
+      "weight": 2,
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_209a9b39dab3",
+      "author2": "author_9b45f76c5326",
+      "weight": 1,
+      "paper_ids": [
+        "2311.10723"
+      ]
+    },
+    {
+      "author1": "author_209a9b39dab3",
+      "author2": "author_ef71c27b941f",
+      "weight": 1,
+      "paper_ids": [
+        "2311.10723"
+      ]
+    },
+    {
+      "author1": "author_9b45f76c5326",
+      "author2": "author_ef71c27b941f",
+      "weight": 2,
+      "paper_ids": [
+        "2311.10723",
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_9b45f76c5326",
+      "author2": "author_e0c291841283",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_9b45f76c5326",
+      "author2": "author_bee1c35cfb1c",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_9b45f76c5326",
+      "author2": "author_d784c8727f87",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_3c8b22d492d8",
+      "author2": "author_e0c291841283",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_3c8b22d492d8",
+      "author2": "author_bee1c35cfb1c",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_3c8b22d492d8",
+      "author2": "author_d784c8727f87",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_e0c291841283",
+      "author2": "author_ef71c27b941f",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_bee1c35cfb1c",
+      "author2": "author_e0c291841283",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_d784c8727f87",
+      "author2": "author_e0c291841283",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_bee1c35cfb1c",
+      "author2": "author_ef71c27b941f",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_d784c8727f87",
+      "author2": "author_ef71c27b941f",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_bee1c35cfb1c",
+      "author2": "author_d784c8727f87",
+      "weight": 1,
+      "paper_ids": [
+        "2408.06361"
+      ]
+    },
+    {
+      "author1": "author_433dff58a932",
+      "author2": "author_966b9bd08a4e",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_2d3465641e3c",
+      "author2": "author_433dff58a932",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_433dff58a932",
+      "author2": "author_b417b50c4c16",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_2d3465641e3c",
+      "author2": "author_966b9bd08a4e",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_966b9bd08a4e",
+      "author2": "author_b417b50c4c16",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_2d3465641e3c",
+      "author2": "author_b417b50c4c16",
+      "weight": 1,
+      "paper_ids": [
+        "2412.20138"
+      ]
+    },
+    {
+      "author1": "author_aa9fed0fe013",
+      "author2": "author_ae9c7fc5db9b",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_6700bf076cb6",
+      "author2": "author_aa9fed0fe013",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_aa9fed0fe013",
+      "author2": "author_d84ea47880bc",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_97a59420f3e4",
+      "author2": "author_aa9fed0fe013",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_6700bf076cb6",
+      "author2": "author_ae9c7fc5db9b",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_ae9c7fc5db9b",
+      "author2": "author_d84ea47880bc",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_97a59420f3e4",
+      "author2": "author_ae9c7fc5db9b",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_6700bf076cb6",
+      "author2": "author_d84ea47880bc",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_6700bf076cb6",
+      "author2": "author_97a59420f3e4",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_97a59420f3e4",
+      "author2": "author_d84ea47880bc",
+      "weight": 1,
+      "paper_ids": [
+        "2509.09995"
+      ]
+    },
+    {
+      "author1": "author_cd056b502787",
+      "author2": "author_e4dec03a112b",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_45ff0c1c882e",
+      "author2": "author_cd056b502787",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_cd056b502787",
+      "author2": "author_f0ab155d2b60",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_cd056b502787",
+      "author2": "author_ce740312e83e",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_45ff0c1c882e",
+      "author2": "author_e4dec03a112b",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_e4dec03a112b",
+      "author2": "author_f0ab155d2b60",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_ce740312e83e",
+      "author2": "author_e4dec03a112b",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_45ff0c1c882e",
+      "author2": "author_f0ab155d2b60",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_45ff0c1c882e",
+      "author2": "author_ce740312e83e",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_ce740312e83e",
+      "author2": "author_f0ab155d2b60",
+      "weight": 1,
+      "paper_ids": [
+        "2606.19501"
+      ]
+    },
+    {
+      "author1": "author_4b9f84b1eab8",
+      "author2": "author_67ed57b14ece",
+      "weight": 1,
+      "paper_ids": [
+        "2606.14386"
+      ]
+    },
+    {
+      "author1": "author_1061c2d32e59",
+      "author2": "author_a497bcc2a8a1",
+      "weight": 1,
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "author1": "author_a497bcc2a8a1",
+      "author2": "author_f6de33f5113f",
+      "weight": 1,
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "author1": "author_1061c2d32e59",
+      "author2": "author_f6de33f5113f",
+      "weight": 1,
+      "paper_ids": [
+        "2606.13812"
+      ]
+    },
+    {
+      "author1": "author_aa5e0d10d481",
+      "author2": "author_e18feca2a7f0",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08285"
+      ]
+    },
+    {
+      "author1": "author_4c2754ece741",
+      "author2": "author_e200b27b6ff0",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_1639af330c50",
+      "author2": "author_e200b27b6ff0",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_61c34573c9c4",
+      "author2": "author_e200b27b6ff0",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_1639af330c50",
+      "author2": "author_4c2754ece741",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_4c2754ece741",
+      "author2": "author_61c34573c9c4",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_1639af330c50",
+      "author2": "author_61c34573c9c4",
+      "weight": 1,
+      "paper_ids": [
+        "2606.08283"
+      ]
+    },
+    {
+      "author1": "author_17381c939d2f",
+      "author2": "author_ec74cfe5d966",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "author1": "author_17381c939d2f",
+      "author2": "author_f5dfa56aea71",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "author1": "author_ec74cfe5d966",
+      "author2": "author_f5dfa56aea71",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06823"
+      ]
+    },
+    {
+      "author1": "author_1286094af836",
+      "author2": "author_605068bca745",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_59d7ce5c2646",
+      "author2": "author_605068bca745",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_367ba56ebf4e",
+      "author2": "author_605068bca745",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_0d37c8301eae",
+      "author2": "author_605068bca745",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_1286094af836",
+      "author2": "author_59d7ce5c2646",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_1286094af836",
+      "author2": "author_367ba56ebf4e",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_0d37c8301eae",
+      "author2": "author_1286094af836",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_367ba56ebf4e",
+      "author2": "author_59d7ce5c2646",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_0d37c8301eae",
+      "author2": "author_59d7ce5c2646",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_0d37c8301eae",
+      "author2": "author_367ba56ebf4e",
+      "weight": 1,
+      "paper_ids": [
+        "2606.06089"
+      ]
+    },
+    {
+      "author1": "author_63f9db56a469",
+      "author2": "author_73c0a0e4e12b",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_63f9db56a469",
+      "author2": "author_ae3799713cf4",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_36ac4880094a",
+      "author2": "author_63f9db56a469",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_73c0a0e4e12b",
+      "author2": "author_ae3799713cf4",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_36ac4880094a",
+      "author2": "author_73c0a0e4e12b",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_36ac4880094a",
+      "author2": "author_ae3799713cf4",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23007"
+      ]
+    },
+    {
+      "author1": "author_27dd2ecfa994",
+      "author2": "author_6caff28daff8",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_27dd2ecfa994",
+      "author2": "author_a2ea75c2d49d",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_27dd2ecfa994",
+      "author2": "author_dabd86a08a16",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_6caff28daff8",
+      "author2": "author_a2ea75c2d49d",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_6caff28daff8",
+      "author2": "author_dabd86a08a16",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_a2ea75c2d49d",
+      "author2": "author_dabd86a08a16",
+      "weight": 1,
+      "paper_ids": [
+        "2605.23959"
+      ]
+    },
+    {
+      "author1": "author_4f60224bcc2e",
+      "author2": "author_ac6a2722abcc",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_a18af9651e7d",
+      "author2": "author_ac6a2722abcc",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_1cc7ec03d4d9",
+      "author2": "author_ac6a2722abcc",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_4f60224bcc2e",
+      "author2": "author_a18af9651e7d",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_1cc7ec03d4d9",
+      "author2": "author_4f60224bcc2e",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_1cc7ec03d4d9",
+      "author2": "author_a18af9651e7d",
+      "weight": 1,
+      "paper_ids": [
+        "2605.06604"
+      ]
+    },
+    {
+      "author1": "author_405f63c0b59f",
+      "author2": "author_ef13ccc8b0a4",
+      "weight": 1,
+      "paper_ids": [
+        "2605.05739"
+      ]
+    },
+    {
+      "author1": "author_2cc3f9df1dd6",
+      "author2": "author_405f63c0b59f",
+      "weight": 1,
+      "paper_ids": [
+        "2605.05739"
+      ]
+    },
+    {
+      "author1": "author_2cc3f9df1dd6",
+      "author2": "author_ef13ccc8b0a4",
+      "weight": 1,
+      "paper_ids": [
+        "2605.05739"
+      ]
+    }
+  ]
+}

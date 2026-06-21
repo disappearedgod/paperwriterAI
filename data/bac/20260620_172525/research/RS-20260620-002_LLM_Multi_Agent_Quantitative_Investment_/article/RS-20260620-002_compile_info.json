@@ -1,0 +1,7 @@
+{
+  "status": "pending_compilation",
+  "tex_file": "/Users/derek/WorkBuddy/2026-06-20-12-11-53/fars_system/workspace/projects/proj_20260620_131657_ed54dda9/papers/paper.tex",
+  "note": "请使用Overleaf或本地TeX环境编译PDF",
+  "overleaf_url": "https://overleaf.com",
+  "alternative": "MacTeX用户可运行: pdflatex paper.tex"
+}

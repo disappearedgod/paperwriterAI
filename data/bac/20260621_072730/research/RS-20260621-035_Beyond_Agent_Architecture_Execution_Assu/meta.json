@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-035",
+  "paper_id": 13,
+  "branch_id": 1,
+  "title": "Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Base",
+  "topic": "Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Based Trading Systems（扩展 063341）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T06:33:44.518022",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-035_Beyond_Agent_Architecture_Execution_Assu/article/RS-20260621-035_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-035_Beyond_Agent_Architecture_Execution_Assu/data/RS-20260621-035_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-035_Beyond_Agent_Architecture_Execution_Assu/data/RS-20260621-035_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-035_Beyond_Agent_Architecture_Execution_Assu/metrics/RS-20260621-035_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-035_Beyond_Agent_Architecture_Execution_Assu/code/RS-20260621-035_experiment.py"
+  }
+}

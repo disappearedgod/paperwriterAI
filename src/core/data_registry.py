@@ -100,6 +100,8 @@ def get_registry() -> Dict[str, Any]:
 def get_literature_context(max_chars: int = 6000) -> str:
     """汇总种子文献与工作流分析，供论文生成 prompt 使用。"""
     parts: List[str] = []
+    workflow = _load_json(WORKFLOW_STATE_FILE) or {}
+    papers_state = _load_json(PAPERS_STATE_FILE) or {}
 
     if LITERATURE_ANALYSIS.exists():
         text = LITERATURE_ANALYSIS.read_text(encoding="utf-8", errors="replace")
@@ -128,10 +130,37 @@ def get_literature_context(max_chars: int = 6000) -> str:
         for sp in manifest.get("seed_papers", [])[:5]:
             parts.append(f"- {sp.get('arxiv_id')}: {sp.get('title')}")
 
-    workflow = _load_json(WORKFLOW_STATE_FILE) or {}
     lit = workflow.get("literature_review", {})
+    if lit.get("papers_read"):
+        lines = []
+        for item in lit.get("papers_read", [])[:6]:
+            if isinstance(item, dict):
+                lines.append(
+                    f"- [{item.get('arxiv_id', '?')}] {item.get('title', '')} "
+                    f"(topics: {', '.join(item.get('key_topics') or [])})"
+                )
+        if lines:
+            parts.append("## 已分析种子论文\n" + "\n".join(lines))
     if lit.get("key_themes"):
         parts.append("## 研究主题\n" + "\n".join(f"- {t}" for t in lit["key_themes"]))
+    if lit.get("research_questions"):
+        parts.append("## 研究问题\n" + "\n".join(f"- {q}" for q in lit["research_questions"][:6]))
+    if lit.get("research_gaps"):
+        parts.append("## 研究空白\n" + "\n".join(f"- {g}" for g in lit["research_gaps"][:5]))
+    if lit.get("potential_innovations"):
+        parts.append("## 潜在创新\n" + "\n".join(f"- {g}" for g in lit["potential_innovations"][:5]))
+
+    hypotheses = papers_state.get("hypotheses") or []
+    if hypotheses:
+        lines = []
+        for item in hypotheses[:5]:
+            if isinstance(item, dict):
+                lines.append(
+                    f"- {item.get('id', '?')}: {item.get('title', '')} "
+                    f"(tags: {', '.join(item.get('tags') or [])})"
+                )
+        if lines:
+            parts.append("## 当前研究假设\n" + "\n".join(lines))
 
     ctx = "\n\n".join(parts)
     return ctx[:max_chars]

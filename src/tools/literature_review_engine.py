@@ -30,7 +30,7 @@ class LiteratureReviewEngine:
     - Citation Integration (引用整合)
     """
 
-    def __init__(self, api_key: str = None, api_url: str = None, model: str = None):
+    def __init__(self, api_key: str = None, api_url: str = None, model: str = None, provider: str = None):
         """
         初始化文献综述引擎
 
@@ -39,17 +39,28 @@ class LiteratureReviewEngine:
             api_url: MiniMax API地址
             model: 模型名称
         """
-        import os as _os
-        # 从config.json读取配置
-        _cfg_file = _os.path.join(_os.path.dirname(__file__), '..', '..', 'config.json')
-        _llm_cfg = {}
-        if _os.path.exists(_cfg_file):
-            with open(_cfg_file, 'r') as _f:
-                _llm_cfg = json.load(_f).get('llm', {})
+        from src.core.config import get_effective_llm_config, load_effective_config
+        from src.tools.fetchers import LLMCaller
 
-        self.api_key = api_key or _llm_cfg.get('api_key', '') or _os.environ.get("MINIMAX_API_KEY", "")
-        self.api_url = api_url or _llm_cfg.get('base_url', 'https://minnimax.chat/v1')
-        self.model = model or _llm_cfg.get('model', 'MiniMax-M2.7')
+        cfg = load_effective_config()
+        llm_cfg = get_effective_llm_config()
+        chosen_provider = str(provider or llm_cfg.get("provider") or "minimax").lower()
+        llm_providers = cfg.get("llm_providers") if isinstance(cfg.get("llm_providers"), dict) else {}
+        provider_cfg = llm_providers.get(chosen_provider) if isinstance(llm_providers.get(chosen_provider), dict) else {}
+
+        self.provider = chosen_provider
+        self.model = model or llm_cfg.get("model") or provider_cfg.get("model") or ""
+        self.api_url = api_url or llm_cfg.get("base_url") or provider_cfg.get("base_url") or ""
+        self.api_key = api_key or llm_cfg.get("api_key") or provider_cfg.get("api_key") or ""
+        self.temperature = float((cfg.get("llm") or {}).get("temperature", 0.7)) if isinstance(cfg.get("llm"), dict) else 0.7
+        self.max_tokens = int((cfg.get("llm") or {}).get("max_tokens", 4096)) if isinstance(cfg.get("llm"), dict) else 4096
+
+        self._caller = LLMCaller(
+            provider=self.provider,
+            model=self.model,
+            api_key=self.api_key,
+            base_url=self.api_url,
+        )
 
     def _call_llm(self, prompt: str, temperature: float = 0.7,
                   max_output_tokens: int = 4096) -> Optional[str]:
@@ -64,42 +75,13 @@ class LiteratureReviewEngine:
         Returns:
             LLM回复文本
         """
-        if not self.api_key:
-            return self._fallback_response(prompt)
-
-        if requests is None:
+        if not self.api_key or not self.api_url or not self.model:
             return self._fallback_response(prompt)
 
         try:
-            # 估算token
-            estimated_input_tokens = len(prompt) // 3
-            safe_max_tokens = min(max_output_tokens, 150000 - estimated_input_tokens)
-
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            data = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": temperature,
-                "max_completion_tokens": safe_max_tokens
-            }
-
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=data,
-                timeout=120
-            )
-            result = response.json()
-
-            if "error" in result:
-                print(f"[LiteratureReviewEngine] LLM API error: {result['error']}")
-                return None
-
-            return result.get("choices", [{}])[0].get("message", {}).get("content")
-
+            temp = float(temperature if temperature is not None else self.temperature)
+            mt = int(max_output_tokens if max_output_tokens is not None else self.max_tokens)
+            return self._caller.call(prompt=prompt, system_prompt=None, temperature=temp, max_tokens=mt)
         except Exception as e:
             print(f"[LiteratureReviewEngine] LLM call failed: {e}")
             return None

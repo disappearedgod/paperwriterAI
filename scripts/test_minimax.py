@@ -12,12 +12,27 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.tools.fetchers import LLMCaller
 
-# MiniMax API 配置 (用户提供)
+# MiniMax API 配置 (从环境变量或配置文件读取，不要硬编码)
 MINIMAX_CONFIG = {
-    "base_url": "https://token.juda.dev/v1",
-    "api_key": "sk-EM9y8cMhuiSEWEZb13Df397b7d274eAfBbC9227fAeE8Db2b",
+    "base_url": "https://minnimax.chat/v1",
+    "api_key": os.environ.get("MINIMAX_API_KEY", ""),
     "model": "MiniMax-M2.7-highspeed"
 }
+
+# 如果环境变量没有，尝试从 config.local.json 读取
+if not MINIMAX_CONFIG["api_key"]:
+    try:
+        import json
+        _cfg_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.local.json")
+        if os.path.exists(_cfg_path):
+            with open(_cfg_path) as f:
+                _cfg = json.load(f)
+            MINIMAX_CONFIG["api_key"] = (
+                _cfg.get("llm", {}).get("api_key", "")
+                or _cfg.get("llm_providers", {}).get("minimax", {}).get("api_key", "")
+            )
+    except Exception:
+        pass
 
 def test_minimax_connection():
     """测试 MiniMax API 连接"""
@@ -29,6 +44,8 @@ def test_minimax_connection():
     print(f"API Key: {MINIMAX_CONFIG['api_key'][:20]}...{MINIMAX_CONFIG['api_key'][-10:]}")
 
     # 创建 LLM Caller
+
+    
     llm = LLMCaller(
         provider="minimax",
         model=MINIMAX_CONFIG["model"],

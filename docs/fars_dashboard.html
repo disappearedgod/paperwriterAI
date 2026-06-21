@@ -154,6 +154,47 @@
             margin-top: 0.25rem;
         }
 
+        .llm-monitor-summary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .llm-monitor-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .llm-monitor-table th,
+        .llm-monitor-table td {
+            padding: 0.55rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .llm-monitor-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .llm-monitor-pill {
+            display: inline-block;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .llm-monitor-pill.live {
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
+
         /* Topology Graph */
         #topology-container {
             height: 500px;
@@ -1170,7 +1211,8 @@
         <button class="nav-btn active" data-view="topology">研究拓扑</button>
         <button class="nav-btn" data-view="papers">论文列表</button>
         <button class="nav-btn" data-view="hypotheses">假设管理</button>
-        <button class="nav-btn" data-view="experiments">实验记录</button>
+        <button class="nav-btn" data-view="experiments">阶段记录</button>
+        <button class="nav-btn" data-view="quant-experiments">量化实验</button>
         <button class="nav-btn" data-view="downloads">📥 下载中心</button>
         <button class="nav-btn" data-view="citations">🔗 引用关系图</button>
         <button class="nav-btn" data-view="grading">📊 论文评分</button>
@@ -1202,6 +1244,18 @@
                 </div>
             </div>
 
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h2>LLM 监控</h2>
+                </div>
+                <div class="card-body" style="padding: 1rem 1.25rem;">
+                    <div id="llm-monitor-summary" class="llm-monitor-summary"></div>
+                    <div style="overflow:auto; margin-top: 0.75rem;">
+                        <table id="llm-monitor-table" class="llm-monitor-table"></table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Topology Graph -->
             <div class="card">
                 <div class="card-header">
@@ -1220,7 +1274,7 @@
                             </div>
                             <div class="legend-item">
                                 <div class="legend-dot" style="background: var(--accent-yellow);"></div>
-                                <span>实验 (Experiment)</span>
+                                <span>阶段 (Stage)</span>
                             </div>
                             <div class="legend-item">
                                 <div class="legend-dot" style="background: var(--accent-green);"></div>
@@ -1292,12 +1346,27 @@
             <div id="experiments-section" class="papers-section">
                 <div class="card">
                     <div class="card-header">
-                        <h2>实验记录</h2>
+                        <h2>阶段记录</h2>
                     </div>
                     <div class="card-body">
                         <div id="experiments-list" class="hypothesis-list">
                             <!-- Experiments will be rendered here -->
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quant-experiments-section" class="papers-section">
+                <div class="card">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                        <div>
+                            <h2>量化实验记录</h2>
+                            <div style="font-size:0.8rem; color: var(--text-secondary); margin-top: 0.15rem;">展示论文对应的回测结果 / 指标样例 / 实验代码等产物</div>
+                        </div>
+                        <select id="quant-paper-select" class="branch-select" style="min-width: 220px;"></select>
+                    </div>
+                    <div class="card-body">
+                        <div id="quant-experiments-list" class="hypothesis-list"></div>
                     </div>
                 </div>
             </div>
@@ -1315,6 +1384,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
             <!-- Citations Section -->
             <div id="citations-section" class="papers-section">
                 <div class="card">
@@ -1746,7 +1816,7 @@
             const experiments = data.experiments || [];
             const dist = { success: 0, failed: 0, experimenting: 0, hypothesis: 0, abandoned: 0 };
             papers.forEach(p => {
-                const s = p.status === 'generated' || p.status === 'success' ? 'success' : p.status;
+                const s = getLogicalPaperStatus(p);
                 if (dist[s] !== undefined) dist[s]++;
             });
             const scores = papers.map(p => parseFloat(p.quality_score)).filter(n => !isNaN(n));
@@ -1760,6 +1830,20 @@
             };
         }
 
+        function getLogicalPaperStatus(paper) {
+            const status = (paper && paper.status) ? String(paper.status) : '';
+            const abstract = (paper && paper.abstract) ? String(paper.abstract) : '';
+            const looksFailed = abstract.includes('论文生成失败') || abstract.includes('LLM 未就绪') || abstract.includes('研究失败');
+            if (status === 'failed' || status === 'error' || looksFailed) return 'failed';
+            if (status === 'generated' || status === 'success' || status === 'improved') return 'success';
+            return status || 'unknown';
+        }
+
+        function getShortTitle(title, fallback) {
+            const t = (title || fallback || '').trim();
+            return t ? t.slice(0, 12) : '';
+        }
+
         function buildTopologyFromPapers(papers, branches = []) {
             const nodes = [];
             const edges = [];
@@ -1767,17 +1851,23 @@
                 nodes.push({
                     id: `branch_${b.id}`,
                     type: 'hypothesis',
-                    label: (b.name || `分支${b.id}`).slice(0, 12),
+                    label: (b.name || `分支${b.id}`),
+                    shortLabel: (b.name || `分支${b.id}`).slice(0, 8),
                     status: b.status || 'active'
                 });
             });
             papers.forEach(p => {
-                const ok = ['generated', 'success', 'improved'].includes(p.status);
+                const logical = getLogicalPaperStatus(p);
+                const ok = logical === 'success';
+                const fullLabel = p.title || p.research_id || `P${p.id}`;
                 nodes.push({
                     id: `paper_${p.id}`,
                     type: ok ? 'paper-success' : 'paper-failed',
-                    label: (p.research_id || `P${p.id}`).slice(0, 14),
-                    status: p.status
+                    label: fullLabel,
+                    shortLabel: getShortTitle(p.title, p.research_id || `P${p.id}`),
+                    status: logical,
+                    paper_id: p.id,
+                    research_id: p.research_id || null
                 });
                 if (p.branch_id) {
                     edges.push({ source: `branch_${p.branch_id}`, target: `paper_${p.id}` });
@@ -1790,7 +1880,7 @@
             const aiPapers = papers.map(p => ({
                 id: `paper_${p.id}`,
                 title: p.title,
-                status: ['generated', 'success', 'improved'].includes(p.status) ? 'success' : 'failed',
+                status: getLogicalPaperStatus(p),
                 arxiv: p.research_id || null
             }));
             const references = (seedRefs || []).map((sp, i) => ({
@@ -1810,6 +1900,8 @@
             renderPapers(farsData.papers);
             renderHypotheses(farsData.hypotheses);
             renderExperiments(farsData.experiments);
+            renderQuantExperiments();
+            renderLLMMonitor();
             renderCitations();
             const dl = document.getElementById('downloads-list');
             if (dl) renderDownloads();
@@ -2142,6 +2234,9 @@
                     } else if (view === 'downloads') {
                         document.getElementById('downloads-section').classList.add('active');
                         renderDownloads();
+                    } else if (view === 'quant-experiments') {
+                        document.getElementById('quant-experiments-section').classList.add('active');
+                        renderQuantExperiments();
                     } else if (view === 'citations') {
                         document.getElementById('citations-section').classList.add('active');
                         // 重新渲染引用图以确保正确显示
@@ -2303,18 +2398,21 @@
                             .attr('stroke', '#1e293b')
                             .attr('stroke-width', 2);
                         g.append('text')
-                            .text(d => (d.label || '').substring(0, 8))
+                            .text(d => d.shortLabel || (d.label || '').substring(0, 8))
                             .attr('text-anchor', 'middle')
                             .attr('dy', 25)
                             .attr('fill', '#94a3b8')
                             .attr('font-size', '10px');
                         g.on('mouseover', nodeMouseover).on('mouseout', nodeMouseout);
+                        g.on('click', (event, d) => {
+                            if (d.paper_id) previewPaper(d.paper_id);
+                        });
                         g.transition().duration(500).style('opacity', 1);
                         return g;
                     },
                     update => {
                         update.select('circle').attr('fill', nodeFill);
-                        update.select('text').text(d => (d.label || '').substring(0, 8));
+                        update.select('text').text(d => d.shortLabel || (d.label || '').substring(0, 8));
                         return update;
                     },
                     exit => exit.transition().duration(300).style('opacity', 0).remove()
@@ -2360,10 +2458,16 @@
 
             function nodeMouseover(event, d) {
                 const tooltip = document.getElementById('tooltip');
+                const typeLabel = d.type === 'hypothesis'
+                    ? '分支/假设'
+                    : (d.type === 'paper-success' ? '论文（成功）' : '论文（失败）');
+                const statusLabel = getStatusText(d.status);
                 tooltip.innerHTML = `
                     <h4>${d.label}</h4>
-                    <p><strong>类型:</strong> ${d.type}</p>
-                    <p><strong>状态:</strong> ${d.status}</p>
+                    ${d.research_id ? `<p><strong>Research ID:</strong> ${d.research_id}</p>` : ''}
+                    <p><strong>类型:</strong> ${typeLabel}</p>
+                    <p><strong>状态:</strong> ${statusLabel}</p>
+                    ${d.paper_id ? `<p style="opacity:.85;">点击节点查看全文/失败原因</p>` : ''}
                     ${d.metrics ? `<p><strong>指标:</strong> ${JSON.stringify(d.metrics).substring(0, 50)}...</p>` : ''}
                 `;
                 tooltip.style.display = 'block';
@@ -2400,9 +2504,9 @@
             let filtered = papers;
 
             if (filter === 'success') {
-                filtered = papers.filter(p => p.status === 'success');
+                filtered = papers.filter(p => getLogicalPaperStatus(p) === 'success');
             } else if (filter === 'failed') {
-                filtered = papers.filter(p => p.status === 'failed');
+                filtered = papers.filter(p => getLogicalPaperStatus(p) === 'failed');
             }
 
             if (filtered.length === 0) {
@@ -2412,25 +2516,30 @@
 
             container.innerHTML = filtered.map(paper => {
                 const files = farsData.filePaths.papers[paper.id] || {};
+                const logical = getLogicalPaperStatus(paper);
                 const researchLabel = paper.research_id ? `<span style="color:var(--accent-purple)">${paper.research_id}</span> · ` : '';
                 const abstract = paper.abstract || '';
+                const abstractHtml = abstract
+                    ? (logical === 'failed'
+                        ? `<pre style="white-space: pre-wrap; word-break: break-word; color: var(--accent-red); font-size: 0.82rem; margin-bottom: 0.75rem;">${escapeHtml(abstract)}</pre>`
+                        : `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">${escapeHtml(abstract.substring(0, 200))}${abstract.length > 200 ? '...' : ''}</p>`)
+                    : '';
                 return `
-                <div class="paper-item ${paper.status}">
-                    <h3>${paper.title}</h3>
+                <div class="paper-item ${logical}">
+                    <h3 style="cursor: pointer;" onclick="previewPaper(${paper.id})">${paper.title}</h3>
                     <div class="paper-meta">
                         ${researchLabel}<span>创建: ${new Date(paper.created_at).toLocaleDateString()}</span>
                         <span>质量分: ${paper.quality_score}</span>
                     </div>
-                    ${abstract ? `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
-                        ${abstract.substring(0, 100)}${abstract.length > 100 ? '...' : ''}
-                    </p>` : ''}
-                    <span class="paper-status status-${paper.status}">${getStatusText(paper.status)}</span>
+                    ${abstractHtml}
+                    <span class="paper-status status-${logical}">${getStatusText(logical)}</span>
                     ${paper.feedback ? `<p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--accent-yellow);">审稿意见: ${paper.feedback}</p>` : ''}
                     <div class="paper-actions">
                         <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">论文:</span>
                         ${files.markdown ? `<a href="${files.markdown}" download class="download-btn" title="下载Markdown">📄 MD</a>` : ''}
                         ${files.latex ? `<a href="${files.latex}" download class="download-btn" title="下载LaTeX">📜 LaTeX</a>` : ''}
                         ${files.icml ? `<a href="${files.icml}" download class="download-btn" title="下载ICML投稿">📋 ICML</a>` : ''}
+                        <button onclick="previewPaper(${paper.id})" class="download-btn" title="查看全文/失败原因" style="margin-left: 0.25rem;">🔍 详情</button>
                     </div>
                     ${files.data || files.code ? `
                     <div class="paper-actions" style="margin-top: 0.5rem;">
@@ -2479,34 +2588,142 @@
             const container = document.getElementById('experiments-list');
 
             if (experiments.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>暂无实验</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>暂无阶段记录</p></div>';
                 return;
             }
 
             container.innerHTML = experiments.map(exp => {
                 const expFiles = farsData.filePaths.experiments[exp.id] || {};
-                const codeFiles = farsData.filePaths.code || {};
                 const metrics = exp.metrics || {};
                 const startedAt = exp.started_at || exp.created_at || null;
                 const completedAt = exp.completed_at || null;
+                const timeLabel = (exp.status === 'pending' && !exp.started_at) ? '未开始' : (completedAt ? new Date(completedAt).toLocaleString('zh-CN') : (exp.status === 'success' ? '已完成' : '进行中'));
                 return `
                 <div class="hypothesis-item">
                     <h4 style="color: ${getStatusColor(exp.status)};">${exp.title}</h4>
                     <p><strong>方法:</strong> ${exp.method}</p>
-                    <p style="margin-top: 0.25rem;"><strong>时间:</strong> ${startedAt ? new Date(startedAt).toLocaleString('zh-CN') : '未知'} - ${completedAt ? new Date(completedAt).toLocaleString('zh-CN') : (exp.status === 'success' ? '已完成' : '进行中')}</p>
+                    <p style="margin-top: 0.25rem;"><strong>时间:</strong> ${startedAt ? new Date(startedAt).toLocaleString('zh-CN') : '未知'} - ${timeLabel}</p>
                     ${Object.keys(metrics).length > 0 ? `
                         <div style="margin-top: 0.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
                             ${Object.entries(metrics).map(([k, v]) => `<span style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${k}: ${typeof v === 'number' ? v.toFixed(2) : v}</span>`).join('')}
                         </div>
                     ` : ''}
                     <span class="paper-status status-${exp.status}" style="margin-top: 0.5rem;">${getStatusText(exp.status)}</span>
-                    <div class="experiment-actions">
-                        ${expFiles && expFiles.data ? `<a href="${expFiles.data}" download class="download-btn data" title="下载实验数据">📊 数据</a>` : ''}
-                        ${expFiles && expFiles.indicators ? `<a href="${expFiles.indicators}" download class="download-btn data" title="下载指标数据">📈 指标</a>` : ''}
-                        ${codeFiles[exp.id] ? `<button onclick="previewCode('${codeFiles[exp.id]}')" class="download-btn code" title="预览代码">💻 代码</button>` : ''}
-                    </div>
                 </div>
             `}).join('');
+        }
+
+        let quantSelectedPaperId = null;
+
+        function _pickDefaultQuantPaperId() {
+            const run = researchState.currentRun || {};
+            if (run.paper_id) return run.paper_id;
+            const papers = farsData.papers || [];
+            if (papers.length) return papers[papers.length - 1].id;
+            return null;
+        }
+
+        function _ensureQuantPaperSelection() {
+            if (quantSelectedPaperId) return;
+            quantSelectedPaperId = _pickDefaultQuantPaperId();
+        }
+
+        function _renderQuantPaperSelect() {
+            const select = document.getElementById('quant-paper-select');
+            if (!select) return;
+            const papers = farsData.papers || [];
+            if (!papers.length) {
+                select.innerHTML = '<option value="">暂无论文</option>';
+                return;
+            }
+            _ensureQuantPaperSelection();
+            select.innerHTML = papers.map(p => {
+                const label = `${p.id} · ${(p.title || p.research_id || '').slice(0, 28) || ('论文 ' + p.id)}`;
+                return `<option value="${p.id}" ${String(p.id) === String(quantSelectedPaperId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+            }).join('');
+            select.onchange = () => {
+                const v = select.value ? parseInt(select.value) : null;
+                quantSelectedPaperId = v;
+                renderQuantExperiments();
+            };
+        }
+
+        async function previewTextFile(filePath, title) {
+            try {
+                const response = await fetch(filePath);
+                const content = await response.text();
+                openModal(title, content || '内容为空');
+            } catch (error) {
+                openModal(title, `无法加载文件：${error.message}\n路径: ${filePath}`);
+            }
+        }
+
+        async function previewJson(filePath, title) {
+            try {
+                const response = await fetch(filePath);
+                const text = await response.text();
+                try {
+                    const obj = JSON.parse(text);
+                    openModal(title, JSON.stringify(obj, null, 2));
+                } catch (e) {
+                    openModal(title, text || '内容为空');
+                }
+            } catch (error) {
+                openModal(title, `无法加载文件：${error.message}\n路径: ${filePath}`);
+            }
+        }
+
+        function renderQuantExperiments() {
+            _renderQuantPaperSelect();
+            _ensureQuantPaperSelection();
+            const container = document.getElementById('quant-experiments-list');
+            if (!container) return;
+            if (!quantSelectedPaperId) {
+                container.innerHTML = '<div class="empty-state"><p>暂无论文产物</p></div>';
+                return;
+            }
+
+            const paper = (farsData.papers || []).find(p => String(p.id) === String(quantSelectedPaperId));
+            const files = (farsData.filePaths && farsData.filePaths.papers) ? (farsData.filePaths.papers[quantSelectedPaperId] || {}) : {};
+            const title = paper ? (paper.title || paper.research_id || `论文 ${quantSelectedPaperId}`) : `论文 ${quantSelectedPaperId}`;
+
+            const rows = [
+                { key: 'backtest_results', label: '回测结果', kind: 'json' },
+                { key: 'indicator_sample', label: '指标样例', kind: 'json' },
+                { key: 'experiment_data', label: '实验数据', kind: 'json' },
+                { key: 'code', label: '实验代码', kind: 'code' },
+                { key: 'hypotheses_doc', label: '假设文档', kind: 'md' },
+                { key: 'experiment_results_doc', label: '实验结果文档', kind: 'md' },
+            ];
+
+            const cards = rows
+                .map(r => {
+                    const path = files[r.key];
+                    if (!path) return '';
+                    const actions = [];
+                    actions.push(`<a href="${path}" download class="download-btn" title="下载">⬇️ 下载</a>`);
+                    if (r.kind === 'code') {
+                        actions.push(`<button onclick="previewCode('${path}')" class="download-btn code" title="预览">👁️ 预览</button>`);
+                    } else if (r.kind === 'json') {
+                        actions.push(`<button onclick="previewJson('${path}', '${escapeHtml(r.label)} · ${escapeHtml(title)}')" class="download-btn data" title="预览">👁️ 预览</button>`);
+                    } else {
+                        actions.push(`<button onclick="previewTextFile('${path}', '${escapeHtml(r.label)} · ${escapeHtml(title)}')" class="download-btn" title="预览">👁️ 预览</button>`);
+                    }
+                    return `
+                        <div class="hypothesis-item">
+                            <h4 style="color: var(--accent-blue);">${r.label}</h4>
+                            <p style="margin-top: 0.35rem; font-size: 0.85rem; color: var(--text-secondary);">${escapeHtml(title)}</p>
+                            <div class="paper-actions" style="margin-top: 0.75rem;">${actions.join('')}</div>
+                        </div>
+                    `;
+                })
+                .filter(Boolean);
+
+            if (!cards.length) {
+                container.innerHTML = '<div class="empty-state"><p>该论文暂无量化实验产物（回测/指标/代码）</p></div>';
+                return;
+            }
+            container.innerHTML = cards.join('');
         }
 
         async function loadSeedPaperLibrary() {
@@ -2609,7 +2826,7 @@
             if (farsData.experiments && farsData.filePaths) {
                 farsData.experiments.forEach(exp => {
                     const expFiles = farsData.filePaths.experiments[exp.id] || {};
-                    if (expFiles.data || expFiles.indicators) {
+                    if (expFiles.data || expFiles.indicators || expFiles.docs || expFiles.data_spec || expFiles.author_network || expFiles.citation_network || expFiles.code) {
                         resources.experiments.push({
                             id: exp.id,
                             title: exp.title,
@@ -2665,6 +2882,11 @@
                         <div class="download-item-btns">
                             ${exp.data ? `<a href="${exp.data}" download class="download-btn data">📊 回测结果</a>` : ''}
                             ${exp.indicators ? `<a href="${exp.indicators}" download class="download-btn data">📈 指标数据</a>` : ''}
+                            ${exp.docs ? `<a href="${exp.docs}" download class="download-btn">📝 文档</a>` : ''}
+                            ${exp.data_spec ? `<a href="${exp.data_spec}" download class="download-btn">🧾 说明</a>` : ''}
+                            ${exp.author_network ? `<a href="${exp.author_network}" download class="download-btn data">👥 作者网</a>` : ''}
+                            ${exp.citation_network ? `<a href="${exp.citation_network}" download class="download-btn data">🔗 引用网</a>` : ''}
+                            ${exp.code ? `<a href="${exp.code}" download class="download-btn code">🐍 代码</a>` : ''}
                         </div>
                     </div>`;
                 });
@@ -2895,6 +3117,23 @@
             collaborations: []  // { author1, author2, paper_id }
         };
 
+        async function loadCitationNetwork() {
+            try {
+                const res = await fetch('/api/research/citation-network/latest');
+                const data = await res.json();
+                if (data.success && data.citation_network) {
+                    farsData.citations = data.citation_network;
+                    renderCitations();
+                    return;
+                }
+            } catch (e) {
+                console.error('Failed to load citation network', e);
+            }
+            const seeds = window.dataRegistry?.seed_papers?.papers || [];
+            farsData.citations = buildCitationsFromPapers(farsData.papers || [], seeds);
+            renderCitations();
+        }
+
         // Load author network from API
         async function loadAuthorNetwork() {
             try {
@@ -2997,20 +3236,36 @@
             const links = authorNetworkData.collaborations.map(c => ({
                 source: nodeMap.get(c.author1),
                 target: nodeMap.get(c.author2),
-                paper_id: c.paper_id
+                paper_ids: c.paper_ids || (c.paper_id ? [c.paper_id] : []),
+                weight: c.weight || 1
             })).filter(l => l.source && l.target);
 
             // Create links from authors to their institutions
             authorNetworkData.authors.forEach(author => {
-                const instNode = nodes.find(n => n.type === 'institution' && n.label === author.institution);
                 const authorNode = nodeMap.get(author.id);
-                if (instNode && authorNode) {
+                const instIds = author.institution_ids || [];
+                const instNames = author.institutions || (author.institution ? [author.institution] : []);
+                if (!authorNode) return;
+
+                const targets = [];
+                instIds.forEach(id => {
+                    const n = nodeMap.get(id);
+                    if (n) targets.push(n);
+                });
+                if (targets.length === 0) {
+                    instNames.forEach(name => {
+                        const n = nodes.find(x => x.type === 'institution' && x.label === name);
+                        if (n) targets.push(n);
+                    });
+                }
+
+                targets.forEach(instNode => {
                     links.push({
                         source: authorNode,
                         target: instNode,
                         type: 'affiliation'
                     });
-                }
+                });
             });
 
             // Force simulation
@@ -3027,7 +3282,7 @@
                 .join('line')
                 .attr('stroke', d => d.type === 'affiliation' ? '#64748b' : '#3b82f6')
                 .attr('stroke-opacity', 0.5)
-                .attr('stroke-width', d => d.type === 'affiliation' ? 1 : 2);
+                .attr('stroke-width', d => d.type === 'affiliation' ? 1 : Math.min(6, 1 + (d.weight || 1)));
 
             // Draw nodes
             const node = svg.append('g')
@@ -3214,12 +3469,33 @@
             }
         }
 
+        async function previewPaper(paperId) {
+            try {
+                const response = await fetch(`/api/papers/${paperId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || '加载失败');
+                }
+                const paper = data.paper || {};
+                const title = paper.title ? `论文 #${paperId} · ${paper.title}` : `论文 #${paperId}`;
+                openModal(title, paper.content || paper.content_preview || '内容为空');
+            } catch (error) {
+                openModal(`论文 #${paperId}`, `无法加载论文内容：${error.message}`);
+            }
+        }
+
         // Helpers
         function getStatusText(status) {
             const map = {
                 'success': '✓ 成功',
                 'failed': '✗ 失败',
+                'generated': '✓ 成功',
+                'error': '✗ 失败',
                 'experimenting': '◐ 进行中',
+                'pending': '… 等待',
                 'hypothesis': '○ 假设阶段',
                 'abandoned': '⊘ 已放弃',
                 'draft': '✎ 草稿',
@@ -3233,12 +3509,24 @@
             const map = {
                 'success': '#10b981',
                 'failed': '#ef4444',
+                'generated': '#10b981',
+                'error': '#ef4444',
                 'experimenting': '#f59e0b',
+                'pending': '#94a3b8',
                 'hypothesis': '#3b82f6',
                 'abandoned': '#6b7280',
                 'draft': '#3b82f6'
             };
             return map[status] || '#94a3b8';
+        }
+
+        function escapeHtml(input) {
+            return String(input || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
         }
 
         // ==================== Grading Functions ====================
@@ -3861,15 +4149,37 @@
             isGenerating: false,
             isPaused: false,
             currentBranchId: null,
+            currentRun: null,
             papers: [],
             branches: [],
             activity: { phase: 'idle', message: '等待开始', progress: 0 },
             lastPaperCount: 0,
+            llmInflight: null,
+            runMetrics: null,
         };
 
         let selectedReviewFile = null;
         let statePollInterval = null;
+        let statusTickerInterval = null;
         let llmReady = false;
+        let lastGraphRefreshTs = 0;
+
+        function getActiveView() {
+            const active = document.querySelector('.nav-btn.active');
+            return active ? String(active.dataset.view || '') : '';
+        }
+
+        async function refreshResearchGraphs(force = false) {
+            const view = getActiveView();
+            if (!force && (view === 'citations' || view === 'authors')) return;
+            const now = Date.now();
+            if (!force && (now - lastGraphRefreshTs) < 1800) return;
+            lastGraphRefreshTs = now;
+            await Promise.all([
+                loadCitationNetwork(),
+                loadAuthorNetwork(),
+            ]);
+        }
 
         async function initResearchControl() {
             await loadBranches();
@@ -3879,6 +4189,37 @@
             await loadResearchState();
             await ensureLLMReady(true);
             startStatePolling();
+            startStatusTicker();
+        }
+
+        function formatDuration(seconds) {
+            const total = Math.max(0, Math.floor(Number(seconds) || 0));
+            const hours = Math.floor(total / 3600);
+            const minutes = Math.floor((total % 3600) / 60);
+            const secs = total % 60;
+            return [hours, minutes, secs].map(v => String(v).padStart(2, '0')).join(':');
+        }
+
+        function getRunElapsedSeconds() {
+            const run = researchState.currentRun || {};
+            if (!run.started_at) return null;
+            const started = new Date(run.started_at);
+            if (Number.isNaN(started.getTime())) return null;
+
+            let end = new Date();
+            const status = run.status || '';
+            if (!researchState.isGenerating && ['completed', 'failed', 'stopped', 'error'].includes(status) && run.updated_at) {
+                const finished = new Date(run.updated_at);
+                if (!Number.isNaN(finished.getTime())) end = finished;
+            }
+            return Math.max(0, (end.getTime() - started.getTime()) / 1000);
+        }
+
+        function startStatusTicker() {
+            if (statusTickerInterval) clearInterval(statusTickerInterval);
+            statusTickerInterval = setInterval(() => {
+                updateStatus();
+            }, 1000);
         }
 
         async function ensureLLMReady(showModal = false) {
@@ -3916,11 +4257,7 @@
                     if (md && !md.available) {
                         console.warn('[MongoDB 市场数据]', md.error || '暂无 daily_bars 数据');
                     }
-                    const seeds = data.registry.seed_papers?.papers || [];
-                    if (seeds.length) {
-                        farsData.citations = buildCitationsFromPapers(farsData.papers, seeds);
-                        renderCitations();
-                    }
+                    await refreshResearchGraphs(true);
                 }
             } catch (e) {
                 console.error('加载数据注册表失败', e);
@@ -3995,13 +4332,17 @@
                         data: a.backtest_results || a.experiment_data,
                         indicators: a.indicator_sample,
                         code: a.code,
+                        backtest_results: a.backtest_results,
+                        indicator_sample: a.indicator_sample,
+                        experiment_data: a.experiment_data,
+                        hypotheses_doc: a.hypotheses_doc,
+                        experiment_results_doc: a.experiment_results_doc,
                     };
                 });
 
                 farsData.topology = buildTopologyFromPapers(apiPapers, researchState.branches || []);
                 farsData.statistics = computeStatistics(farsData);
-                const seeds = window.dataRegistry?.seed_papers?.papers || [];
-                farsData.citations = buildCitationsFromPapers(apiPapers, seeds);
+                await refreshResearchGraphs(true);
 
                 researchState.papers = apiPapers;
                 updateStats();
@@ -4074,8 +4415,15 @@
 
                 researchState.isGenerating = !!data.is_generating;
                 researchState.isPaused = !!data.is_paused;
+                researchState.currentRun = data.current_run || null;
                 researchState.papers = data.papers || [];
                 researchState.activity = data.research_activity || { phase: 'idle', message: '等待开始' };
+                researchState.llmInflight = data.llm_inflight || null;
+                researchState.runMetrics = data.run_metrics || null;
+                researchState.lastActiveAt = data.last_active_at || null;
+                researchState.lastActiveSource = data.last_active_source || null;
+                researchState.stallSeconds = (data.stall_seconds == null ? null : Number(data.stall_seconds));
+                researchState.selfHeal = data.self_heal || null;
 
                 if (!farsData.filePaths) {
                     farsData.filePaths = { papers: {}, experiments: {}, code: {} };
@@ -4088,6 +4436,11 @@
                     title: exp.title,
                     status: exp.status,
                     hypothesis_id: exp.hypothesis_id,
+                    method: exp.method,
+                    metrics: exp.metrics,
+                    created_at: exp.created_at,
+                    started_at: exp.started_at,
+                    completed_at: exp.completed_at,
                 }));
                 farsData.filePaths.experiments = {};
                 (data.experiments || []).forEach(exp => {
@@ -4102,11 +4455,17 @@
                 updateStats();
                 applyFarsDataToUI();
 
+                const act = researchState.activity || {};
+                if (researchState.isGenerating && ['experimenting', 'writing', 'paused'].includes(act.phase)) {
+                    await refreshResearchGraphs();
+                }
+
                 const paperCount = (data.papers || []).length;
                 const shouldReloadPapers = paperCount !== researchState.lastPaperCount;
                 if (shouldReloadPapers && paperCount > 0) {
                     researchState.lastPaperCount = paperCount;
                     await loadPaperArchives();
+                    await refreshResearchGraphs(true);
                 } else if (!paperCount) {
                     researchState.lastPaperCount = 0;
                 }
@@ -4149,12 +4508,17 @@
             const statusEl = document.getElementById('research-status');
             const statusText = document.getElementById('status-text');
             const act = researchState.activity || {};
+            const elapsed = getRunElapsedSeconds();
+            const elapsedLabel = elapsed != null ? ` · 已运行 ${formatDuration(elapsed)}` : '';
+            const finishedLabel = elapsed != null ? ` · 总耗时 ${formatDuration(elapsed)}` : '';
 
             statusEl.classList.remove('idle', 'generating', 'paused', 'stopped');
 
             if (researchState.isPaused) {
                 statusEl.classList.add('paused');
-                statusText.textContent = act.message || '已暂停';
+                const run = researchState.currentRun || {};
+                const hint = (run && run.status === 'paused') ? ' · 可点击“继续”断点续传' : '';
+                statusText.textContent = `${act.message || '已暂停'}${hint}${elapsedLabel}`;
             } else if (researchState.isGenerating) {
                 statusEl.classList.add('generating');
                 const phaseLabels = {
@@ -4168,17 +4532,146 @@
                 };
                 const phase = phaseLabels[act.phase] || '研究中';
                 const msg = act.message && act.phase !== 'completed' ? act.message : (act.message || '请稍候…');
-                statusText.textContent = `${phase} · ${msg}`;
+                const inflight = researchState.llmInflight;
+                let inflightLabel = '';
+                if (inflight && inflight.phase === act.phase) {
+                    const waitS = Math.max(0, Math.floor(Number(inflight.elapsed_s) || 0));
+                    const attempt = inflight.attempt ? `#${inflight.attempt}` : '';
+                    inflightLabel = ` · LLM${attempt} 等待 ${formatDuration(waitS)}`;
+                    if (inflight.max_tokens) inflightLabel += ` · max_tokens ${inflight.max_tokens}`;
+                    if (inflight.prompt_len) inflightLabel += ` · prompt ${inflight.prompt_len}`;
+                }
+                let tokenLabel = '';
+                try {
+                    const rm = researchState.runMetrics || {};
+                    const phases = rm.phases || {};
+                    const row = phases[act.phase] || {};
+                    const totalTokens = Number(row.total_tokens) || 0;
+                    const estTokens = Number(row.est_total_tokens) || 0;
+                    const calls = Number(row.calls) || 0;
+                    tokenLabel = ` · Token累计 ${totalTokens || (estTokens ? ('~' + estTokens) : 0)} · 调用累计 ${calls}`;
+                } catch (e) {}
+                let stallLabel = '';
+                const stallS = researchState.stallSeconds;
+                if (stallS != null) {
+                    stallLabel = ` · 活跃 ${formatDuration(Math.max(0, Math.floor(stallS)))}前`;
+                    if (researchState.lastActiveSource) {
+                        stallLabel += ` · source ${researchState.lastActiveSource}`;
+                    }
+                    if (!inflight && stallS >= 120) {
+                        stallLabel += ' · 可能卡住(非LLM)';
+                    }
+                }
+                if (researchState.selfHeal && researchState.selfHeal.type) {
+                    stallLabel += ` · ${researchState.selfHeal.type}`;
+                }
+                statusText.textContent = `${phase} · ${msg}${inflightLabel}${stallLabel}${tokenLabel}${elapsedLabel}`;
             } else if (act.phase === 'completed' && act.message) {
                 statusEl.classList.add('idle');
-                statusText.textContent = act.message;
+                statusText.textContent = `${act.message}${finishedLabel}`;
             } else if (act.phase === 'error' && act.message) {
                 statusEl.classList.add('stopped');
-                statusText.textContent = act.message;
+                statusText.textContent = `${act.message}${finishedLabel}`;
             } else {
                 statusEl.classList.add('idle');
                 statusText.textContent = '空闲';
             }
+            renderLLMMonitor();
+        }
+
+        function _phaseLabel(phase) {
+            const map = {
+                starting: '启动中',
+                literature_review: '文献调研',
+                hypothesis: '假设生成',
+                experimenting: '实验运行',
+                writing: '论文撰写',
+                paused: '暂停',
+                completed: '完成',
+                error: '出错',
+            };
+            return map[String(phase || '')] || String(phase || '');
+        }
+
+        function renderLLMMonitor() {
+            const summaryEl = document.getElementById('llm-monitor-summary');
+            const tableEl = document.getElementById('llm-monitor-table');
+            if (!summaryEl || !tableEl) return;
+
+            const rm = researchState.runMetrics || {};
+            const inflight = researchState.llmInflight;
+            const phases = (rm && rm.phases) ? rm.phases : {};
+            const run = researchState.currentRun || {};
+
+            const provider = rm.provider || (inflight ? inflight.provider : '');
+            const model = rm.model || (inflight ? inflight.model : '');
+            const runId = rm.run_id || run.run_id || (inflight ? inflight.run_id : '');
+            const updatedAt = rm.updated_at || '';
+
+            const parts = [];
+            if (provider || model) parts.push(`${escapeHtml(provider || '-')}/${escapeHtml(model || '-')}`);
+            if (runId) parts.push(`Run ${escapeHtml(runId)}`);
+            if (updatedAt) parts.push(`更新 ${escapeHtml(updatedAt.replace('T', ' ').slice(0, 19))}`);
+            summaryEl.innerHTML = parts.length ? parts.join(' · ') : '暂无运行数据';
+
+            const keys = Object.keys(phases || {}).sort((a, b) => a.localeCompare(b));
+            const header = `
+                <thead>
+                    <tr>
+                        <th>阶段</th>
+                        <th>调用</th>
+                        <th>失败</th>
+                        <th>Token</th>
+                        <th>估算</th>
+                        <th>等待</th>
+                    </tr>
+                </thead>
+            `;
+
+            const rows = [];
+
+            if (inflight) {
+                const waitS = Math.max(0, Math.floor(Number(inflight.elapsed_s) || 0));
+                const p = String(inflight.phase || '');
+                const row = phases && phases[p] ? phases[p] : {};
+                const est = Number(row.est_total_tokens) || 0;
+                rows.push(`
+                    <tr>
+                        <td>${escapeHtml(_phaseLabel(p))} <span class="llm-monitor-pill live">进行中</span></td>
+                        <td>${Number(row.calls) || 0}</td>
+                        <td>${Number(row.errors) || 0}</td>
+                        <td>${Number(row.total_tokens) || 0}</td>
+                        <td>${est ? `~${est}` : '-'}</td>
+                        <td>${escapeHtml(formatDuration(waitS))}${inflight.attempt ? ` <span class="llm-monitor-pill">#${escapeHtml(inflight.attempt)}</span>` : ''}</td>
+                    </tr>
+                `);
+            }
+
+            keys.forEach(k => {
+                const row = phases[k] || {};
+                if (inflight && String(inflight.phase || '') === String(k)) return;
+                const est = Number(row.est_total_tokens) || 0;
+                rows.push(`
+                    <tr>
+                        <td>${escapeHtml(_phaseLabel(k))}</td>
+                        <td>${Number(row.calls) || 0}</td>
+                        <td>${Number(row.errors) || 0}</td>
+                        <td>${Number(row.total_tokens) || 0}</td>
+                        <td>${est ? `~${est}` : '-'}</td>
+                        <td>-</td>
+                    </tr>
+                `);
+            });
+
+            if (!rows.length) {
+                rows.push(`
+                    <tr>
+                        <td colspan="6" style="color: var(--text-secondary); padding: 0.9rem 0.5rem;">暂无 LLM 调用统计（等待首次返回或尚未启动）</td>
+                    </tr>
+                `);
+            }
+
+            tableEl.innerHTML = `${header}<tbody>${rows.join('')}</tbody>`;
         }
 
         function updateStats() {

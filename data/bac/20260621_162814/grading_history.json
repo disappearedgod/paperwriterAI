@@ -1,0 +1,68 @@
+[
+  {
+    "type": "generate",
+    "paper_id": 2,
+    "research_id": "RS-20260621-092",
+    "branch_id": 1,
+    "topic": "Large Language Model Agent in Financial Trading: A Survey（扩展 160627）",
+    "title": "<think>",
+    "status": "generated",
+    "id": 6,
+    "timestamp": "2026-06-21T16:26:22.166984"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-091",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "title": "<think>",
+    "status": "generated",
+    "id": 5,
+    "timestamp": "2026-06-21T16:21:48.905589"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-090",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "title": "<think>",
+    "status": "generated",
+    "id": 4,
+    "timestamp": "2026-06-21T16:21:47.966409"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-089",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "title": "<think>",
+    "status": "generated",
+    "id": 3,
+    "timestamp": "2026-06-21T16:21:04.895812"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-087",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "title": "<think>",
+    "status": "generated",
+    "id": 2,
+    "timestamp": "2026-06-21T16:18:22.108196"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-094",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "title": "2311.10723 - LLM in Finance Survey (11页)",
+    "status": "failed",
+    "id": 1,
+    "timestamp": "2026-06-21T16:16:33.335499"
+  }
+]

@@ -1,0 +1,626 @@
+[
+  {
+    "id": 52,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621055623-0c83835a"
+    },
+    "timestamp": "2026-06-21T05:56:25.764536"
+  },
+  {
+    "id": 51,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621055623-0c83835a"
+    },
+    "timestamp": "2026-06-21T05:56:24.756836"
+  },
+  {
+    "id": 50,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Based Trading Systems（扩展 055623）",
+      "run_id": "RUN-20260621055623-0c83835a"
+    },
+    "timestamp": "2026-06-21T05:56:23.549156"
+  },
+  {
+    "id": 49,
+    "paper_id": 13,
+    "research_id": "RS-20260621-019",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-019",
+      "run_id": "RUN-20260621055616-05f0fa65"
+    },
+    "timestamp": "2026-06-21T05:56:23.543541"
+  },
+  {
+    "id": 48,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621055616-05f0fa65"
+    },
+    "timestamp": "2026-06-21T05:56:18.871474"
+  },
+  {
+    "id": 47,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621055616-05f0fa65"
+    },
+    "timestamp": "2026-06-21T05:56:17.865730"
+  },
+  {
+    "id": 46,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "CFOs Meet LLMs（扩展 055616）",
+      "run_id": "RUN-20260621055616-05f0fa65"
+    },
+    "timestamp": "2026-06-21T05:56:16.654011"
+  },
+  {
+    "id": 45,
+    "paper_id": 12,
+    "research_id": "RS-20260621-018",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-018",
+      "run_id": "RUN-20260621055005-815f4f29"
+    },
+    "timestamp": "2026-06-21T05:56:16.651720"
+  },
+  {
+    "id": 44,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621055005-815f4f29"
+    },
+    "timestamp": "2026-06-21T05:56:11.781457"
+  },
+  {
+    "id": 43,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621055005-815f4f29"
+    },
+    "timestamp": "2026-06-21T05:56:10.775804"
+  },
+  {
+    "id": 42,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）（扩展 054731）（扩展 054737）（扩展 055005）",
+      "run_id": "RUN-20260621055005-815f4f29"
+    },
+    "timestamp": "2026-06-21T05:56:09.563333"
+  },
+  {
+    "id": 41,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）（扩展 054731）（扩展 054737）（扩展 055005）",
+      "run_id": "RUN-20260621055005-815f4f29"
+    },
+    "timestamp": "2026-06-21T05:50:05.208206"
+  },
+  {
+    "id": 40,
+    "paper_id": 11,
+    "research_id": "RS-20260621-017",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-017",
+      "run_id": "RUN-20260621054926-844e9c2a"
+    },
+    "timestamp": "2026-06-21T05:50:05.206307"
+  },
+  {
+    "id": 39,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054926-844e9c2a"
+    },
+    "timestamp": "2026-06-21T05:50:00.125012"
+  },
+  {
+    "id": 38,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054926-844e9c2a"
+    },
+    "timestamp": "2026-06-21T05:49:59.117906"
+  },
+  {
+    "id": 37,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）（扩展 054731）（扩展 054737）",
+      "run_id": "RUN-20260621054926-844e9c2a"
+    },
+    "timestamp": "2026-06-21T05:49:57.913106"
+  },
+  {
+    "id": 36,
+    "paper_id": 10,
+    "research_id": "RS-20260621-016",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-016",
+      "run_id": "RUN-20260621054737-40ff3214"
+    },
+    "timestamp": "2026-06-21T05:49:26.133764"
+  },
+  {
+    "id": 35,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054737-40ff3214"
+    },
+    "timestamp": "2026-06-21T05:49:21.205377"
+  },
+  {
+    "id": 34,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054737-40ff3214"
+    },
+    "timestamp": "2026-06-21T05:49:20.201574"
+  },
+  {
+    "id": 33,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）（扩展 054731）（扩展 054737）",
+      "run_id": "RUN-20260621054737-40ff3214"
+    },
+    "timestamp": "2026-06-21T05:49:18.988962"
+  },
+  {
+    "id": 32,
+    "paper_id": 8,
+    "research_id": "RS-20260621-014",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-014",
+      "run_id": "RUN-20260621054731-6ed74002"
+    },
+    "timestamp": "2026-06-21T05:47:37.581142"
+  },
+  {
+    "id": 31,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054731-6ed74002"
+    },
+    "timestamp": "2026-06-21T05:47:33.715982"
+  },
+  {
+    "id": 30,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054731-6ed74002"
+    },
+    "timestamp": "2026-06-21T05:47:32.713382"
+  },
+  {
+    "id": 29,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）（扩展 054731）",
+      "run_id": "RUN-20260621054731-6ed74002"
+    },
+    "timestamp": "2026-06-21T05:47:31.507006"
+  },
+  {
+    "id": 28,
+    "paper_id": 7,
+    "research_id": "RS-20260621-013",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-013",
+      "run_id": "RUN-20260621054725-ee860f2e"
+    },
+    "timestamp": "2026-06-21T05:47:31.504475"
+  },
+  {
+    "id": 27,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054725-ee860f2e"
+    },
+    "timestamp": "2026-06-21T05:47:27.809584"
+  },
+  {
+    "id": 26,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054725-ee860f2e"
+    },
+    "timestamp": "2026-06-21T05:47:26.802906"
+  },
+  {
+    "id": 25,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）（扩展 054725）",
+      "run_id": "RUN-20260621054725-ee860f2e"
+    },
+    "timestamp": "2026-06-21T05:47:25.598782"
+  },
+  {
+    "id": 24,
+    "paper_id": 6,
+    "research_id": "RS-20260621-012",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-012",
+      "run_id": "RUN-20260621054719-f4accdde"
+    },
+    "timestamp": "2026-06-21T05:47:25.596386"
+  },
+  {
+    "id": 23,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054719-f4accdde"
+    },
+    "timestamp": "2026-06-21T05:47:21.461771"
+  },
+  {
+    "id": 22,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054719-f4accdde"
+    },
+    "timestamp": "2026-06-21T05:47:20.455419"
+  },
+  {
+    "id": 21,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）（扩展 054719）",
+      "run_id": "RUN-20260621054719-f4accdde"
+    },
+    "timestamp": "2026-06-21T05:47:19.248579"
+  },
+  {
+    "id": 20,
+    "paper_id": 5,
+    "research_id": "RS-20260621-011",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-011",
+      "run_id": "RUN-20260621054713-a14a677e"
+    },
+    "timestamp": "2026-06-21T05:47:19.245667"
+  },
+  {
+    "id": 19,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054713-a14a677e"
+    },
+    "timestamp": "2026-06-21T05:47:15.440947"
+  },
+  {
+    "id": 18,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054713-a14a677e"
+    },
+    "timestamp": "2026-06-21T05:47:14.434337"
+  },
+  {
+    "id": 17,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）（扩展 054713）",
+      "run_id": "RUN-20260621054713-a14a677e"
+    },
+    "timestamp": "2026-06-21T05:47:13.230024"
+  },
+  {
+    "id": 16,
+    "paper_id": 4,
+    "research_id": "RS-20260621-010",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-010",
+      "run_id": "RUN-20260621054707-8abb7310"
+    },
+    "timestamp": "2026-06-21T05:47:13.228972"
+  },
+  {
+    "id": 15,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054707-8abb7310"
+    },
+    "timestamp": "2026-06-21T05:47:09.482056"
+  },
+  {
+    "id": 14,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054707-8abb7310"
+    },
+    "timestamp": "2026-06-21T05:47:08.479359"
+  },
+  {
+    "id": 13,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）（扩展 054707）",
+      "run_id": "RUN-20260621054707-8abb7310"
+    },
+    "timestamp": "2026-06-21T05:47:07.270812"
+  },
+  {
+    "id": 12,
+    "paper_id": 3,
+    "research_id": "RS-20260621-009",
+    "status": "completed",
+    "message": "研究完成: 未命名论文",
+    "details": {
+      "research_id": "RS-20260621-009",
+      "run_id": "RUN-20260621054330-0903937c"
+    },
+    "timestamp": "2026-06-21T05:47:07.269304"
+  },
+  {
+    "id": 11,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054330-0903937c"
+    },
+    "timestamp": "2026-06-21T05:43:32.454319"
+  },
+  {
+    "id": 10,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054330-0903937c"
+    },
+    "timestamp": "2026-06-21T05:43:31.449618"
+  },
+  {
+    "id": 9,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）（扩展 054330）",
+      "run_id": "RUN-20260621054330-0903937c"
+    },
+    "timestamp": "2026-06-21T05:43:30.237412"
+  },
+  {
+    "id": 8,
+    "paper_id": 2,
+    "research_id": "RS-20260621-007",
+    "status": "completed",
+    "message": "研究完成: 种子论文主题分析（扩展 054120）",
+    "details": {
+      "research_id": "RS-20260621-007",
+      "run_id": "RUN-20260621054120-ddd3d245"
+    },
+    "timestamp": "2026-06-21T05:43:30.235469"
+  },
+  {
+    "id": 7,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621054120-ddd3d245"
+    },
+    "timestamp": "2026-06-21T05:41:22.905045"
+  },
+  {
+    "id": 6,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621054120-ddd3d245"
+    },
+    "timestamp": "2026-06-21T05:41:21.901108"
+  },
+  {
+    "id": 5,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析（扩展 054120）",
+      "run_id": "RUN-20260621054120-ddd3d245"
+    },
+    "timestamp": "2026-06-21T05:41:20.694669"
+  },
+  {
+    "id": 4,
+    "paper_id": 1,
+    "research_id": "RS-20260621-006",
+    "status": "completed",
+    "message": "研究完成: 种子论文主题分析",
+    "details": {
+      "research_id": "RS-20260621-006",
+      "run_id": "RUN-20260621053913-3f5d53fd"
+    },
+    "timestamp": "2026-06-21T05:41:20.693807"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621053913-3f5d53fd"
+    },
+    "timestamp": "2026-06-21T05:39:16.158203"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621053913-3f5d53fd"
+    },
+    "timestamp": "2026-06-21T05:39:15.151998"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析",
+      "run_id": "RUN-20260621053913-3f5d53fd"
+    },
+    "timestamp": "2026-06-21T05:39:13.945812"
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-026",
+  "paper_id": 7,
+  "branch_id": 1,
+  "title": "DeXposure-Claw: An Agentic System for DeFi Risk Supervision（扩展 060931）",
+  "topic": "DeXposure-Claw: An Agentic System for DeFi Risk Supervision（扩展 060931）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T06:09:39.914516",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-026_DeXposure_Claw_An_Agentic_System_for_DeF/article/RS-20260621-026_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-026_DeXposure_Claw_An_Agentic_System_for_DeF/data/RS-20260621-026_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-026_DeXposure_Claw_An_Agentic_System_for_DeF/data/RS-20260621-026_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-026_DeXposure_Claw_An_Agentic_System_for_DeF/metrics/RS-20260621-026_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-026_DeXposure_Claw_An_Agentic_System_for_DeF/code/RS-20260621-026_experiment.py"
+  }
+}

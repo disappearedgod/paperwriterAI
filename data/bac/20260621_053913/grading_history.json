@@ -1,0 +1,35 @@
+[
+  {
+    "type": "generate",
+    "paper_id": 3,
+    "research_id": "RS-20260621-005",
+    "branch_id": 1,
+    "topic": "种子论文主题分析（扩展 050057）",
+    "title": "种子论文主题分析（扩展 050057）",
+    "status": "generated",
+    "id": 3,
+    "timestamp": "2026-06-21T05:01:04.212927"
+  },
+  {
+    "type": "generate",
+    "paper_id": 2,
+    "research_id": "RS-20260621-004",
+    "branch_id": 1,
+    "topic": "种子论文主题分析",
+    "title": "种子论文主题分析",
+    "status": "generated",
+    "id": 2,
+    "timestamp": "2026-06-21T05:00:57.832806"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-003",
+    "branch_id": 1,
+    "topic": "种子论文主题分析",
+    "title": "种子论文主题分析",
+    "status": "generated",
+    "id": 1,
+    "timestamp": "2026-06-21T04:47:21.842942"
+  }
+]

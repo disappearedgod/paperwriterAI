@@ -1,0 +1,9 @@
+{
+  "status": "paused",
+  "next_step": 0,
+  "min_chars": 14000,
+  "updated_at": "2026-06-21T16:32:50.463518",
+  "reason": "HTTPConnectionPool(host='10.255.255.1', port=80): Max retries exceeded with url: /chat/completions (Caused by ConnectTimeoutError(<HTTPConnection(host='10.255.255.1', port=80) at 0x3165a47d0>, 'Connection to 10.255.255.1 timed out. (connect timeout=3)'))",
+  "content_len": 44,
+  "has_refs": false
+}

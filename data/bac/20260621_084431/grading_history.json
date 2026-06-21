@@ -1,0 +1,35 @@
+[
+  {
+    "type": "generate",
+    "paper_id": 3,
+    "research_id": "RS-20260621-054",
+    "branch_id": 1,
+    "topic": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 082054）",
+    "title": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 082054）",
+    "status": "failed",
+    "id": 3,
+    "timestamp": "2026-06-21T08:36:07.597901"
+  },
+  {
+    "type": "generate",
+    "paper_id": 2,
+    "research_id": "RS-20260621-053",
+    "branch_id": 1,
+    "topic": "Large Language Model Agent in Financial Trading: A Survey（扩展 080543）",
+    "title": "Large Language Model Agent in Financial Trading: A Survey（扩展 080543）",
+    "status": "failed",
+    "id": 2,
+    "timestamp": "2026-06-21T08:20:54.519757"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-052",
+    "branch_id": 1,
+    "topic": "LLM Agent in Financial Trading: A Survey",
+    "title": "LLM Agent in Financial Trading: A Survey",
+    "status": "failed",
+    "id": 1,
+    "timestamp": "2026-06-21T08:05:43.126175"
+  }
+]

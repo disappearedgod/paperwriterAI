@@ -1,203 +1,371 @@
 /**
- * FARS v2 — Central State Store
- * 所有组件共享的单一数据源
+ * FARS v2 State Management
+ * 集中状态管理（订阅/发布）
  */
-(function (root) {
-  'use strict';
 
-  const PHASES = ['ideation', 'planning', 'experiment', 'writing', 'review'];
+class FARSStore {
+    constructor() {
+        this.state = {
+            // Research state
+            research: {
+                isRunning: false,
+                isPaused: false,
+                currentTopic: null,
+                startTime: null,
+                elapsed: 0
+            },
+            
+            // Papers state
+            papers: {
+                list: [],
+                currentId: null,
+                totalCount: 0
+            },
+            
+            // Branches state
+            branches: {
+                list: [],
+                currentId: null
+            },
+            
+            // Experiments state
+            experiments: {
+                list: [],
+                currentId: null
+            },
+            
+            // Quality state
+            quality: {
+                results: [],
+                lastCheck: null
+            },
+            
+            // LLM Monitoring state
+            llmMonitoring: {
+                calls: [],
+                stats: null,
+                selectedCall: null
+            },
+            
+            // Topology state
+            topology: {
+                nodes: [],
+                edges: []
+            },
+            
+            // Checkpoints state
+            checkpoints: {
+                list: [],
+                currentId: null
+            },
+            
+            // UI state
+            ui: {
+                activeTab: 'pipeline',
+                theme: localStorage.getItem('fars-theme') || 'dark',
+                isLoading: false,
+                toasts: []
+            }
+        };
+        
+        this.subscribers = new Map();
+        this.history = [];
+        this.maxHistorySize = 50;
+    }
+    
+    // Get state
+    getState() {
+        return this.state;
+    }
+    
+    // Get specific state slice
+    getSlice(sliceName) {
+        return this.state[sliceName];
+    }
+    
+    // Update state
+    setState(updater) {
+        const prevState = { ...this.state };
+        const newState = typeof updater === 'function' ? updater(this.state) : updater;
+        
+        // Deep merge
+        this.state = this.deepMerge(this.state, newState);
+        
+        // Save history
+        this.history.push({
+            timestamp: Date.now(),
+            prevState,
+            newState: this.state
+        });
+        
+        if (this.history.length > this.maxHistorySize) {
+            this.history.shift();
+        }
+        
+        // Notify subscribers
+        this.notifySubscribers(prevState, this.state);
+    }
+    
+    // Subscribe to state changes
+    subscribe(callback, selector) {
+        const id = Symbol();
+        this.subscribers.set(id, { callback, selector });
+        
+        return () => {
+            this.subscribers.delete(id);
+        };
+    }
+    
+    // Notify subscribers
+    notifySubscribers(prevState, newState) {
+        this.subscribers.forEach(({ callback, selector }) => {
+            if (selector) {
+                const prevSlice = selector(prevState);
+                const newSlice = selector(newState);
+                if (prevSlice !== newSlice) {
+                    callback(newSlice, prevSlice);
+                }
+            } else {
+                callback(newState, prevState);
+            }
+        });
+    }
+    
+    // Deep merge objects
+    deepMerge(target, source) {
+        const result = { ...target };
+        
+        for (const key of Object.keys(source)) {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                result[key] = this.deepMerge(result[key] || {}, source[key]);
+            } else {
+                result[key] = source[key];
+            }
+        }
+        
+        return result;
+    }
+    
+    // Update research state
+    updateResearch(updates) {
+        this.setState(state => ({
+            ...state,
+            research: {
+                ...state.research,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update papers state
+    updatePapers(updates) {
+        this.setState(state => ({
+            ...state,
+            papers: {
+                ...state.papers,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update branches state
+    updateBranches(updates) {
+        this.setState(state => ({
+            ...state,
+            branches: {
+                ...state.branches,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update experiments state
+    updateExperiments(updates) {
+        this.setState(state => ({
+            ...state,
+            experiments: {
+                ...state.experiments,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update quality state
+    updateQuality(updates) {
+        this.setState(state => ({
+            ...state,
+            quality: {
+                ...state.quality,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update LLM monitoring state
+    updateLLMMonitoring(updates) {
+        this.setState(state => ({
+            ...state,
+            llmMonitoring: {
+                ...state.llmMonitoring,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update topology state
+    updateTopology(updates) {
+        this.setState(state => ({
+            ...state,
+            topology: {
+                ...state.topology,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update checkpoints state
+    updateCheckpoints(updates) {
+        this.setState(state => ({
+            ...state,
+            checkpoints: {
+                ...state.checkpoints,
+                ...updates
+            }
+        }));
+    }
+    
+    // Update UI state
+    updateUI(updates) {
+        this.setState(state => ({
+            ...state,
+            ui: {
+                ...state.ui,
+                ...updates
+            }
+        }));
+    }
+    
+    // Show toast notification
+    showToast(message, type = 'info', duration = 3000) {
+        const id = Date.now();
+        const toast = { id, message, type, timestamp: Date.now() };
+        
+        this.setState(state => ({
+            ...state,
+            ui: {
+                ...state.ui,
+                toasts: [...state.ui.toasts, toast]
+            }
+        }));
+        
+        // Auto remove after duration
+        setTimeout(() => {
+            this.removeToast(id);
+        }, duration);
+        
+        return id;
+    }
+    
+    // Remove toast notification
+    removeToast(id) {
+        this.setState(state => ({
+            ...state,
+            ui: {
+                ...state.ui,
+                toasts: state.ui.toasts.filter(t => t.id !== id)
+            }
+        }));
+    }
+    
+    // Toggle theme
+    toggleTheme() {
+        const newTheme = this.state.ui.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('fars-theme', newTheme);
+        this.updateUI({ theme: newTheme });
+        document.documentElement.setAttribute('data-theme', newTheme);
+    }
+    
+    // Set active tab
+    setActiveTab(tab) {
+        this.updateUI({ activeTab: tab });
+    }
+    
+    // Set loading state
+    setLoading(isLoading) {
+        this.updateUI({ isLoading });
+    }
+    
+    // Get history
+    getHistory() {
+        return this.history;
+    }
+    
+    // Undo last action
+    undo() {
+        if (this.history.length > 0) {
+            const lastChange = this.history.pop();
+            this.state = lastChange.prevState;
+            this.notifySubscribers(lastChange.newState, this.state);
+        }
+    }
+    
+    // Reset state
+    reset() {
+        const defaultState = this.getDefaultState();
+        this.setState(defaultState);
+    }
+    
+    getDefaultState() {
+        return {
+            research: {
+                isRunning: false,
+                isPaused: false,
+                currentTopic: null,
+                startTime: null,
+                elapsed: 0
+            },
+            papers: {
+                list: [],
+                currentId: null,
+                totalCount: 0
+            },
+            branches: {
+                list: [],
+                currentId: null
+            },
+            experiments: {
+                list: [],
+                currentId: null
+            },
+            quality: {
+                results: [],
+                lastCheck: null
+            },
+            llmMonitoring: {
+                calls: [],
+                stats: null,
+                selectedCall: null
+            },
+            topology: {
+                nodes: [],
+                edges: []
+            },
+            checkpoints: {
+                list: [],
+                currentId: null
+            },
+            ui: {
+                activeTab: 'pipeline',
+                theme: localStorage.getItem('fars-theme') || 'dark',
+                isLoading: false,
+                toasts: []
+            }
+        };
+    }
+}
 
-  const FARSStore = {
-    _state: {
-      // Research state
-      isGenerating: false,
-      isPaused: false,
-      currentBranch: null,
-      currentBranchId: null,
-      branches: [],
-      papers: [],
-      hypotheses: [],
-      experiments: [],
-      runs: [],
-      currentRun: null,
-      researchActivity: { phase: 'idle', message: '等待开始', progress: 0 },
-      queueLength: 0,
-      workflow: {},
+// 创建全局实例
+window.farsStore = new FARSStore();
 
-      // Stats derived from papers
-      stats: {
-        papersTotal: 0,
-        papersGenerated: 0,
-        hypothesesTotal: 0,
-        experimentsTotal: 0,
-        avgScore: null,
-      },
-
-      // Quality
-      qualityReports: {},   // paperId -> report
-      aiDetectionResults: {}, // paperId -> result
-
-      // Logs
-      recentLogs: [],
-
-      // Timestamp
-      updatedAt: null,
-    },
-
-    listeners: [],
-
-    /* ── Get full state ── */
-    getState: function () {
-      return this._state;
-    },
-
-    /* ── Get subset ── */
-    getPhase: function () {
-      return this._state.researchActivity.phase || 'idle';
-    },
-
-    getPapers: function () {
-      return this._state.papers || [];
-    },
-
-    getBranches: function () {
-      return this._state.branches || [];
-    },
-
-    getCurrentBranch: function () {
-      return this._state.currentBranch;
-    },
-
-    getActivity: function () {
-      return this._state.researchActivity;
-    },
-
-    getStats: function () {
-      return this._state.stats;
-    },
-
-    getQualityReport: function (paperId) {
-      return this._state.qualityReports[paperId];
-    },
-
-    /* ── Set full state (called after API fetch) ── */
-    setState: function (data) {
-      const prev = this._state;
-      const next = Object.assign({}, prev, {
-        isGenerating: !!data.is_generating,
-        isPaused: !!data.is_paused,
-        currentBranch: data.current_branch || null,
-        currentBranchId: data.current_branch_id || null,
-        branches: data.all_branches || [],
-        papers: data.papers || [],
-        hypotheses: data.hypotheses || [],
-        experiments: data.experiments || [],
-        runs: data.runs || [],
-        currentRun: data.current_run || null,
-        researchActivity: data.research_activity || { phase: 'idle', message: '等待开始', progress: 0 },
-        queueLength: data.queue_length || 0,
-        workflow: data.workflow || {},
-
-        // Derive stats
-        stats: deriveStats(data.papers || [], data.hypotheses || [], data.experiments || []),
-
-        updatedAt: new Date().toISOString(),
-      });
-
-      this._state = next;
-      this._notify(prev, next);
-    },
-
-    /* ── Add / update a paper ── */
-    upsertPaper: function (paper) {
-      const papers = this._state.papers.slice();
-      const idx = papers.findIndex(function (p) { return p.id === paper.id; });
-      if (idx >= 0) {
-        papers[idx] = Object.assign({}, papers[idx], paper);
-      } else {
-        papers.push(paper);
-      }
-      this._state = Object.assign({}, this._state, {
-        papers: papers,
-        stats: deriveStats(papers, this._state.hypotheses, this._state.experiments),
-      });
-      this._notify(this._state, this._state);
-    },
-
-    /* ── Set quality report ── */
-    setQualityReport: function (paperId, report) {
-      const qr = Object.assign({}, this._state.qualityReports);
-      qr[paperId] = report;
-      this._state = Object.assign({}, this._state, { qualityReports: qr });
-    },
-
-    /* ── Set AI detection result ── */
-    setAIDetectionResult: function (paperId, result) {
-      const ad = Object.assign({}, this._state.aiDetectionResults);
-      ad[paperId] = result;
-      this._state = Object.assign({}, this._state, { aiDetectionResults: ad });
-    },
-
-    /* ── Set logs ── */
-    setLogs: function (logs) {
-      this._state = Object.assign({}, this._state, { recentLogs: logs.slice(0, 50) });
-    },
-
-    /* ── Subscribe ── */
-    subscribe: function (fn) {
-      this.listeners.push(fn);
-      return function () {
-        var i = this.listeners.indexOf(fn);
-        if (i >= 0) this.listeners.splice(i, 1);
-      }.bind(this);
-    },
-
-    _notify: function (prev, next) {
-      this.listeners.forEach(function (fn) {
-        try { fn(prev, next); } catch (e) { console.error('[FARSStore] listener error:', e); }
-      });
-    },
-
-    /* ── Helpers ── */
-    isPhaseActive: function (phase) {
-      return this.getPhase() === phase;
-    },
-
-    isPhaseCompleted: function (phase) {
-      var currentPhase = this.getPhase();
-      var idx = PHASES.indexOf(phase);
-      var currentIdx = PHASES.indexOf(currentPhase);
-      return idx < currentIdx;
-    },
-
-    getPhaseIndex: function (phase) {
-      return PHASES.indexOf(phase);
-    },
-
-    getPaperById: function (id) {
-      return this._state.papers.find(function (p) { return p.id === id; });
-    },
-
-    PHASES: PHASES,
-  };
-
-  /* ── Stats derivation ── */
-  function deriveStats(papers, hypotheses, experiments) {
-    var generated = papers.filter(function (p) { return p.status === 'generated'; });
-    var scored = papers.filter(function (p) { return p.quality_score != null; });
-    var scores = scored.map(function (p) { return parseFloat(p.quality_score); }).filter(function (s) { return !isNaN(s); });
-    var avg = scores.length > 0 ? scores.reduce(function (a, b) { return a + b; }, 0) / scores.length : null;
-
-    return {
-      papersTotal: papers.length,
-      papersGenerated: generated.length,
-      hypothesesTotal: hypotheses.length,
-      experimentsTotal: experiments.length,
-      avgScore: avg !== null ? Math.round(avg * 10) / 10 : null,
-    };
-  }
-
-  /* ── Export ── */
-  root.FARSStore = FARSStore;
-
-})(window);
+// 初始化主题
+document.documentElement.setAttribute('data-theme', window.farsStore.getState().ui.theme);

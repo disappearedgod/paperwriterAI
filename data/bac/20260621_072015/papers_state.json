@@ -1,0 +1,133 @@
+{
+  "papers": [],
+  "current_paper_id": null,
+  "next_research_seq": 1,
+  "generation_queue": [],
+  "is_generating": true,
+  "is_paused": false,
+  "hypotheses": [
+    {
+      "id": "hyp_1",
+      "title": "自适应多尺度交易Agent",
+      "description": "围绕「自适应多尺度交易Agent」提出可验证假设，结合种子文献与分支综述主题「2311.10723 - LLM in Finance Survey (11页)」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "hyp_2",
+      "title": "可解释的辩论机制",
+      "description": "围绕「可解释的辩论机制」提出可验证假设，结合种子文献与分支综述主题「2311.10723 - LLM in Finance Survey (11页)」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "hyp_3",
+      "title": "幻觉检测与事实核查",
+      "description": "围绕「幻觉检测与事实核查」提出可验证假设，结合种子文献与分支综述主题「2311.10723 - LLM in Finance Survey (11页)」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "hyp_4",
+      "title": "统一评估框架",
+      "description": "围绕「统一评估框架」提出可验证假设，结合种子文献与分支综述主题「2311.10723 - LLM in Finance Survey (11页)」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "hyp_5",
+      "title": "跨市场多资产框架",
+      "description": "围绕「跨市场多资产框架」提出可验证假设，结合种子文献与分支综述主题「2311.10723 - LLM in Finance Survey (11页)」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621071657-417774b6"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp_1",
+      "title": "实验1: 自适应多尺度交易Agent",
+      "status": "experimenting",
+      "hypothesis_id": "hyp_1",
+      "paper_id": null,
+      "method": "量化回测 + 指标对比",
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "exp_2",
+      "title": "实验2: 可解释的辩论机制",
+      "status": "experimenting",
+      "hypothesis_id": "hyp_2",
+      "paper_id": null,
+      "method": "量化回测 + 指标对比",
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    {
+      "id": "exp_3",
+      "title": "实验3: 幻觉检测与事实核查",
+      "status": "experimenting",
+      "hypothesis_id": "hyp_3",
+      "paper_id": null,
+      "method": "量化回测 + 指标对比",
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621071657-417774b6"
+    }
+  ],
+  "current_run": {
+    "run_id": "RUN-20260621071657-417774b6",
+    "branch_id": 1,
+    "topic": "2311.10723 - LLM in Finance Survey (11页)",
+    "status": "in_progress",
+    "started_at": "2026-06-21T07:16:57.227523",
+    "updated_at": "2026-06-21T07:17:00.645930",
+    "last_checkpoint_phase": "writing"
+  },
+  "runs": [],
+  "research_activity": {
+    "phase": "writing",
+    "message": "正在撰写研究论文…",
+    "progress": 0.78,
+    "updated_at": "2026-06-21T07:17:00.645923"
+  },
+  "settings": {
+    "auto_continue": true,
+    "pause_after_next": false
+  },
+  "stop_requested": false
+}

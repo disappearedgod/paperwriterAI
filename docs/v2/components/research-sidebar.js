@@ -1,191 +1,299 @@
 /**
- * FARS v2 — Research Sidebar Component
- * 研究统计卡片 + 假设列表 + 论文列表（响应式订阅）
+ * FARS v2 Research Sidebar Component
+ * 统计卡片+假设+论文列表
  */
-(function (root) {
-  'use strict';
 
-  /* ── Stats Cards ── */
-  function renderStatsCards() {
-    var container = document.getElementById('statsCards');
-    if (!container) return;
-
-    var stats = window.FARSStore.getStats();
-    var state = window.FARSStore.getState();
-
-    var html =
-      '<div class="stat-card">' +
-        '<div class="stat-value">' + stats.papersTotal + '</div>' +
-        '<div class="stat-label">论文总数</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-value">' + stats.papersGenerated + '</div>' +
-        '<div class="stat-label">已生成</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-value">' + stats.hypothesesTotal + '</div>' +
-        '<div class="stat-label">假设数</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-value">' + (stats.avgScore !== null ? stats.avgScore + '分' : '-') + '</div>' +
-        '<div class="stat-label">平均分</div>' +
-      '</div>';
-
-    container.innerHTML = html;
-  }
-
-  /* ── Hypothesis List ── */
-  function renderHypothesisList() {
-    var container = document.getElementById('hypothesisList');
-    if (!container) return;
-
-    var hyps = window.FARSStore.getState().hypotheses || [];
-    if (hyps.length === 0) {
-      container.innerHTML = '<div class="empty-state">暂无假设</div>';
-      return;
+class ResearchSidebar {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.store = window.farsStore;
+        this.api = window.farsApi;
+        
+        this.init();
     }
-
-    var currentBranchId = window.FARSStore.getCurrentBranchId();
-    var html = '';
-    hyps.slice(0, 10).forEach(function (h) {
-      var text = h.hypothesis || h.text || h.content || '假设';
-      var label = (text + '').slice(0, 60);
-      var score = h.score != null ? '<span class="hyp-score">' + h.score.toFixed(2) + '</span>' : '';
-      var statusIcon = h.status === 'validated' ? '✅' : h.status === 'rejected' ? '❌' : '🔬';
-      html += '<div class="hyp-item" title="' + escapeHtml(label) + '">' +
-        statusIcon + ' ' + escapeHtml(label) + score +
-      '</div>';
-    });
-
-    if (hyps.length > 10) {
-      html += '<div class="list-more">还有 ' + (hyps.length - 10) + ' 个假设...</div>';
+    
+    init() {
+        this.render();
+        this.loadData();
+        this.subscribeToState();
     }
-
-    container.innerHTML = html;
-  }
-
-  /* ── Paper List ── */
-  function renderPaperList() {
-    var container = document.getElementById('paperList');
-    if (!container) return;
-
-    var papers = window.FARSStore.getPapers();
-    if (papers.length === 0) {
-      container.innerHTML = '<div class="empty-state">暂无论文</div>';
-      return;
+    
+    render() {
+        this.container.innerHTML = `
+            <div class="research-sidebar">
+                <div class="sidebar-header">
+                    <h3>研究概览</h3>
+                    <button id="refresh-research" class="btn btn-icon" title="刷新">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 4v6h-6M1 20v-6h6"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="sidebar-stats">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-papers">0</div>
+                            <div class="stat-label">论文总数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value success" id="successful-papers">0</div>
+                            <div class="stat-label">成功论文</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value failed" id="failed-papers">0</div>
+                            <div class="stat-label">失败论文</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value warning" id="total-hypotheses">0</div>
+                            <div class="stat-label">假设数量</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h4>研究假设</h4>
+                        <button id="add-hypothesis" class="btn btn-sm btn-primary">添加</button>
+                    </div>
+                    <div id="hypothesis-list" class="hypothesis-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>加载中...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h4>论文列表</h4>
+                        <div class="section-actions">
+                            <select id="paper-filter" class="select-input">
+                                <option value="all">全部</option>
+                                <option value="successful">成功</option>
+                                <option value="failed">失败</option>
+                                <option value="pending">待处理</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="paper-list" class="paper-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>加载中...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h4>研究进度</h4>
+                    </div>
+                    <div class="research-progress">
+                        <div class="progress-info">
+                            <span>当前阶段:</span>
+                            <span id="current-stage">等待开始</span>
+                        </div>
+                        <div class="progress-info">
+                            <span>运行时间:</span>
+                            <span id="run-time">00:00:00</span>
+                        </div>
+                        <div class="progress-info">
+                            <span>完成度:</span>
+                            <span id="completion-rate">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
-
-    var currentBranchId = window.FARSStore.getCurrentBranchId();
-    var html = '';
-    papers.slice(0, 20).forEach(function (p) {
-      var isActive = p.branch_id === currentBranchId;
-      var title = (p.title || p.topic || '论文 #' + p.id).slice(0, 38);
-      var statusIcon = p.status === 'generated' ? '✅' : p.status === 'failed' ? '❌' : '⏳';
-      var score = p.quality_score != null ? '<span class="paper-score">' + p.quality_score.toFixed(1) + '</span>' : '';
-      var branchTag = p.branch_id && p.branch_id !== currentBranchId ? '<span class="branch-tag">B' + p.branch_id + '</span>' : '';
-
-      html += '<div class="paper-item' + (isActive ? ' active' : '') + '" ' +
-        'data-paper-id="' + p.id + '" ' +
-        'title="' + escapeHtml(title) + '">' +
-        statusIcon + ' ' + escapeHtml(title) +
-        score + branchTag +
-      '</div>';
-    });
-
-    if (papers.length > 20) {
-      html += '<div class="list-more">还有 ' + (papers.length - 20) + ' 篇论文...</div>';
-    }
-
-    container.innerHTML = html;
-
-    container.querySelectorAll('.paper-item').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var pid = parseInt(el.dataset.paperId, 10);
-        if (window.FARSV2 && window.FARSV2.showPaperDetail) {
-          window.FARSV2.showPaperDetail(pid);
-        } else {
-          window.FARSV2Pipeline.switchTab('experiments');
-        }
-      });
-    });
-  }
-
-  /* ── Branch List ── */
-  function renderBranchList() {
-    var container = document.getElementById('branchList');
-    if (!container) return;
-
-    var branches = window.FARSStore.getBranches();
-    var currentId = window.FARSStore.getCurrentBranchId();
-
-    if (branches.length === 0) {
-      container.innerHTML = '<div class="empty-state">暂无分支</div>';
-      return;
-    }
-
-    var html = '';
-    branches.forEach(function (b) {
-      var isActive = b.id === currentId;
-      var count = b.papers_count !== undefined ? ' (' + b.papers_count + ')' : '';
-      html += '<div class="branch-item' + (isActive ? ' active' : '') + '" ' +
-        'data-branch-id="' + b.id + '">' +
-        (isActive ? '👉 ' : '') + escapeHtml(b.name || '分支 #' + b.id) + count +
-      '</div>';
-    });
-
-    container.innerHTML = html;
-
-    container.querySelectorAll('.branch-item').forEach(function (el) {
-      el.addEventListener('click', async function () {
-        var bid = parseInt(el.dataset.branchId, 10);
+    
+    async loadData() {
         try {
-          await FARSApi.switchBranch(bid);
-          if (window.FARSV2) {
-            window.FARSV2.toast('已切换到分支', 'success');
-            window.FARSV2.refresh();
-          }
-        } catch (e) {
-          if (window.FARSV2) window.FARSV2.toast('切换失败: ' + e.message, 'error');
+            // Load papers
+            const papersData = await this.api.getPapers();
+            this.store.updatePapers({
+                list: papersData.papers || [],
+                totalCount: papersData.total || 0
+            });
+            
+            // Load research status
+            const researchData = await this.api.getResearchStatus();
+            this.store.updateResearch({
+                isRunning: researchData.is_running || false,
+                isPaused: researchData.is_paused || false,
+                currentTopic: researchData.current_topic,
+                startTime: researchData.start_time,
+                elapsed: researchData.elapsed || 0
+            });
+            
+            // Update stats
+            this.updateStats(papersData);
+            
+        } catch (error) {
+            console.error('Failed to load research data:', error);
+            this.store.showToast('加载研究数据失败', 'error');
         }
-      });
-    });
-  }
+    }
+    
+    updateStats(papersData) {
+        const papers = papersData.papers || [];
+        
+        document.getElementById('total-papers').textContent = papers.length;
+        document.getElementById('successful-papers').textContent = 
+            papers.filter(p => p.status === 'successful').length;
+        document.getElementById('failed-papers').textContent = 
+            papers.filter(p => p.status === 'failed').length;
+        
+        // For demo purposes, assume some hypotheses
+        document.getElementById('total-hypotheses').textContent = Math.floor(papers.length * 0.3);
+    }
+    
+    subscribeToState() {
+        this.store.subscribe(
+            (state) => {
+                this.updateUI(state);
+            },
+            (state) => state
+        );
+    }
+    
+    updateUI(state) {
+        // Update research progress
+        const research = state.research;
+        
+        document.getElementById('current-stage').textContent = 
+            research.isRunning ? (research.isPaused ? '已暂停' : '进行中') : '等待开始';
+        
+        if (research.startTime) {
+            const startTime = new Date(research.startTime);
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+            document.getElementById('run-time').textContent = this.formatTime(elapsed);
+        }
+        
+        // Update completion rate
+        const papers = state.papers.list || [];
+        const completed = papers.filter(p => p.status === 'completed').length;
+        const total = papers.length;
+        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        document.getElementById('completion-rate').textContent = `${rate}%`;
+        
+        // Update paper list
+        this.updatePaperList(state.papers.list, state.ui.paperFilter);
+        
+        // Update hypothesis list (simulated)
+        this.updateHypothesisList();
+    }
+    
+    updatePaperList(papers, filter = 'all') {
+        const listContainer = document.getElementById('paper-list');
+        
+        if (!papers || papers.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>暂无论文数据</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let filteredPapers = papers;
+        if (filter === 'successful') {
+            filteredPapers = papers.filter(p => p.status === 'successful');
+        } else if (filter === 'failed') {
+            filteredPapers = papers.filter(p => p.status === 'failed');
+        } else if (filter === 'pending') {
+            filteredPapers = papers.filter(p => p.status === 'pending');
+        }
+        
+        listContainer.innerHTML = filteredPapers.map(paper => `
+            <div class="paper-item" data-paper-id="${paper.id}">
+                <div class="paper-header">
+                    <div class="paper-title">${paper.title || '未命名论文'}</div>
+                    <div class="paper-status ${paper.status}">${this.getStatusText(paper.status)}</div>
+                </div>
+                <div class="paper-meta">
+                    <span class="paper-id">ID: ${paper.id}</span>
+                    <span class="paper-date">${this.formatDate(paper.created_at)}</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Add click handlers
+        listContainer.querySelectorAll('.paper-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const paperId = item.dataset.paperId;
+                this.store.updatePapers({ currentId: paperId });
+                this.store.showToast(`选择了论文 ${paperId}`, 'info');
+            });
+        });
+    }
+    
+    updateHypothesisList() {
+        const listContainer = document.getElementById('hypothesis-list');
+        
+        // Simulated hypotheses for demo
+        const hypotheses = [
+            { id: 1, title: '基于注意力机制的量化选股策略', status: 'testing', confidence: 0.75 },
+            { id: 2, title: '多因子模型在A股市场的有效性', status: 'validated', confidence: 0.82 },
+            { id: 3, title: '深度学习在期货预测中的应用', status: 'pending', confidence: 0.68 }
+        ];
+        
+        listContainer.innerHTML = hypotheses.map(hypothesis => `
+            <div class="hypothesis-item" data-hypothesis-id="${hypothesis.id}">
+                <div class="hypothesis-header">
+                    <div class="hypothesis-title">${hypothesis.title}</div>
+                    <div class="hypothesis-status ${hypothesis.status}">${this.getHypothesisStatusText(hypothesis.status)}</div>
+                </div>
+                <div class="hypothesis-confidence">
+                    <span>置信度:</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${hypothesis.confidence * 100}%"></div>
+                    </div>
+                    <span class="confidence-value">${Math.round(hypothesis.confidence * 100)}%</span>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    getStatusText(status) {
+        const statusMap = {
+            'successful': '成功',
+            'failed': '失败',
+            'pending': '待处理',
+            'completed': '已完成',
+            'running': '进行中'
+        };
+        return statusMap[status] || status;
+    }
+    
+    getHypothesisStatusText(status) {
+        const statusMap = {
+            'testing': '测试中',
+            'validated': '已验证',
+            'pending': '待验证',
+            'rejected': '已拒绝'
+        };
+        return statusMap[status] || status;
+    }
+    
+    formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN');
+    }
+}
 
-  function renderAll() {
-    renderStatsCards();
-    renderHypothesisList();
-    renderPaperList();
-    renderBranchList();
-  }
-
-  function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function init() {
-    // Subscribe to store changes — re-render when papers, hypotheses, branches, or branch changes
-    window.FARSStore.subscribe(function (prev, next) {
-      if (prev.papers !== next.papers ||
-          prev.hypotheses !== next.hypotheses ||
-          prev.branches !== next.branches ||
-          prev.currentBranchId !== next.currentBranchId ||
-          prev.stats !== next.stats) {
-        renderAll();
-      }
-    });
-
-    renderAll();
-  }
-
-  /* ── Export ── */
-  root.FARSV2Render = root.FARSV2Render || {};
-  root.FARSV2Render.sidebar = renderAll;
-  root.FARSV2Render.stats = renderStatsCards;
-  root.FARSV2Render.papers = renderPaperList;
-  root.FARSV2Render.hypotheses = renderHypothesisList;
-  root.FARSV2Render.branches = renderBranchList;
-
-  root.addEventListener('DOMContentLoaded', init);
-
-})(window);
+// 初始化组件
+document.addEventListener('DOMContentLoaded', () => {
+    window.researchSidebar = new ResearchSidebar('research-container');
+});

@@ -1,0 +1,1611 @@
+{
+  "version": "2.0",
+  "project_name": "基于注意力机制的量化选股策略研究",
+  "created_at": "2026-06-21T11:59:47.692052",
+  "updated_at": "2026-06-21T17:41:49.280398",
+  "status": "completed",
+  "current_phase": "completed",
+  "phase_history": [
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「2311.10723 - LLM in Finance Survey (11页)」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.0013217919040471315,
+          "analysis_seconds": 0.0033429169561713934,
+          "total_seconds": 0.004664708860218525,
+          "avg_read_seconds_per_paper": 5.7469213219440505e-05,
+          "avg_analysis_seconds_per_paper": 0.00014534421548571277,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:07:00*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621160700-78f5a158",
+      "timestamp": "2026-06-21T16:07:00.190076"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621160700-78f5a158",
+      "timestamp": "2026-06-21T16:07:00.193123"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "2311.10723 - LLM in Finance Survey (11页)",
+        "author_count": 61,
+        "institution_count": 32,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 167,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621160700-78f5a158",
+      "timestamp": "2026-06-21T16:07:00.538690"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「2311.10723 - LLM in Finance Survey (11页)」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.0013553749304264784,
+          "analysis_seconds": 0.004024582915008068,
+          "total_seconds": 0.0053799578454345465,
+          "avg_read_seconds_per_paper": 5.892934480115123e-05,
+          "avg_analysis_seconds_per_paper": 0.000174981865869916,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:13:28*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "timestamp": "2026-06-21T16:13:28.725993"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "timestamp": "2026-06-21T16:13:28.728680"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "2311.10723 - LLM in Finance Survey (11页)",
+        "author_count": 61,
+        "institution_count": 32,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 167,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "timestamp": "2026-06-21T16:13:29.074311"
+    },
+    {
+      "phase": "writing",
+      "status": "failed",
+      "details": {
+        "paper_id": 1,
+        "research_id": "RS-20260621-094",
+        "title": "2311.10723 - LLM in Finance Survey (11页)",
+        "status": "failed"
+      },
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "timestamp": "2026-06-21T16:16:33.785906"
+    },
+    {
+      "phase": "writing",
+      "status": "completed",
+      "details": {
+        "paper_id": 2,
+        "research_id": "RS-20260621-092",
+        "title": "<think>",
+        "status": "generated"
+      },
+      "run_id": "RUN-20260621160627-de36ca22",
+      "timestamp": "2026-06-21T16:26:22.495944"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.0014237500727176666,
+          "analysis_seconds": 0.003581875003874302,
+          "total_seconds": 0.0050056250765919685,
+          "avg_read_seconds_per_paper": 6.190217707468116e-05,
+          "avg_analysis_seconds_per_paper": 0.00015573369582062182,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:26:22*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621162622-9a5445de",
+      "timestamp": "2026-06-21T16:26:22.508726"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621162622-9a5445de",
+      "timestamp": "2026-06-21T16:26:22.512548"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621162622-9a5445de",
+      "timestamp": "2026-06-21T16:26:22.828197"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「2311.10723 - LLM in Finance Survey (11页)」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.0017087089363485575,
+          "analysis_seconds": 0.0052060410380363464,
+          "total_seconds": 0.006914749974384904,
+          "avg_read_seconds_per_paper": 7.429169288471989e-05,
+          "avg_analysis_seconds_per_paper": 0.00022634961034940636,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:28:15*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621162815-0d331da9",
+      "timestamp": "2026-06-21T16:28:15.324684"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621162815-0d331da9",
+      "timestamp": "2026-06-21T16:28:15.327735"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "2311.10723 - LLM in Finance Survey (11页)",
+        "author_count": 61,
+        "institution_count": 32,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 167,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621162815-0d331da9",
+      "timestamp": "2026-06-21T16:28:15.717484"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「2311.10723 - LLM in Finance Survey (11页)」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「2311.10723 - LLM in Finance Survey (11页)」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.001280374825000763,
+          "analysis_seconds": 0.0038342089392244816,
+          "total_seconds": 0.0051145837642252445,
+          "avg_read_seconds_per_paper": 5.5668470652207084e-05,
+          "avg_analysis_seconds_per_paper": 0.00016670473648802093,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:32:08*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621163208-083b4f35",
+      "timestamp": "2026-06-21T16:32:08.177606"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「2311.10723 - LLM in Finance Survey (11页)」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621163208-083b4f35",
+      "timestamp": "2026-06-21T16:32:08.180236"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "2311.10723 - LLM in Finance Survey (11页)",
+        "author_count": 61,
+        "institution_count": 32,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 167,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621163208-083b4f35",
+      "timestamp": "2026-06-21T16:32:08.543036"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "2311.10723 - LLM in Finance Survey (11页)",
+        "author_count": 61,
+        "institution_count": 32,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621163208-083b4f35",
+      "timestamp": "2026-06-21T16:32:36.596743"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「基于注意力机制的量化选股策略研究」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.001330625033006072,
+          "analysis_seconds": 0.0037242919206619263,
+          "total_seconds": 0.005054916953667998,
+          "avg_read_seconds_per_paper": 5.7853262304611825e-05,
+          "avg_analysis_seconds_per_paper": 0.00016192573568095332,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 16:55:10*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621165510-8ebbdb0c",
+      "timestamp": "2026-06-21T16:55:10.548141"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621165510-8ebbdb0c",
+      "timestamp": "2026-06-21T16:55:10.550554"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "基于注意力机制的量化选股策略研究",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621165510-8ebbdb0c",
+      "timestamp": "2026-06-21T16:55:10.885322"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "基于注意力机制的量化选股策略研究",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621165510-8ebbdb0c",
+      "timestamp": "2026-06-21T16:59:14.484283"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「基于注意力机制的量化选股策略研究」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.001207832945510745,
+          "analysis_seconds": 0.0031757920514792204,
+          "total_seconds": 0.0043836249969899654,
+          "avg_read_seconds_per_paper": 5.2514475891771525e-05,
+          "avg_analysis_seconds_per_paper": 0.00013807791528170523,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 17:03:11*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621170311-f1f343f4",
+      "timestamp": "2026-06-21T17:03:11.893115"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621170311-f1f343f4",
+      "timestamp": "2026-06-21T17:03:11.896762"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "基于注意力机制的量化选股策略研究",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621170311-f1f343f4",
+      "timestamp": "2026-06-21T17:03:12.239200"
+    },
+    {
+      "phase": "literature_review",
+      "status": "completed",
+      "details": {
+        "seed_count": 23,
+        "papers_read_count": 23,
+        "papers_to_read_count": 0,
+        "key_themes": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "多智能体",
+          "评估与回测",
+          "金融预测",
+          "金融工程",
+          "信号系统"
+        ],
+        "research_questions": [
+          "LLM 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "量化交易 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "风险控制 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "多智能体 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+          "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+          "如何基于真实实验产物而非主观描述，完成「基于注意力机制的量化选股策略研究」的可复现验证？"
+        ],
+        "research_gaps": [
+          "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+          "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+          "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+          "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+        ],
+        "potential_innovations": [
+          "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+          "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+          "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+          "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+        ],
+        "timings": {
+          "read_seconds": 0.0017222079914063215,
+          "analysis_seconds": 0.003318666946142912,
+          "total_seconds": 0.0050408749375492334,
+          "avg_read_seconds_per_paper": 7.487860832201397e-05,
+          "avg_analysis_seconds_per_paper": 0.00014428986722360486,
+          "papers_read_count": 23
+        },
+        "analysis_excerpt": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 17:18:55*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masah"
+      },
+      "run_id": "RUN-20260621171855-d818b974",
+      "timestamp": "2026-06-21T17:18:55.774709"
+    },
+    {
+      "phase": "hypothesis",
+      "status": "completed",
+      "details": {
+        "count": 5,
+        "hypotheses": [
+          {
+            "id": "hyp_1",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_2",
+            "title": "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_3",
+            "title": "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_4",
+            "title": "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          },
+          {
+            "id": "hyp_5",
+            "title": "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+            "tags": [
+              "LLM基础",
+              "金融NLP",
+              "零样本/少样本学习"
+            ]
+          }
+        ]
+      },
+      "run_id": "RUN-20260621171855-d818b974",
+      "timestamp": "2026-06-21T17:18:55.777462"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "基于注意力机制的量化选股策略研究",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621171855-d818b974",
+      "timestamp": "2026-06-21T17:18:56.117441"
+    },
+    {
+      "phase": "experimenting",
+      "status": "completed",
+      "details": {
+        "topic": "基于注意力机制的量化选股策略研究",
+        "author_count": 61,
+        "institution_count": 33,
+        "collaboration_count": 89,
+        "reference_count": 23,
+        "citation_edge_count": 175,
+        "planned_outputs": [
+          "author_network",
+          "citation_network",
+          "experiment_bundle"
+        ]
+      },
+      "run_id": "RUN-20260621171855-d818b974",
+      "timestamp": "2026-06-21T17:36:51.051091"
+    },
+    {
+      "phase": "writing",
+      "status": "completed",
+      "details": {
+        "paper_id": 4,
+        "research_id": "RS-20260621-100",
+        "title": "基于注意力机制的量化选股策略研究",
+        "status": "generated"
+      },
+      "run_id": "RUN-20260621171855-d818b974",
+      "timestamp": "2026-06-21T17:41:49.280395"
+    }
+  ],
+  "literature_review": {
+    "papers_read": [
+      {
+        "arxiv_id": "2311.10723",
+        "title": "Large Language Models in Finance: A Survey",
+        "authors": "Yinheng Li, Shaofei Wang, Han Ding, Hang Chen",
+        "year": 2023,
+        "key_topics": [
+          "LLM",
+          "风险控制",
+          "LLM基础",
+          "金融NLP",
+          "零样本/少样本学习",
+          "微调策略",
+          "决策框架"
+        ],
+        "summary_preview": "--- Page 1 ---\nLarge Language Models in Finance: A Survey\nYinhengLi∗ ShaofeiWang∗\nyl4039@columbia.edu sw3316@columbia.edu\nColumbiaUniversity ColumbiaUniversity\nNewYork,NY,USA NewYork,NY,USA\nHanDing∗ HangChen∗\nhd2412@columbia.edu hc2798@nyu.edu\nColumbiaUniversity NewYorkUniversity\nNewYork,NY,USA NewYork,NY,USA\nAbstract • ExistingsolutionsandmodelsthatemployLLMsfor\nRecentadvancesinlargelanguagemodels(LLMs)haveopened variousfinancetasks.Wesummarizekeytechniques\nnewpossibilitiesforartificialintelligenceapplicationsinfi- likefinetuningpretrainedLLMsandtrainingdomain-\nnance.Inthispaper,weprovideapracticalsurveyfocusedon specificLLMsfromscratch.\ntwokeyaspectsofutilizingLLMsforfinancialtasks:existing • GuidanceonthedecisionprocessforapplyingLLMs\nsolutionsandguidanceforadoption. infinance.Wediscuss"
+      },
+      {
+        "arxiv_id": "2408.06361",
+        "title": "Large Language Model Agent in Financial Trading: A Survey",
+        "authors": "Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yunbai Zhang",
+        "year": 2024,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "评估与回测",
+          "LLM Agent",
+          "金融交易",
+          "架构设计",
+          "回测性能",
+          "挑战与方向"
+        ],
+        "summary_preview": "--- Page 1 ---\nLarge Language Model Agent in Financial Trading: A Survey\nHanDing∗ YinhengLi∗ JunhaoWang∗\nhd2412@columbia.edu yl4039@columbia.edu jw3668@columbia.edu\nColumbiaUniversity ColumbiaUniversity ColumbiaUniversity\nNewYork,NY,USA NewYork,NY,USA NewYork,NY,USA\nHangChen∗ DoudouGuo∗ YunbaiZhang∗\nhc2798@nyu.edu dg3195@columbia.edu yz3386@columbia.edu\nNewYorkUniversity ColumbiaUniversity ColumbiaUniversity\nNewYork,NY,USA NewYork,NY,USA NewYork,NY,USA\nABSTRACT • WhattypesofdataareusedforLLMstomakeinformed\nTradingisahighlycompetitivetaskthatrequiresacombinationof tradingdecisions?\nstrategy,knowledge,andpsychologicalfortitude.Withtherecent • WhatisthecurrentperformanceofLLMsinfinancialtrad-\nsuccessoflargelanguagemodels(LLMs),itisappealingtoapplythe ing,alongwiththeirpotentialandlimitations?"
+      },
+      {
+        "arxiv_id": "2412.20138",
+        "title": "TradingAgents: Multi-Agents LLM Financial Trading Framework",
+        "authors": "Yijia Xiao, Edward Sun, Di Luo, Wei Wang",
+        "year": 2024,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "协作框架",
+          "角色分工",
+          "风险管理",
+          "交易决策"
+        ],
+        "summary_preview": "--- Page 1 ---\n5202\nnuJ\n3\n]RT.nif-q[\n7v83102.2142:viXra\nTAURIC RESEARCH\nTradingAgents: Multi-Agents LLM Financial Trading\nFramework\nYijiaXiao1,3,EdwardSun1,3,DiLuo1,2,WeiWang1,3\n1UniversityofCalifornia,LosAngeles(UCLA)\n2MassachusettsInstituteofTechnology(MIT)\n3TauricResearch*\nSignificantprogresshasbeenmadeinautomatedproblem-solvingusingsocietiesofagentspow-\neredbylargelanguagemodels(LLMs). Infinance, effortshavelargelyfocusedonsingle-agent\nsystemshandlingspecifictasksormulti-agentframeworksindependentlygatheringdata. However,\nthemulti-agentsystems’potentialtoreplicatereal-worldtradingfirms’collaborativedynamics\nremains underexplored. TradingAgents proposes a novel stock trading framework inspired by\ntradingfirms,featuringLLM-poweredagentsinspecializedrolessuchasfundamentalanalysts,\nsentime"
+      },
+      {
+        "arxiv_id": "2509.09995",
+        "title": "QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading",
+        "authors": "Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You",
+        "year": 2025,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "时序建模",
+          "评估与回测",
+          "高频交易",
+          "价格驱动",
+          "技术指标",
+          "模式识别",
+          "趋势分析"
+        ],
+        "summary_preview": "--- Page 1 ---\nQuantAgent: Price-Driven Multi-Agent LLMs\nfor High-Frequency Trading\nFei Xiong1,2,†, Xiang Zhang3,†, Aosong Feng4, Siqi Sun5, Chenyu You1\n1Stony Brook University, 2Carnegie Mellon University, 3University of British Columbia, 4Yale\nUniversity, 5Fudan University\n†Equal contribution\nRecent advances in Large Language Models (LLMs) have shown remarkable capabilities in financial\nreasoningandmarketunderstanding. Multi-agentLLMframeworkssuchasTradingAgentandFINMEM\naugment these models to long-horizon investment tasks by leveraging fundamental and sentiment-\nbased inputs for strategic decision-making. However, these approaches are ill-suited for the high-speed,\nprecision-critical demands of High-Frequency Trading (HFT). HFT typically requires rapid, risk-aware\ndecisions driven by st"
+      },
+      {
+        "arxiv_id": "2510.05533",
+        "title": "The New Quant: A Survey of Large Language Models in Financial Prediction and Trading",
+        "authors": "Weilong Fu",
+        "year": 2025,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "可解释性",
+          "风险控制",
+          "时序建模",
+          "金融预测",
+          "评估与回测",
+          "量化投资",
+          "信号生成",
+          "组合构建",
+          "检索增强",
+          "Agent系统",
+          "评估基准"
+        ],
+        "summary_preview": "--- Page 1 ---\nThe New Quant: A Survey of Large Language Models in Financial\nPrediction and Trading\nWeilong Fu∗\nAbstract\nLarge language models are reshaping quantitative investing by turning unstructured financial informa-\ntion into evidence-grounded signals and executable decisions. This survey synthesizes research with a\nfocus on equity return prediction and trading, consolidating insights from domain surveys and more than\nfifty primary studies. We propose a task-centered taxonomy that spans sentiment and event extraction,\nnumericalandeconomicreasoning,multimodalunderstanding,retrieval-augmentedgeneration,timeseries\nprompting, and agentic systems that coordinate tools for research, backtesting, and execution. We review\nempirical evidence for predictability, highlight design patterns that"
+      },
+      {
+        "arxiv_id": "2606.20041",
+        "title": "AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models",
+        "authors": "Masahiro Kato",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体"
+        ],
+        "summary_preview": "--- Page 1 ---\nAI Economist Agent: An Agentic Framework for\nModel-Grounded Economic Analysis with RAG,\nKnowledge Graphs, and Large Language Models\n∗\nMasahiro Kato\nMizuho-DL Financial Technology, Co., Ltd.\nJune 19, 2026\nAbstract\nWe propose a model-grounded RAG-based AI economist with an agentic framework\nfor economic scenario analysis using large language models (LLMs) and knowledge\ngraphs. While LLMs can generate fluent economic narratives, economists are often\nrequired to make economic claims grounded by economic theory and real-world data.\nBased on this motivation, this study proposes an RAG-based AI economist, which\nutilizes knowledge graphs including economic data and theory and LLM-based agents\nto plan the analysis, retrieve relevant evidence, select appropriate models, and generate\nr"
+      },
+      {
+        "arxiv_id": "2606.19501",
+        "title": "DeXposure-Claw: An Agentic System for DeFi Risk Supervision",
+        "authors": "Aijie Shu, Bowei Chen, Wenbin Wu, Cathy Yi-Hsuan Chen, Fengxiang He",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "多智能体",
+          "风险控制",
+          "金融预测",
+          "评估与回测",
+          "金融工程",
+          "信号系统"
+        ],
+        "summary_preview": "--- Page 1 ---\nDeXposure-Claw: An Agentic System for DeFi Risk Supervision\nAijieShu BoweiChen WenbinWu\nUniversityofEdinburgh UniversityofGlasgow UniversityofCambridge\nv1ashu@ed.ac.uk bowei.chen@glasgow.ac.uk w.wu@jbs.cam.ac.uk\nCathyYi-HsuanChen FengxiangHe\nUniversityofGlasgow UniversityofEdinburgh\nCathyYi-Hsuan.Chen@glasgow.ac.uk fhe@ed.ac.uk\nAbstract supervision: general-purposeLLMagentsmaypro-\nduceplausiblerationaleswhileover-readingincom-\nDecentralized finance exposes supervisors to plete, stale, or weak evidence, thereby triggering\nfast-moving,networkedcreditrisks. General- unnecessaryhigh-severityinterventions. Existing\npurpose LLM agents fit this setting poorly:\nsystemic-riskevaluationsalsooftenrankprotocols\ntheyover-readweakevidenceandrecommend\nby fractional exposure changes (Bertom"
+      },
+      {
+        "arxiv_id": "2606.17383",
+        "title": "Model Validation of Agentic AI Systems: A POMDP-Based Framework for Belief-State, Forecast, and Policy Validation",
+        "authors": "Matthew Francis Dixon",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "多智能体",
+          "风险控制",
+          "金融预测",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\nModel Validation of Agentic AI Systems:\nA POMDP-Based Framework for Belief-State, Forecast, and Policy\nValidation\nMatthew Dixon\nQuiota LLC\nJune 17, 2026\nAbstract\nAgenticartificialintelligencesystemsintroduceanewclassofmodelrisk. Unliketraditional\npredictive models, autonomous agents continuously acquire information, form beliefs regarding\nlatent states of the environment, generate forecasts, select actions, and adapt their behavior\nover time. Existing validation methodologies focus primarily on predictive accuracy and there-\nfore provide limited insight into the quality of the underlying decision process. This paper\nproposes a model validation framework for agentic AI based on Partially Observable Markov\nDecision Processes (POMDPs). The framework decomposes autonomous decisi"
+      },
+      {
+        "arxiv_id": "2606.16059",
+        "title": "Mojo: A Promising Tool for Scalable Financial AI Efficiency",
+        "authors": "Henry Han",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "可解释性",
+          "风险控制",
+          "评估与回测",
+          "金融工程",
+          "深度学习"
+        ],
+        "summary_preview": "--- Page 1 ---\nMojo:APromisingToolforScalableFinancialAIEfficiency\nThreePillarsforCapitalMarketsEngineering:Speed,Multi-LevelScaling,andDeterministicExecution\nHENRYHAN,DataScienceandArtificialIntelligenceInnovationLaboratory,SchoolofEngineeringandComputer\nScience,BaylorUniversity,USA\nForthirtyyears,quantitativefinancehaspaidacostlytwo-languagetax:modelsresearchedinPythonarerewritteninC++forpro-\nduction,oftenintroducingnumericaldiscrepancies.GPU-accelerateddeeplearningexacerbatesthisproblem,asnondeterministic\nfloating-pointreductionscanproducedriftinlongbacktests,challengingregulatoryreproducibilityandauditabilityexpectations.\nThisarticlesurveysMojo,Modular’s2026Python-likesystemslanguage,asastructuralresponseforcapitalmarketsengineering.\nWhileclosingthePython-to-C++performancegap,Mojouniqu"
+      },
+      {
+        "arxiv_id": "2606.15473",
+        "title": "Belief at Risk: Quantifying Agentic AI Model Risk with LLM-Inferred Bayesian State Filters",
+        "authors": "Matthew Francis Dixon",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "金融预测",
+          "评估与回测",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\nBelief at Risk: Quantifying Agentic AI Model Risk with\n∗\nLLM-Inferred Bayesian State Filters\nMatthew Dixon\nQuiota LLC\nJune 16, 2026\nExecutive summary cover sheet for CROs, technology leaders, and portfolio\nmanagers.\nAgentic AI introduces a form of model risk that is closer to stochastic control than to\nordinary prediction. A conventional model produces a score or forecast. An agent forms\nbeliefs, invokes tools, selects actions, and updates its future information set through the\nconsequences of those actions. This paper proposes a quantitative governance framework in\nwhich the central object is not a prompt, benchmark score, or qualitative risk rating, but a\ntime-indexed posterior belief state over latent operating regimes.\nTheproposedmethodologyusesalargelanguagemodelasaprob"
+      },
+      {
+        "arxiv_id": "2606.14386",
+        "title": "Discovery under Hypothesis Redundancy: A Geometric Theory of Discovery Bottlenecks",
+        "authors": "Li Xia, Baoxun Wang",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "评估与回测",
+          "信号系统"
+        ],
+        "summary_preview": "--- Page 1 ---\nDiscovery under Hypothesis Redundancy:\nA Geometric Theory of Discovery Bottlenecks\nLiXia\nSchoolofEconomicsandManagement,TsinghuaUniversity\nBaoxunWang\nPlatform&ContentGroup,Tencent\nAbstract\nScientificdiscoverysaturateswhennewhypothesesceasetoprovideindependent\ninformation, even if the nominal hypothesis space remains large. We study hy-\nbriddiscoverysystemsthatcombinestructuredlocalsearchwithLLM-generated\nnon-localproposalsandposetheSearchCompressionHypothesis: non-localex-\nploration helps only when three geometric conditions co-occur—spectral com-\npression,orthogonalescapefromtheexploredspan,andresidualsignalalignment\nwith the target. We formalize these conditions, derive necessary conditions for\nhybrid advantage, and test the mechanism in controlled synthetic environments,\n"
+      },
+      {
+        "arxiv_id": "2606.13812",
+        "title": "CFOs Meet LLMs",
+        "authors": "John R. Graham, Campbell R. Harvey, Manish Jha",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "金融预测",
+          "信号系统"
+        ],
+        "summary_preview": "--- Page 1 ---\nCFOsMeetLLMs\nJohnR.Graham† CampbellR.Harvey† ManishJha‡\n†DukeUniversityandNBER ‡GeorgiaStateUniversity\nAbstract\nBusinesssentimentisacloselywatchedeconomicsignal,butmeasuringitisslow\nandcostly: surveysreachonlyafewhundredfirms,arriveperiodically,andtake\ntimetocompile. Weshowthatlargelanguagemodelsholdthepotentialtoad-\ndresstheseshortcomings. WepromptanLLMtorole-playastheCFOofaspecific\ncompanyataspecificdateandfocusontheeconomic-optimismquestiononthe\nDuke–FederalReserveCFOSurveyover2002–2025. WefindthattheLLMrepro-\nducesindividualhumanresponses: thepredictedoptimismscoresignificantly\nforecaststheCFO’sactualanswer,survivingfirmandyear-quarterfixedeffectsand\nacontrolforthemostrecentpriorresponse. Predictiveaccuracyincreaseswiththe\namountofinformationsupplied,asbothrespondenthist"
+      },
+      {
+        "arxiv_id": "2606.08285",
+        "title": "Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Based Trading Systems",
+        "authors": "Junyi Yao, Zihao Zheng",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "可解释性",
+          "时序建模",
+          "评估与回测"
+        ],
+        "summary_preview": "--- Page 1 ---\nBEYONDAGENTARCHITECTURE:EXECUTIONASSUMPTIONSANDREPRODUCIBILITYINLLM-BASEDTRADINGSYSTEMS 1\nBeyond Agent Architecture: Execution Assumptions\nand Reproducibility in LLM-Based Trading Systems\nJunyi Yao and Zihao Zheng\nAbstract—Largelanguagemodels(LLMs)andagenticsystems The contribution here is narrower and more audit-oriented.\nareincreasinglyproposedforfinancialtrading,yettheirreported This paper focuses on whether reported LLM trading results\nperformance remains difficult to compare because studies vary\nare interpretable under realistic execution and reproducibility\nin data provenance, temporal split discipline, execution timing,\nassumptions.\nturnover treatment, and transaction-cost modeling. This article\npresents a targeted topical review and reproducibility audit\nThis distinc"
+      },
+      {
+        "arxiv_id": "2606.08283",
+        "title": "Macro Economists in the Machine: A Multi-Agent LLM Framework for Commodity-Related ETF Portfolio Construction",
+        "authors": "Yiqing Wang, Dehao Dai, Ding Ma, Kerui Geng",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "可解释性",
+          "风险控制",
+          "评估与回测",
+          "金融工程",
+          "信号系统"
+        ],
+        "summary_preview": "--- Page 1 ---\nMacro Economists in the Machine:\nA Multi-Agent LLM Framework for\nCommodity-Related ETF Portfolio\nConstruction\nYiqing Wanga Dehao Daib Ding Mac Kerui Gengd,*\naCitigroup, Dallas, Texas\nbUniversity of California San Diego, La Jolla, California\ncGeorgia Institute of Technology, Atlanta, Georgia\ndTulane University, New Orleans, Louisiana\n*Corresponding author: kgeng@tulane.edu\nThis version: June 9, 2026\n6202\nnuJ\n6\n]MP.nif-q[\n1v38280.6062:viXra\n\n--- Page 2 ---\nAbstract\nWe test whether large language models (LLMs) add value in commodity portfolio\nconstruction when the information set and implementation rules are held fixed across\nstrategies. A Hawkish Agent (inflation-tightening prior), a Dovish Agent (growth-\neasing prior), a Debate Agent, and a deterministic z-score Rule Agent ea"
+      },
+      {
+        "arxiv_id": "2606.06823",
+        "title": "PandaAI: A Practical Agent CQ2 for Neuro-symbolic Data Analysis And Integrated Decision-Making in Quantitative Finance",
+        "authors": "Yuqi Li, Siyuan Liu, Bingjun Liu",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "金融预测",
+          "金融工程",
+          "信号系统",
+          "深度学习"
+        ],
+        "summary_preview": "--- Page 1 ---\nPandaAI: A Practical Agent CQ2 for\nNeuro-symbolic Data Analysis And\nIntegrated Decision-Making in Quantitative\nFinance\nYuqi Li Siyuan Liu\nPanda AI Panda AI\nlibubai@pandaai.online liusiyuan@pandaai.online\nBingjun Liu\nPanda AI\nliubingjun@pandaai.online\nAbstract\nWhile deep learning has excelled in various domains, its application to sequential\ndecision-makinginfinanceremainschallengingduetothelowSignal-to-NoiseRatio\n(SNR) and non-stationarity of financial data. Leveraging the reasoning capabilities\nof Large Language Models (LLMs), we propose PandaAI, a closed-loop neuro-\nsymbolic LLM agent with market regime modeling and constrained alpha gener-\nation, which bridges general LLM reasoning with financial rigor and suppresses\nthe financial toxicity of LLM-generated outputs. To bri"
+      },
+      {
+        "arxiv_id": "2606.06089",
+        "title": "Leveraging LLMs for Unstructured Claims Data Analysis",
+        "authors": "Robert D. Lieberthal, Richard Tran, Vietbao Phan, Jawand Singh, Elizabeth Sottung",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易"
+        ],
+        "summary_preview": "--- Page 1 ---\nLeveraging LLMs for\nUnstructured Claims Data\nAnalysis\nShort Title: LLMs for Unstructured Claims Data\nby Robert D. Lieberthal, PhD;1 Richard Tran, MD, MSCS;2 Vietbao Phan, PharmD;3 Jawand\nSingh;1,4 and Elizabeth Sottung, PharmD3\n1Lieberthal & Associates, LLC; 2MDSight, LLC; 3Thomas Jefferson University; 4William & Mary\nUniversity\nThe Casualty Actuarial Society Artificial Intelligence Working Group provided funding and\nsupport for this research.\n\n--- Page 2 ---\nExecutive Summary\nActuaries traditionally rely on structured numerical and categorical data for reserving and\nratemaking. Valuable predictive information in unstructured text formats such as medical\nrecords, adjuster notes, and call transcripts often remains unused. Manual processing of these\ndocuments is time-consuming"
+      },
+      {
+        "arxiv_id": "2606.02528",
+        "title": "Auditing Asset-Specific Preferences in Financial Large Language Models: Evidence from Bitcoin Representations and Portfolio Allocation",
+        "authors": "Wenbin Wu",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\nAuditing Asset-Specific Preferences in Financial Large\nLanguage Models\nEvidence from Bitcoin Representations and Portfolio Allocation\nWenbin Wu\nCambridge Centre for Alternative Finance, University of Cambridge\nMay 2026\nAbstract\nLarge language models now power robo-advisors and trading agents, yet whether they carry\nbuilt-in biases toward specific assets is largely untested. This paper asks three questions:\nDo LLMs systematically prefer certain financial instruments? Can an internal representation\nwith causal leverage over those preferences be identified? And does that representation affect\ndownstream financial decisions?\nTo answer these questions, we develop a three-level audit protocol and apply it to Bitcoin.\nAt the first level, a behavioral audit of eight frontier LLMs re"
+      },
+      {
+        "arxiv_id": "2606.17423",
+        "title": "Martingale Doppelgänger-Eval: An Identification Framework for Auditing Candlestick Understanding in Vision-Language Models",
+        "authors": "Ziyao Wang",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "风险控制",
+          "金融预测",
+          "评估与回测"
+        ],
+        "summary_preview": "--- Page 1 ---\nMartingale Doppelgänger-Eval: An Identification Framework\nfor Auditing Candlestick Understanding in Vision-Language\nModels\nZiyaoWang\nDepartmentofMathematicsandStatistics\nTexasTechUniversity\nziywang@ttu.edu\nAbstract\nWeintroduceMartingaleDoppelgänger-Eval,apublicshadow-marketbenchmarkforauditingwhethervision-language\nmodels(VLMs)usecandlestickevidenceratherthanextrapolatepasttrends.Thecentraldifficultyisidentification:\nonrealmarkethistories,chartevidenceandtrendarestronglycoupled,soanobservationalscorecannotdetermine\nwhetherafluenttechnical-analysisnarrativeisgroundedinlocalvisualevidence.Weprovethislimitationformally:\nnoevaluationfunctionalcomputedfromobservationalchart–labeldatacandistinguishagroundedresponderfroma\ntrend-shortcutresponderunderstrongcoupling,whereasmatchedevi"
+      },
+      {
+        "arxiv_id": "2605.25632",
+        "title": "Insuring Every Action: An Authority Frontier Framework for Runtime Actuarial Control of Autonomous AI Agents",
+        "authors": "Hao-Hsuan Chen",
+        "year": 2026,
+        "key_topics": [
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "评估与回测",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\nInsuring Every Action:\nAn Authority Frontier Framework for\nRuntime Actuarial Control of Autonomous AI Agents\nHao-Hsuan Chen\nDepartment of Risk Management and Insurance\nNational Chengchi University\nMay 2026\nAbstract\nAutonomous AI agents increasingly issue side-effect-bearing actions: database mutations,\nrefunds, payments, external commitments. Conventional risk controls treat these actions as a\nbinary permission problem or as post-hoc audit. We propose a different object: the Actuarial\nAction Interface (AAI), a deterministic runtime contract that prices each side-effect-bearing\naction against a contractually fixed safe default under a time-consistent risk mapping, and gates\nexecution against a per-boundary reserve capital budget. Around this contract we develop the\nAuthority "
+      },
+      {
+        "arxiv_id": "2605.23007",
+        "title": "MadEvolve: Evolutionary Optimization of Trading Systems with Large Language Models",
+        "authors": "Yurii Kvasiuk, Tianyi Li, Owen Colegrove, Moritz Münchmeyer",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "金融预测",
+          "评估与回测",
+          "信号系统"
+        ],
+        "summary_preview": "--- Page 1 ---\nMadEvolve: Evolutionary Optimization of Trading Systems with Large\nLanguage Models\nYurii Kvasiuk1,*, Tianyi Li1,*, Owen Colegrove2, and Moritz Münchmeyer1\n1Department of Physics, University of Wisconsin–Madison\n2Event Horizon Labs\n*Corresponding authors: kvasiuk@wisc.edu, tianyi.li@wisc.edu\nAbstract\nWe explore the application of LLM-driven algorithm optimization to several common tasks in quantita-\ntive finance. MadEvolve, a general-purpose algorithm optimization framework inspired by DeepMind’s\nAlpha-Evolve, was recently developed to optimize algorithms in computational cosmology. Here we demon-\nstrate the utility of MadEvolve to optimize algorithmic trading strategies and alpha generation at the\nexample of Bitcoin trading. On our simulation and backtesting setup, we achiev"
+      },
+      {
+        "arxiv_id": "2605.23959",
+        "title": "When Alpha Disappears: A One-Switch Benchmark for Decision-Time Leakage in Financial Backtests",
+        "authors": "Fan Zhang, Zhen Li, Sijia Peng, Yu Chen",
+        "year": 2026,
+        "key_topics": [
+          "量化交易",
+          "时序建模",
+          "金融预测",
+          "评估与回测",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\nWhen Alpha Disappears: A One-Switch Benchmark\nfor Decision-Time Leakage in Financial Backtests\nFanZhang1 ZhenLi1 SijiaPeng2 YuChen1\n1TheUniversityofTokyo\n2HKUST(GZ)\nzhang-fan@g.ecc.u-tokyo.ac.jp\nAbstract\nWeintroduceWhenAlphaDisappears,apairedevaluationbenchmarkfordiag-\nnosingdecision-timeleakageinfinancialmachine-learningbacktests. Ratherthan\ntreatingleakageasabinaryproperty,thebenchmarkestimatesprotocol-induced\ninflationbytogglingoneevaluationconventionatatimearoundacleant+1-open\nreference,whileholdingthedatapanel,walk-forwardsplit,modelfamily,horizon,\nportfoliorule,andcostconventionfixed. Acrosstwodaily-OHLCVequitypanels,\nsixmodelfamilies,andyearlytestsfrom2016–2024,wefindthatinflationishighly\nselective: centeredtemporalfeaturesandsame-day-openexecutionwithpost-open\ndaily-"
+      },
+      {
+        "arxiv_id": "2605.06604",
+        "title": "A Geometry-Aware Residual Correction of Hagan's SABR Implied Volatility Formula",
+        "authors": "Adil Reghai, Lama Tarsissi, Gérard Biau, Alex Lipton",
+        "year": 2026,
+        "key_topics": [
+          "量化交易",
+          "可解释性",
+          "风险控制",
+          "深度学习"
+        ],
+        "summary_preview": "--- Page 1 ---\nA Geometry-Aware Residual Correction of Hagan’s SABR Implied\nVolatility Formula\nAdil Reghai1,2, Lama Tarsissi2, Gérard Biau3,4, and Alex Lipton1,5\n1Abu Dhabi Investment Authority (ADIA)\n2SAFIR, Sorbonne University Abu Dhabi (SUAD)\n3Sorbonne Université, LPSM, Paris\n4Institut Universitaire de France\n5ADIA Lab\n16th March 2025\nAbstract\nThis paper proposes a hybrid methodology to improve the approximation of SABR\n(Stochastic Alpha Beta Rho)impliedvolatilitybycombininganalyticalstructurewithmachine\nlearning. The approach augments the neural-network input representation with geometric\nfeatures derived from the stochastic differential equations of the SABR model.\nUnlike approaches that fully replace analytical formulas with black-box models, the\nproposed framework preserves the anal"
+      },
+      {
+        "arxiv_id": "2605.05739",
+        "title": "Multi-Dimensional Behavioral Evaluation of Agentic Stock Prediction Systems Using Large Language Model Judges with Closed-Loop Reinforcement Learning Feedback",
+        "authors": "Mohammad Al Ridhawi, Mahtab Haj Ali, Hussein Al Osman",
+        "year": 2026,
+        "key_topics": [
+          "LLM",
+          "量化交易",
+          "多智能体",
+          "风险控制",
+          "金融预测",
+          "评估与回测",
+          "金融工程"
+        ],
+        "summary_preview": "--- Page 1 ---\n1\nThis work has been submitted to Taylor and Francis’ Applied Artificial Intelligence for possible publication.\nMulti-Dimensional Behavioral Evaluation of Agentic Stock\nPrediction Systems Using Large Language Model Judges with\nClosed-Loop Reinforcement Learning Feedback\nMohammad Al Ridhawi, Mahtab Haj Ali, and Hussein Al Osman\nSchool of Electrical Engineering and Computer Science,\nUniversity of Ottawa, Ottawa, Canada\ne-mail: malri039@uottawa.ca\nAbstract—Agentic artificial intelligence systems produce out- wasproducedthroughsoundintermediatedecisionsratherthan\nputsthroughsequencesofinterdependentautonomousdecisions, fortunate coincidence.\nyet standard evaluation assesses outputs alone and cannot diag-\nThe distinction between output quality and process quality\nnosetheunderlyin"
+      }
+    ],
+    "papers_to_read": [],
+    "key_themes": [
+      "LLM",
+      "量化交易",
+      "风险控制",
+      "多智能体",
+      "评估与回测",
+      "金融预测",
+      "金融工程",
+      "信号系统"
+    ],
+    "research_questions": [
+      "LLM 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "量化交易 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "风险控制 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "多智能体 如何在「基于注意力机制的量化选股策略研究」场景下提升收益风险比并保持策略稳健性？",
+      "种子论文中的 LLM 方法，与传统量化基线相比优势和边界分别是什么？",
+      "如何基于真实实验产物而非主观描述，完成「基于注意力机制的量化选股策略研究」的可复现验证？"
+    ],
+    "research_gaps": [
+      "现有文献已覆盖 LLM, 量化交易, 风险控制，但缺少统一的可复现实验协议与横向对比。",
+      "多数工作强调收益表现，但对回撤、稳定性、失效情形和风险归因讨论不足。",
+      "作者/机构/引用网络已有积累，但尚未被系统用于识别研究热点、合作关系与空白方向。",
+      "从种子论文到实验代码、再到最终论文正文的闭环链路尚未形成一致的数据映射。"
+    ],
+    "potential_innovations": [
+      "构建围绕「基于注意力机制的量化选股策略研究」的统一研究档案，将文献分析、实验代码、指标样本和论文写作串成闭环。",
+      "针对 LLM 建立与传统量化因子/基线策略的系统比较框架。",
+      "将作者合作网络与引用关系图作为研究导航信号，用于解释方法来源、热点主题与空白区域。",
+      "要求论文实验章节直接引用真实 backtest_results / experiment_data / indicator_sample，不再凭空生成结果。"
+    ],
+    "analysis_markdown": "# 种子论文主题分析\n\n*生成时间: 2026-06-21 17:18:55*\n\n共收录 23 篇论文，其中 23 篇已完成文本提取。\n\n---\n\n## 论文概览\n\n### 论文1: 2311.10723 (2023)\n- **标题**: Large Language Models in Finance: A Survey\n- **作者**: Yinheng Li, Shaofei Wang, Han Ding, Hang Chen\n- **主题**: LLM基础, 金融NLP, 零样本/少样本学习, 微调策略, 决策框架\n- **页数**: 11 页\n- **字符数**: 53,883\n- **状态**: ✅ 已提取\n\n### 论文2: 2408.06361 (2024)\n- **标题**: Large Language Model Agent in Financial Trading: A Survey\n- **作者**: Han Ding, Yinheng Li, Junhao Wang, Hang Chen, Doudou Guo, Yu\n- **主题**: LLM Agent, 金融交易, 架构设计, 回测性能, 挑战与方向\n- **页数**: 8 页\n- **字符数**: 41,410\n- **状态**: ✅ 已提取\n\n### 论文3: 2412.20138 (2024)\n- **标题**: TradingAgents: Multi-Agents LLM Financial Trading Framework\n- **作者**: Yijia Xiao, Edward Sun, Di Luo, Wei Wang\n- **主题**: 多智能体, 协作框架, 角色分工, 风险管理, 交易决策\n- **页数**: 38 页\n- **字符数**: 51,699\n- **状态**: ✅ 已提取\n\n### 论文4: 2509.09995 (2025)\n- **标题**: QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading\n- **作者**: Fei Xiong, Xiang Zhang, Aosong Feng, Siqi Sun, Chenyu You\n- **主题**: 高频交易, 价格驱动, 技术指标, 模式识别, 趋势分析\n- **页数**: 30 页\n- **字符数**: 59,027\n- **状态**: ✅ 已提取\n\n### 论文5: 2510.05533 (2025)\n- **标题**: The New Quant: A Survey of Large Language Models in Financial Prediction and Trading\n- **作者**: Weilong Fu\n- **主题**: 量化投资, 信号生成, 组合构建, 检索增强, Agent系统, 评估基准\n- **页数**: 21 页\n- **字符数**: 71,804\n- **状态**: ✅ 已提取\n\n### 论文6: 2606.20041 (2026)\n- **标题**: AI Economist Agent: An Agentic Framework for Model-Grounded Economic Analysis with RAG, Knowledge Graphs, and Large Language Models\n- **作者**: Masahiro Kato\n- **主题**: LLM, 量化交易, 多智能体\n- **页数**: 23 页\n- **字符数**: 41,785\n- **状态**: ✅ 已提取\n\n### 论文7: 2606.19501 (2026)\n- **标题**: DeXposure-Claw: An Agentic System for DeFi Risk Supervision\n- **作者**: Aijie Shu, Bowei Chen, Wenbin Wu, Cathy Yi-Hsuan Chen, Fengx\n- **主题**: LLM, 多智能体, 金融工程, 信号系统\n- **页数**: 19 页\n- **字符数**: 67,891\n- **状态**: ✅ 已提取\n\n### 论文8: 2606.17383 (2026)\n- **标题**: Model Validation of Agentic AI Systems: A POMDP-Based Framework for Belief-State, Forecast, and Policy Validation\n- **作者**: Matthew Francis Dixon\n- **主题**: LLM, 多智能体, 金融工程\n- **页数**: 28 页\n- **字符数**: 44,823\n- **状态**: ✅ 已提取\n\n### 论文9: 2606.16059 (2026)\n- **标题**: Mojo: A Promising Tool for Scalable Financial AI Efficiency\n- **作者**: Henry Han\n- **主题**: LLM, 量化交易, 金融工程, 深度学习\n- **页数**: 15 页\n- **字符数**: 43,404\n- **状态**: ✅ 已提取\n\n### 论文10: 2606.15473 (2026)\n- **标题**: Belief at Risk: Quantifying Agentic AI Model Risk with LLM-Inferred Bayesian State Filters\n- **作者**: Matthew Francis Dixon\n- **主题**: LLM, 量化交易, 多智能体, 金融工程\n- **页数**: 15 页\n- **字符数**: 36,223\n- **状态**: ✅ 已提取\n\n### 论文11: 2606.14386 (2026)\n- **标题**: Discovery under Hypothesis Redundancy: A Geometric Theory of Discovery Bottlenecks\n- **作者**: Li Xia, Baoxun Wang\n- **主题**: LLM, 信号系统\n- **页数**: 23 页\n- **字符数**: 53,151\n- **状态**: ✅ 已提取\n\n### 论文12: 2606.13812 (2026)\n- **标题**: CFOs Meet LLMs\n- **作者**: John R. Graham, Campbell R. Harvey, Manish Jha\n- **主题**: LLM, 信号系统\n- **页数**: 35 页\n- **字符数**: 42,296\n- **状态**: ✅ 已提取\n\n### 论文13: 2606.08285 (2026)\n- **标题**: Beyond Agent Architecture: Execution Assumptions and Reproducibility in LLM-Based Trading Systems\n- **作者**: Junyi Yao, Zihao Zheng\n- **主题**: LLM, 量化交易, 多智能体\n- **页数**: 15 页\n- **字符数**: 78,211\n- **状态**: ✅ 已提取\n\n### 论文14: 2606.08283 (2026)\n- **标题**: Macro Economists in the Machine: A Multi-Agent LLM Framework for Commodity-Related ETF Portfolio Construction\n- **作者**: Yiqing Wang, Dehao Dai, Ding Ma, Kerui Geng\n- **主题**: LLM, 量化交易, 多智能体, 金融工程, 信号系统\n- **页数**: 46 页\n- **字符数**: 37,136\n- **状态**: ✅ 已提取\n\n### 论文15: 2606.06823 (2026)\n- **标题**: PandaAI: A Practical Agent CQ2 for Neuro-symbolic Data Analysis And Integrated Decision-Making in Quantitative Finance\n- **作者**: Yuqi Li, Siyuan Liu, Bingjun Liu\n- **主题**: LLM, 量化交易, 多智能体, 金融工程, 信号系统, 深度学习\n- **页数**: 21 页\n- **字符数**: 51,348\n- **状态**: ✅ 已提取\n\n### 论文16: 2606.06089 (2026)\n- **标题**: Leveraging LLMs for Unstructured Claims Data Analysis\n- **作者**: Robert D. Lieberthal, Richard Tran, Vietbao Phan, Jawand Sin\n- **主题**: LLM\n- **页数**: 52 页\n- **字符数**: 42,769\n- **状态**: ✅ 已提取\n\n### 论文17: 2606.02528 (2026)\n- **标题**: Auditing Asset-Specific Preferences in Financial Large Language Models: Evidence from Bitcoin Representations and Portfolio Allocation\n- **作者**: Wenbin Wu\n- **主题**: LLM, 量化交易, 多智能体, 金融工程\n- **页数**: 28 页\n- **字符数**: 56,603\n- **状态**: ✅ 已提取\n\n### 论文18: 2606.17423 (2026)\n- **标题**: Martingale Doppelgänger-Eval: An Identification Framework for Auditing Candlestick Understanding in Vision-Language Models\n- **作者**: Ziyao Wang\n- **主题**: LLM, 量化交易\n- **页数**: 21 页\n- **字符数**: 69,226\n- **状态**: ✅ 已提取\n\n### 论文19: 2605.25632 (2026)\n- **标题**: Insuring Every Action: An Authority Frontier Framework for Runtime Actuarial Control of Autonomous AI Agents\n- **作者**: Hao-Hsuan Chen\n- **主题**: 量化交易, 多智能体, 金融工程\n- **页数**: 35 页\n- **字符数**: 63,256\n- **状态**: ✅ 已提取\n\n### 论文20: 2605.23007 (2026)\n- **标题**: MadEvolve: Evolutionary Optimization of Trading Systems with Large Language Models\n- **作者**: Yurii Kvasiuk, Tianyi Li, Owen Colegrove, Moritz Münchmeyer\n- **主题**: LLM, 量化交易, 多智能体, 信号系统\n- **页数**: 46 页\n- **字符数**: 69,148\n- **状态**: ✅ 已提取\n\n### 论文21: 2605.23959 (2026)\n- **标题**: When Alpha Disappears: A One-Switch Benchmark for Decision-Time Leakage in Financial Backtests\n- **作者**: Fan Zhang, Zhen Li, Sijia Peng, Yu Chen\n- **主题**: 量化交易, 金融工程\n- **页数**: 19 页\n- **字符数**: 54,284\n- **状态**: ✅ 已提取\n\n### 论文22: 2605.06604 (2026)\n- **标题**: A Geometry-Aware Residual Correction of Hagan's SABR Implied Volatility Formula\n- **作者**: Adil Reghai, Lama Tarsissi, Gérard Biau, Alex Lipton\n- **主题**: 量化交易, 深度学习\n- **页数**: 33 页\n- **字符数**: 52,610\n- **状态**: ✅ 已提取\n\n### 论文23: 2605.05739 (2026)\n- **标题**: Multi-Dimensional Behavioral Evaluation of Agentic Stock Prediction Systems Using Large Language Model Judges with Closed-Loop Reinforcement Learning Feedback\n- **作者**: Mohammad Al Ridhawi, Mahtab Haj Ali, Hussein Al Osman\n- **主题**: LLM, 量化交易, 多智能体, 金融工程\n- **页数**: 17 页\n- **字符数**: 91,369\n- **状态**: ✅ 已提取\n\n---\n\n## 主题分类汇总\n\n### LLM (15 篇)\n- [2606.20041] AI Economist Agent: An Agentic Framework for Model-Grounded \n- [2606.19501] DeXposure-Claw: An Agentic System for DeFi Risk Supervision\n- [2606.17383] Model Validation of Agentic AI Systems: A POMDP-Based Framew\n- [2606.16059] Mojo: A Promising Tool for Scalable Financial AI Efficiency\n- [2606.15473] Belief at Risk: Quantifying Agentic AI Model Risk with LLM-I\n- [2606.14386] Discovery under Hypothesis Redundancy: A Geometric Theory of\n- [2606.13812] CFOs Meet LLMs\n- [2606.08285] Beyond Agent Architecture: Execution Assumptions and Reprodu\n- [2606.08283] Macro Economists in the Machine: A Multi-Agent LLM Framework\n- [2606.06823] PandaAI: A Practical Agent CQ2 for Neuro-symbolic Data Analy\n- [2606.06089] Leveraging LLMs for Unstructured Claims Data Analysis\n- [2606.02528] Auditing Asset-Specific Preferences in Financial Large Langu\n- [2606.17423] Martingale Doppelgänger-Eval: An Identification Framework fo\n- [2605.23007] MadEvolve: Evolutionary Optimization of Trading Systems with\n- [2605.05739] Multi-Dimensional Behavioral Evaluation of Agentic Stock Pre\n\n### 量化交易 (13 篇)\n- [2606.20041] AI Economist Agent: An Agentic Framework for Model-Grounded \n- [2606.16059] Mojo: A Promising Tool for Scalable Financial AI Efficiency\n- [2606.15473] Belief at Risk: Quantifying Agentic AI Model Risk with LLM-I\n- [2606.08285] Beyond Agent Architecture: Execution Assumptions and Reprodu\n- [2606.08283] Macro Economists in the Machine: A Multi-Agent LLM Framework\n- [2606.06823] PandaAI: A Practical Agent CQ2 for Neuro-symbolic Data Analy\n- [2606.02528] Auditing Asset-Specific Preferences in Financial Large Langu\n- [2606.17423] Martingale Doppelgänger-Eval: An Identification Framework fo\n- [2605.25632] Insuring Every Action: An Authority Frontier Framework for R\n- [2605.23007] MadEvolve: Evolutionary Optimization of Trading Systems with\n- [2605.23959] When Alpha Disappears: A One-Switch Benchmark for Decision-T\n- [2605.06604] A Geometry-Aware Residual Correction of Hagan's SABR Implied\n- [2605.05739] Multi-Dimensional Behavioral Evaluation of Agentic",
+    "extraction_stats": {
+      "total": 23,
+      "extracted": 0,
+      "already_done": 23,
+      "skipped_no_pdf": 0,
+      "errors": 0,
+      "details": {
+        "extracted": [],
+        "already_done": [
+          {
+            "arxiv_id": "2311.10723",
+            "file": "2311.10723_LLM_in_Finance_Survey.pdf"
+          },
+          {
+            "arxiv_id": "2408.06361",
+            "file": "2408.06361_LLM_Agent_Financial_Trading_Survey.pdf"
+          },
+          {
+            "arxiv_id": "2412.20138",
+            "file": "2412.20138_TradingAgents.pdf"
+          },
+          {
+            "arxiv_id": "2509.09995",
+            "file": "2509.09995_QuantAgent.pdf"
+          },
+          {
+            "arxiv_id": "2510.05533",
+            "file": "2510.05533_New_Quant_Survey.pdf"
+          },
+          {
+            "arxiv_id": "2606.20041",
+            "file": "2606.20041_AI_Economist_Agent_An_Agentic_Framework_for_Model.pdf"
+          },
+          {
+            "arxiv_id": "2606.19501",
+            "file": "2606.19501_DeXposure_Claw_An_Agentic_System_for_DeFi_Risk_Sup.pdf"
+          },
+          {
+            "arxiv_id": "2606.17383",
+            "file": "2606.17383_Model_Validation_of_Agentic_AI_Systems_A_POMDP_Bas.pdf"
+          },
+          {
+            "arxiv_id": "2606.16059",
+            "file": "2606.16059_Mojo_A_Promising_Tool_for_Scalable_Financial_AI_Ef.pdf"
+          },
+          {
+            "arxiv_id": "2606.15473",
+            "file": "2606.15473_Belief_at_Risk_Quantifying_Agentic_AI_Model_Risk_w.pdf"
+          },
+          {
+            "arxiv_id": "2606.14386",
+            "file": "2606.14386_Discovery_under_Hypothesis_Redundancy_A_Geometric.pdf"
+          },
+          {
+            "arxiv_id": "2606.13812",
+            "file": "2606.13812_CFOs_Meet_LLMs.pdf"
+          },
+          {
+            "arxiv_id": "2606.08285",
+            "file": "2606.08285_Beyond_Agent_Architecture_Execution_Assumptions_an.pdf"
+          },
+          {
+            "arxiv_id": "2606.08283",
+            "file": "2606.08283_Macro_Economists_in_the_Machine_A_Multi_Agent_LLM.pdf"
+          },
+          {
+            "arxiv_id": "2606.06823",
+            "file": "2606.06823_PandaAI_A_Practical_Agent_CQ2_for_Neuro_symbolic_D.pdf"
+          },
+          {
+            "arxiv_id": "2606.06089",
+            "file": "2606.06089_Leveraging_LLMs_for_Unstructured_Claims_Data_Analy.pdf"
+          },
+          {
+            "arxiv_id": "2606.02528",
+            "file": "2606.02528_Auditing_Asset_Specific_Preferences_in_Financial_L.pdf"
+          },
+          {
+            "arxiv_id": "2606.17423",
+            "file": "2606.17423_Martingale_Doppelgänger_Eval_An_Identification_Fra.pdf"
+          },
+          {
+            "arxiv_id": "2605.25632",
+            "file": "2605.25632_Insuring_Every_Action_An_Authority_Frontier_Framew.pdf"
+          },
+          {
+            "arxiv_id": "2605.23007",
+            "file": "2605.23007_MadEvolve_Evolutionary_Optimization_of_Trading_Sys.pdf"
+          },
+          {
+            "arxiv_id": "2605.23959",
+            "file": "2605.23959_When_Alpha_Disappears_A_One_Switch_Benchmark_for_D.pdf"
+          },
+          {
+            "arxiv_id": "2605.06604",
+            "file": "2605.06604_A_Geometry_Aware_Residual_Correction_of_Hagan_s_SA.pdf"
+          },
+          {
+            "arxiv_id": "2605.05739",
+            "file": "2605.05739_Multi_Dimensional_Behavioral_Evaluation_of_Agentic.pdf"
+          }
+        ],
+        "no_pdf": [],
+        "errors": []
+      }
+    },
+    "timings": {
+      "read_seconds": 0.0017222079914063215,
+      "analysis_seconds": 0.003318666946142912,
+      "total_seconds": 0.0050408749375492334,
+      "avg_read_seconds_per_paper": 7.487860832201397e-05,
+      "avg_analysis_seconds_per_paper": 0.00014428986722360486,
+      "papers_read_count": 23
+    },
+    "analysis_generated_at": "2026-06-21T17:18:55.774698"
+  },
+  "research_progress": {
+    "current_iteration": 0,
+    "total_iterations_planned": 3,
+    "iterations": []
+  }
+}

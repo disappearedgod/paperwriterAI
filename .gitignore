@@ -53,4 +53,9 @@ Thumbs.db
 
 # Server
 uploads/
+
+# API Keys & Config (never commit secrets)
+config.json
 config.local.json
+.env
+.env.*

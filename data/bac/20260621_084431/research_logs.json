@@ -1,0 +1,178 @@
+[
+  {
+    "id": 15,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621083607-1a9858da"
+    },
+    "timestamp": "2026-06-21T08:36:09.844512"
+  },
+  {
+    "id": 14,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621083607-1a9858da"
+    },
+    "timestamp": "2026-06-21T08:36:08.828460"
+  },
+  {
+    "id": 13,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "QuantAgent: Price-Driven Multi-Agent LLMs for High-Frequency Trading（扩展 083607）",
+      "run_id": "RUN-20260621083607-1a9858da"
+    },
+    "timestamp": "2026-06-21T08:36:07.616999"
+  },
+  {
+    "id": 12,
+    "paper_id": 3,
+    "research_id": "RS-20260621-054",
+    "status": "completed",
+    "message": "研究完成: TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 082054）",
+    "details": {
+      "research_id": "RS-20260621-054",
+      "run_id": "RUN-20260621082054-3b376ec3"
+    },
+    "timestamp": "2026-06-21T08:36:07.613091"
+  },
+  {
+    "id": 11,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621082054-3b376ec3"
+    },
+    "timestamp": "2026-06-21T08:20:56.742357"
+  },
+  {
+    "id": 10,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621082054-3b376ec3"
+    },
+    "timestamp": "2026-06-21T08:20:55.738409"
+  },
+  {
+    "id": 9,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 082054）",
+      "run_id": "RUN-20260621082054-3b376ec3"
+    },
+    "timestamp": "2026-06-21T08:20:54.531841"
+  },
+  {
+    "id": 8,
+    "paper_id": 2,
+    "research_id": "RS-20260621-053",
+    "status": "completed",
+    "message": "研究完成: Large Language Model Agent in Financial Trading: A Survey（扩展 080543）",
+    "details": {
+      "research_id": "RS-20260621-053",
+      "run_id": "RUN-20260621080543-9993b76e"
+    },
+    "timestamp": "2026-06-21T08:20:54.530122"
+  },
+  {
+    "id": 7,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621080543-9993b76e"
+    },
+    "timestamp": "2026-06-21T08:05:45.365334"
+  },
+  {
+    "id": 6,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621080543-9993b76e"
+    },
+    "timestamp": "2026-06-21T08:05:44.350510"
+  },
+  {
+    "id": 5,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "Large Language Model Agent in Financial Trading: A Survey（扩展 080543）",
+      "run_id": "RUN-20260621080543-9993b76e"
+    },
+    "timestamp": "2026-06-21T08:05:43.141385"
+  },
+  {
+    "id": 4,
+    "paper_id": 1,
+    "research_id": "RS-20260621-052",
+    "status": "completed",
+    "message": "研究完成: LLM Agent in Financial Trading: A Survey",
+    "details": {
+      "research_id": "RS-20260621-052",
+      "run_id": "RUN-20260621075032-57bd4a06"
+    },
+    "timestamp": "2026-06-21T08:05:43.138921"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621075032-57bd4a06"
+    },
+    "timestamp": "2026-06-21T07:50:34.486508"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621075032-57bd4a06"
+    },
+    "timestamp": "2026-06-21T07:50:33.481432"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "LLM Agent in Financial Trading: A Survey",
+      "run_id": "RUN-20260621075032-57bd4a06"
+    },
+    "timestamp": "2026-06-21T07:50:32.278111"
+  }
+]

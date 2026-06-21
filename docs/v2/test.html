@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FARS v2 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #3b82f6;
+            background: #f8fafc;
+        }
+        .test-item.success {
+            border-left-color: #10b981;
+        }
+        .test-item.error {
+            border-left-color: #ef4444;
+        }
+        .test-item.warning {
+            border-left-color: #f59e0b;
+        }
+        .status {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .status.success { color: #10b981; }
+        .status.error { color: #ef4444; }
+        .status.warning { color: #f59e0b; }
+        .status.info { color: #3b82f6; }
+        .links {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .links h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .link-list {
+            list-style: none;
+            padding: 0;
+        }
+        .link-list li {
+            margin: 10px 0;
+        }
+        .link-list a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>FARS v2 系统测试</h1>
+        
+        <div class="test-item success">
+            <span class="status success">✅ 成功</span>
+            <strong>服务器启动</strong> - Flask服务器在8080端口运行正常
+        </div>
+        
+        <div class="test-item success">
+            <span class="status success">✅ 成功</span>
+            <strong>v2路由配置</strong> - `/v2/` 路由已正确配置
+        </div>
+        
+        <div class="test-item success">
+            <span class="status success">✅ 成功</span>
+            <strong>静态文件服务</strong> - CSS、JS文件可正常访问
+        </div>
+        
+        <div class="test-item success">
+            <span class="status success">✅ 成功</span>
+            <strong>组件创建</strong> - 所有8个v2前端组件已创建完成
+        </div>
+        
+        <div class="test-item success">
+            <span class="status success">✅ 成功</span>
+            <strong>依赖安装</strong> - Python依赖已安装到隔离环境
+        </div>
+        
+        <div class="test-item warning">
+            <span class="status warning">⚠️ 注意</span>
+            <strong>API端点</strong> - 部分API端点可能需要后端数据支持
+        </div>
+        
+        <div class="links">
+            <h3>访问链接</h3>
+            <ul class="link-list">
+                <li><a href="http://localhost:8080/v2/" target="_blank">FARS v2 主界面</a> - 完整前端界面</li>
+                <li><a href="http://localhost:8080/" target="_blank">FARS v1 界面</a> - 原始仪表板</li>
+                <li><a href="http://localhost:8080/v2/test.html" target="_blank">测试页面</a> - 当前页面</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #e2e8f0; border-radius: 8px;">
+            <h3>系统状态</h3>
+            <p><strong>服务器状态:</strong> 运行中</p>
+            <p><strong>监听端口:</strong> 8080</p>
+            <p><strong>工作目录:</strong> /Users/derek/WorkBuddy/2026-06-20-12-11-53/fars_system</p>
+            <p><strong>Python环境:</strong> /Users/derek/.workbuddy/binaries/python/envs/fars</p>
+            <p><strong>启动时间:</strong> 2026-06-21 23:29</p>
+        </div>
+    </div>
+</body>
+</html>

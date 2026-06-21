@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-031",
+  "paper_id": 10,
+  "branch_id": 1,
+  "title": "Belief at Risk: Quantifying Agentic AI Model Risk with LLM-Inferred Bayesian Sta",
+  "topic": "Belief at Risk: Quantifying Agentic AI Model Risk with LLM-Inferred Bayesian State Filters（扩展 062559）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T06:26:03.058497",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-031_Belief_at_Risk_Quantifying_Agentic_AI_Mo/article/RS-20260621-031_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-031_Belief_at_Risk_Quantifying_Agentic_AI_Mo/data/RS-20260621-031_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-031_Belief_at_Risk_Quantifying_Agentic_AI_Mo/data/RS-20260621-031_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-031_Belief_at_Risk_Quantifying_Agentic_AI_Mo/metrics/RS-20260621-031_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-031_Belief_at_Risk_Quantifying_Agentic_AI_Mo/code/RS-20260621-031_experiment.py"
+  }
+}

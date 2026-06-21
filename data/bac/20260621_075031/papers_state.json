@@ -1,0 +1,126 @@
+{
+  "papers": [],
+  "current_paper_id": null,
+  "next_research_seq": 1,
+  "generation_queue": [],
+  "is_generating": true,
+  "is_paused": false,
+  "hypotheses": [
+    {
+      "id": "hyp_1",
+      "title": "基于多智能体 LLM 的LLM Agent in Financial Trading: A Survey信号生成",
+      "description": "围绕「基于多智能体 LLM 的LLM Agent in Financial Trading: A Survey信号生成」提出可验证假设，结合种子文献与分支综述主题「LLM Agent in Financial Trading: A Survey」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621074737-df554187"
+    },
+    {
+      "id": "hyp_2",
+      "title": "跨时间尺度量化因子与 LLM 融合",
+      "description": "围绕「跨时间尺度量化因子与 LLM 融合」提出可验证假设，结合种子文献与分支综述主题「LLM Agent in Financial Trading: A Survey」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621074737-df554187"
+    },
+    {
+      "id": "hyp_3",
+      "title": "金融幻觉检测与可解释交易决策",
+      "description": "围绕「金融幻觉检测与可解释交易决策」提出可验证假设，结合种子文献与分支综述主题「LLM Agent in Financial Trading: A Survey」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "hypothesis",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": null,
+      "run_id": "RUN-20260621074737-df554187"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp_1",
+      "title": "实验1: 文献综述与假设生成",
+      "status": "success",
+      "paper_id": null,
+      "method": "种子论文解析 + 主题抽取 + 研究空白/创新点 → 假设",
+      "topic": "LLM Agent in Financial Trading: A Survey",
+      "run_id": "RUN-20260621074737-df554187",
+      "created_at": "2026-06-21T07:47:37.826754",
+      "stage_phases": [
+        "starting",
+        "literature_review",
+        "hypothesis"
+      ],
+      "started_at": "2026-06-21T07:47:37.827344",
+      "completed_at": "2026-06-21T07:47:40.037392",
+      "updated_at": "2026-06-21T07:47:40.037392"
+    },
+    {
+      "id": "exp_2",
+      "title": "实验2: 引用/作者图谱构建",
+      "status": "success",
+      "paper_id": null,
+      "method": "引用关系图 + 作者-机构合作网络",
+      "topic": "LLM Agent in Financial Trading: A Survey",
+      "run_id": "RUN-20260621074737-df554187",
+      "created_at": "2026-06-21T07:47:37.826754",
+      "stage_phases": [
+        "experimenting"
+      ],
+      "started_at": "2026-06-21T07:47:37.826754",
+      "completed_at": "2026-06-21T07:47:40.037392",
+      "updated_at": "2026-06-21T07:47:40.037392"
+    },
+    {
+      "id": "exp_3",
+      "title": "实验3: 写作与产物落盘",
+      "status": "experimenting",
+      "paper_id": null,
+      "method": "论文生成 + 实验产物聚合 + 下载中心落盘",
+      "topic": "LLM Agent in Financial Trading: A Survey",
+      "run_id": "RUN-20260621074737-df554187",
+      "created_at": "2026-06-21T07:47:37.826754",
+      "stage_phases": [
+        "writing",
+        "completed"
+      ],
+      "started_at": "2026-06-21T07:47:40.037392",
+      "completed_at": null,
+      "updated_at": "2026-06-21T07:47:40.037392"
+    }
+  ],
+  "current_run": {
+    "run_id": "RUN-20260621074737-df554187",
+    "branch_id": 1,
+    "topic": "LLM Agent in Financial Trading: A Survey",
+    "status": "in_progress",
+    "started_at": "2026-06-21T07:47:37.826754",
+    "updated_at": "2026-06-21T07:47:40.037409",
+    "last_checkpoint_phase": "writing"
+  },
+  "runs": [],
+  "research_activity": {
+    "phase": "writing",
+    "message": "正在撰写研究论文…",
+    "progress": 0.78,
+    "updated_at": "2026-06-21T07:47:40.037407"
+  },
+  "settings": {
+    "auto_continue": true,
+    "pause_after_next": false
+  },
+  "stop_requested": false
+}

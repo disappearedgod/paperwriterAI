@@ -26,7 +26,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 RESEARCH_DIR = PROJECT_ROOT / "data" / "research"
 EXPERIMENT_TEMPLATE = PROJECT_ROOT / "scripts" / "real_experiment_v2.py"
 
-SUBDIRS = ("article", "data", "metrics", "code", "logs", "ideas")
+SUBDIRS = ("article", "data", "metrics", "code", "logs", "ideas", "experiments", "graphs")
 
 
 def slugify_title(title: str, max_len: int = 40) -> str:
@@ -98,6 +98,8 @@ def artifact_filenames(research_id: str) -> Dict[str, str]:
         "experiment_data": f"{research_id}_experiment_data.json",
         "indicator_sample": f"{research_id}_indicator_sample.json",
         "backtest_results": f"{research_id}_backtest_results.json",
+        "quantagent_trace": f"{research_id}_quantagent_trace.json",
+        "quantagent_results": f"{research_id}_quantagent_results.json",
         "experiment_code": f"{research_id}_experiment.py",
     }
 
@@ -155,7 +157,16 @@ def build_artifacts_record(root: Path, research_id: str) -> Dict[str, str]:
         "experiment_data": str(root / "data" / names["experiment_data"]),
         "indicator_sample": str(root / "data" / names["indicator_sample"]),
         "backtest_results": str(root / "metrics" / names["backtest_results"]),
+        "quantagent_trace": str(root / "data" / names["quantagent_trace"]),
+        "quantagent_results": str(root / "metrics" / names["quantagent_results"]),
         "code": str(root / "code" / names["experiment_code"]),
+        "experiment_data_spec": str(root / "experiments" / f"{research_id}_experiment_data_spec.md"),
+        "hypotheses_doc": str(root / "experiments" / f"{research_id}_hypotheses.md"),
+        "experiment_results_doc": str(root / "experiments" / f"{research_id}_experiment_results.md"),
+        "author_network_json": str(root / "graphs" / f"{research_id}_author_network.json"),
+        "author_network_md": str(root / "graphs" / f"{research_id}_author_network.md"),
+        "citation_network_json": str(root / "graphs" / f"{research_id}_citation_network.json"),
+        "citation_network_md": str(root / "graphs" / f"{research_id}_citation_network.md"),
     }
     # 仅返回已存在的文件
     return {k: v for k, v in mapping.items() if Path(v).exists()}
@@ -211,6 +222,21 @@ def scaffold_placeholder_data(root: Path, research_id: str, title: str, topic: s
         "strategies": {},
         "benchmark": {},
     }
+    quantagent_trace = {
+        "research_id": research_id,
+        "title": title,
+        "status": "pending",
+        "trace": [],
+        "created_at": datetime.now().isoformat(),
+    }
+    quantagent_results = {
+        "research_id": research_id,
+        "title": title,
+        "status": "pending",
+        "metrics": {},
+        "benchmark": {},
+        "created_at": datetime.now().isoformat(),
+    }
     (root / "data" / names["experiment_data"]).write_text(
         json.dumps(experiment_data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -219,6 +245,12 @@ def scaffold_placeholder_data(root: Path, research_id: str, title: str, topic: s
     )
     (root / "metrics" / names["backtest_results"]).write_text(
         json.dumps(backtest_results, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (root / "data" / names["quantagent_trace"]).write_text(
+        json.dumps(quantagent_trace, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (root / "metrics" / names["quantagent_results"]).write_text(
+        json.dumps(quantagent_results, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
 

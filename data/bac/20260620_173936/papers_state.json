@@ -1,0 +1,12 @@
+{
+  "papers": [],
+  "current_paper_id": null,
+  "next_research_seq": 1,
+  "generation_queue": [],
+  "is_generating": false,
+  "is_paused": false,
+  "settings": {
+    "auto_continue": true,
+    "pause_after_next": false
+  }
+}

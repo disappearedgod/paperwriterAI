@@ -1,0 +1,24 @@
+[
+  {
+    "type": "generate",
+    "paper_id": 2,
+    "research_id": "RS-20260621-002",
+    "branch_id": 1,
+    "topic": "种子论文主题分析",
+    "title": "种子论文主题分析",
+    "status": "generated",
+    "id": 2,
+    "timestamp": "2026-06-21T04:38:46.707242"
+  },
+  {
+    "type": "generate",
+    "paper_id": 1,
+    "research_id": "RS-20260621-001",
+    "branch_id": 1,
+    "topic": "种子论文主题分析",
+    "title": "种子论文主题分析",
+    "status": "generated",
+    "id": 1,
+    "timestamp": "2026-06-21T04:36:46.240020"
+  }
+]

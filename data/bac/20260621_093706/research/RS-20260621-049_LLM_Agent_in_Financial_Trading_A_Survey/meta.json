@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-049",
+  "paper_id": 1,
+  "branch_id": 1,
+  "title": "LLM Agent in Financial Trading: A Survey",
+  "topic": "LLM Agent in Financial Trading: A Survey",
+  "status": "failed",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T07:42:41.178216",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-049_LLM_Agent_in_Financial_Trading_A_Survey/article/RS-20260621-049_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-049_LLM_Agent_in_Financial_Trading_A_Survey/data/RS-20260621-049_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-049_LLM_Agent_in_Financial_Trading_A_Survey/data/RS-20260621-049_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-049_LLM_Agent_in_Financial_Trading_A_Survey/metrics/RS-20260621-049_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-049_LLM_Agent_in_Financial_Trading_A_Survey/code/RS-20260621-049_experiment.py"
+  }
+}

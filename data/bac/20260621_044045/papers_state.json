@@ -1,0 +1,183 @@
+{
+  "papers": [
+    {
+      "id": 1,
+      "research_id": "RS-20260621-001",
+      "branch_id": 1,
+      "topic": "种子论文主题分析",
+      "content": "# 种子论文主题分析\n\n论文生成失败: Invalid API key",
+      "title": "种子论文主题分析",
+      "status": "generated",
+      "quality_score": null,
+      "iteration_count": 0,
+      "created_at": "2026-06-21T04:36:46.238808",
+      "parent_paper_id": null,
+      "research_dir": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-001_种子论文主题分析",
+      "file_path": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-001_种子论文主题分析/article/RS-20260621-001_paper.md",
+      "artifacts": {
+        "markdown": "/research_files/data/research/RS-20260621-001_种子论文主题分析/article/RS-20260621-001_paper.md",
+        "experiment_data": "/research_files/data/research/RS-20260621-001_种子论文主题分析/data/RS-20260621-001_experiment_data.json",
+        "indicator_sample": "/research_files/data/research/RS-20260621-001_种子论文主题分析/data/RS-20260621-001_indicator_sample.json",
+        "backtest_results": "/research_files/data/research/RS-20260621-001_种子论文主题分析/metrics/RS-20260621-001_backtest_results.json",
+        "code": "/research_files/data/research/RS-20260621-001_种子论文主题分析/code/RS-20260621-001_experiment.py"
+      }
+    },
+    {
+      "id": 2,
+      "research_id": "RS-20260621-002",
+      "branch_id": 1,
+      "topic": "种子论文主题分析",
+      "content": "# 种子论文主题分析\n\n论文生成失败: 'latin-1' codec can't encode characters in position 7-10: ordinal not in range(256)",
+      "title": "种子论文主题分析",
+      "status": "generated",
+      "quality_score": null,
+      "iteration_count": 0,
+      "created_at": "2026-06-21T04:38:46.706171",
+      "parent_paper_id": null,
+      "research_dir": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-002_种子论文主题分析",
+      "file_path": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-002_种子论文主题分析/article/RS-20260621-002_paper.md",
+      "artifacts": {
+        "markdown": "/research_files/data/research/RS-20260621-002_种子论文主题分析/article/RS-20260621-002_paper.md",
+        "experiment_data": "/research_files/data/research/RS-20260621-002_种子论文主题分析/data/RS-20260621-002_experiment_data.json",
+        "indicator_sample": "/research_files/data/research/RS-20260621-002_种子论文主题分析/data/RS-20260621-002_indicator_sample.json",
+        "backtest_results": "/research_files/data/research/RS-20260621-002_种子论文主题分析/metrics/RS-20260621-002_backtest_results.json",
+        "code": "/research_files/data/research/RS-20260621-002_种子论文主题分析/code/RS-20260621-002_experiment.py"
+      }
+    }
+  ],
+  "current_paper_id": 2,
+  "next_research_seq": 3,
+  "generation_queue": [
+    {
+      "topic": "种子论文主题分析",
+      "branch_id": 1,
+      "added_at": "2026-06-21T04:38:46.715649",
+      "priority": "normal",
+      "status": "completed",
+      "paper_id": 2
+    }
+  ],
+  "is_generating": false,
+  "is_paused": false,
+  "hypotheses": [
+    {
+      "id": "hyp_1",
+      "title": "自适应多尺度交易Agent",
+      "description": "围绕「自适应多尺度交易Agent」提出可验证假设，结合种子文献与分支综述主题「种子论文主题分析」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "实验指标达到预期区间（模拟回测）"
+    },
+    {
+      "id": "hyp_2",
+      "title": "可解释的辩论机制",
+      "description": "围绕「可解释的辩论机制」提出可验证假设，结合种子文献与分支综述主题「种子论文主题分析」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "实验指标达到预期区间（模拟回测）"
+    },
+    {
+      "id": "hyp_3",
+      "title": "幻觉检测与事实核查",
+      "description": "围绕「幻觉检测与事实核查」提出可验证假设，结合种子文献与分支综述主题「种子论文主题分析」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "实验指标达到预期区间（模拟回测）"
+    },
+    {
+      "id": "hyp_4",
+      "title": "统一评估框架",
+      "description": "围绕「统一评估框架」提出可验证假设，结合种子文献与分支综述主题「种子论文主题分析」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "实验指标达到预期区间（模拟回测）"
+    },
+    {
+      "id": "hyp_5",
+      "title": "跨市场多资产框架",
+      "description": "围绕「跨市场多资产框架」提出可验证假设，结合种子文献与分支综述主题「种子论文主题分析」。",
+      "tags": [
+        "LLM基础",
+        "金融NLP",
+        "零样本/少样本学习"
+      ],
+      "status": "success",
+      "expected_outcome": "回测夏普比率优于基准策略",
+      "actual_outcome": "实验指标达到预期区间（模拟回测）"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp_1",
+      "title": "实验1: 自适应多尺度交易Agent",
+      "status": "success",
+      "hypothesis_id": "hyp_1",
+      "paper_id": 2,
+      "method": "量化回测 + 指标对比",
+      "topic": "种子论文主题分析",
+      "artifacts": {
+        "data": "/research_files/data/research/RS-20260621-002_种子论文主题分析/metrics/RS-20260621-002_backtest_results.json",
+        "indicators": "/research_files/data/research/RS-20260621-002_种子论文主题分析/data/RS-20260621-002_indicator_sample.json",
+        "code": "/research_files/data/research/RS-20260621-002_种子论文主题分析/code/RS-20260621-002_experiment.py"
+      }
+    },
+    {
+      "id": "exp_2",
+      "title": "实验2: 可解释的辩论机制",
+      "status": "success",
+      "hypothesis_id": "hyp_2",
+      "paper_id": 2,
+      "method": "量化回测 + 指标对比",
+      "topic": "种子论文主题分析",
+      "artifacts": {
+        "data": "/research_files/data/research/RS-20260621-002_种子论文主题分析/metrics/RS-20260621-002_backtest_results.json",
+        "indicators": "/research_files/data/research/RS-20260621-002_种子论文主题分析/data/RS-20260621-002_indicator_sample.json",
+        "code": "/research_files/data/research/RS-20260621-002_种子论文主题分析/code/RS-20260621-002_experiment.py"
+      }
+    },
+    {
+      "id": "exp_3",
+      "title": "实验3: 幻觉检测与事实核查",
+      "status": "success",
+      "hypothesis_id": "hyp_3",
+      "paper_id": 2,
+      "method": "量化回测 + 指标对比",
+      "topic": "种子论文主题分析",
+      "artifacts": {
+        "data": "/research_files/data/research/RS-20260621-002_种子论文主题分析/metrics/RS-20260621-002_backtest_results.json",
+        "indicators": "/research_files/data/research/RS-20260621-002_种子论文主题分析/data/RS-20260621-002_indicator_sample.json",
+        "code": "/research_files/data/research/RS-20260621-002_种子论文主题分析/code/RS-20260621-002_experiment.py"
+      }
+    }
+  ],
+  "research_activity": {
+    "phase": "completed",
+    "message": "研究完成 · RS-20260621-002",
+    "progress": 1.0,
+    "updated_at": "2026-06-21T04:38:46.716242"
+  },
+  "settings": {
+    "auto_continue": true,
+    "pause_after_next": false
+  }
+}

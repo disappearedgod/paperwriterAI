@@ -13,6 +13,7 @@ import threading
 import time
 import subprocess
 import mimetypes
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -33,7 +34,9 @@ from core.research_archive import (
     allocate_research_id,
     bump_research_seq,
     create_research_workspace,
+    artifact_filenames,
     save_article_markdown,
+    scaffold_experiment_code,
     write_meta,
     paper_record_paths,
     artifacts_for_api,
@@ -70,6 +73,7 @@ from prompts.templates import (
 )
 
 app = Flask(__name__, static_folder='docs', static_url_path='')
+app.logger.setLevel(logging.INFO)
 
 _CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 _CONFIG_LOCAL_PATH = Path(__file__).resolve().parent / "config.local.json"
@@ -91,20 +95,23 @@ def _dbg_load() -> None:
         _DBG_CACHE["url"] = os.environ["DEBUG_SERVER_URL"]
         _DBG_CACHE["session"] = os.environ.get("DEBUG_SESSION_ID", "")
         return
-    env_path = Path(__file__).resolve().parent / ".dbg" / "writing-stuck-078.env"
-    if not env_path.exists():
-        return
     try:
-        for line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
-            if not line or "=" not in line:
+        env_dir = Path(__file__).resolve().parent / ".dbg"
+        for name in ("writing-078-stuck.env", "writing-stuck-078.env"):
+            env_path = env_dir / name
+            if not env_path.exists():
                 continue
-            k, v = line.split("=", 1)
-            k = k.strip()
-            v = v.strip()
-            if k == "DEBUG_SERVER_URL":
-                _DBG_CACHE["url"] = v
-            elif k == "DEBUG_SESSION_ID":
-                _DBG_CACHE["session"] = v
+            for line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if not line or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip()
+                if k == "DEBUG_SERVER_URL":
+                    _DBG_CACHE["url"] = v
+                elif k == "DEBUG_SESSION_ID":
+                    _DBG_CACHE["session"] = v
+            break
     except Exception:
         return
 
@@ -112,6 +119,8 @@ def _dbg_set_context(*, research_id: str, research_dir: str) -> None:
     try:
         _DBG_CTX.research_id = str(research_id or "")
         _DBG_CTX.research_dir = str(research_dir or "")
+        _DBG_CACHE["research_id"] = str(research_id or "")
+        _DBG_CACHE["research_dir"] = str(research_dir or "")
     except Exception:
         return
 
@@ -119,15 +128,19 @@ def _dbg_clear_context() -> None:
     try:
         _DBG_CTX.research_id = ""
         _DBG_CTX.research_dir = ""
+        _DBG_CACHE.pop("research_id", None)
+        _DBG_CACHE.pop("research_dir", None)
     except Exception:
         return
 
 def _dbg_log_path() -> Optional[Path]:
-    research_dir = getattr(_DBG_CTX, "research_dir", "") or ""
+    research_dir = getattr(_DBG_CTX, "research_dir", "") or (_DBG_CACHE.get("research_dir") or "")
     if not research_dir:
         return None
     root = Path(research_dir)
-    return root / "logs" / "trae-debug-log-writing-stuck-078.ndjson"
+    session_id = _DBG_CACHE.get("session", "writing-stuck-078") or "writing-stuck-078"
+    safe = re.sub(r"[^a-z0-9._-]+", "_", str(session_id).lower())
+    return root / "logs" / f"trae-debug-log-{safe}.ndjson"
 
 def _dbg_console_line(body: Dict[str, Any]) -> str:
     payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
@@ -146,10 +159,14 @@ def _dbg_console_line(body: Dict[str, Any]) -> str:
 
 def _dbg_event(name: str, payload: Dict[str, Any]) -> None:
     _dbg_load()
+    session_id = _DBG_CACHE.get("session", "writing-stuck-078")
+    run_id = payload.get("run_id") if isinstance(payload, dict) else None
     body = {
         "ts": datetime.now().isoformat(),
         "event": name,
-        "session": _DBG_CACHE.get("session", "writing-stuck-078"),
+        "session": session_id,
+        "sessionId": session_id,
+        "runId": (str(run_id) if run_id else ""),
         "payload": payload,
     }
     try:
@@ -283,6 +300,8 @@ def get_effective_llm_config() -> Dict[str, Any]:
     merged.update(_llm_config)
     merged["provider"] = provider
     merged["api_key"] = _get_provider_api_key(provider, merged)
+    if os.environ.get("LLM_BASE_URL"):
+        merged["base_url"] = str(os.environ.get("LLM_BASE_URL") or "").strip()
     return merged
 
 
@@ -352,6 +371,79 @@ _LLM_USAGE_BUFFER: Dict[str, Dict[str, Dict[str, int]]] = {}
 _LLM_USAGE_META: Dict[str, Dict[str, str]] = {}
 _LLM_USAGE_LAST_FLUSH_TS = 0.0
 
+_LLM_INFLIGHT_LOCK = threading.Lock()
+_LLM_INFLIGHT: Dict[str, Dict[str, Any]] = {}
+
+
+def _llm_inflight_start(
+    *,
+    run_id: str,
+    phase: str,
+    provider: str,
+    model: str,
+    attempt: int,
+    req_id: str,
+    prompt_len: int,
+    max_tokens: int,
+    timeout_s: int,
+) -> None:
+    if not run_id:
+        return
+    with _LLM_INFLIGHT_LOCK:
+        _LLM_INFLIGHT[run_id] = {
+            "run_id": run_id,
+            "phase": str(phase or "unknown"),
+            "provider": str(provider or ""),
+            "model": str(model or ""),
+            "attempt": int(attempt or 0),
+            "req_id": str(req_id or ""),
+            "prompt_len": int(prompt_len or 0),
+            "max_tokens": int(max_tokens or 0),
+            "timeout_s": int(timeout_s or 0),
+            "started_at": datetime.now().isoformat(),
+            "elapsed_s": 0.0,
+            "updated_at": datetime.now().isoformat(),
+        }
+
+
+def _llm_inflight_heartbeat(*, run_id: str, req_id: str, elapsed_s: float) -> None:
+    if not run_id:
+        return
+    with _LLM_INFLIGHT_LOCK:
+        row = _LLM_INFLIGHT.get(run_id)
+        if not isinstance(row, dict):
+            return
+        if str(row.get("req_id") or "") != str(req_id or ""):
+            return
+        row["elapsed_s"] = float(elapsed_s or 0.0)
+        row["updated_at"] = datetime.now().isoformat()
+        _LLM_INFLIGHT[run_id] = row
+
+
+def _llm_inflight_end(*, run_id: str, req_id: str) -> None:
+    if not run_id:
+        return
+    with _LLM_INFLIGHT_LOCK:
+        row = _LLM_INFLIGHT.get(run_id)
+        if not isinstance(row, dict):
+            return
+        if str(row.get("req_id") or "") != str(req_id or ""):
+            return
+        _LLM_INFLIGHT.pop(run_id, None)
+
+
+def _llm_inflight_snapshot(papers_data: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    papers_data = papers_data or load_papers()
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    run_id = str(current_run.get("run_id") or "")
+    if not run_id:
+        return None
+    with _LLM_INFLIGHT_LOCK:
+        row = _LLM_INFLIGHT.get(run_id)
+        if not isinstance(row, dict):
+            return None
+        return dict(row)
+
 
 def _bump_llm_usage(
     *,
@@ -361,13 +453,27 @@ def _bump_llm_usage(
     model: str,
     usage: Optional[Dict[str, Any]] = None,
     ok: bool = True,
+    prompt_len: Optional[int] = None,
+    content_len: Optional[int] = None,
 ) -> None:
     if not run_id:
         return
     p = str(phase or "unknown")
     with _LLM_USAGE_LOCK:
         by_phase = _LLM_USAGE_BUFFER.setdefault(run_id, {})
-        row = by_phase.setdefault(p, {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+        row = by_phase.setdefault(
+            p,
+            {
+                "calls": 0,
+                "errors": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "est_prompt_tokens": 0,
+                "est_completion_tokens": 0,
+                "est_total_tokens": 0,
+            },
+        )
         row["calls"] += 1
         if not ok:
             row["errors"] += 1
@@ -378,6 +484,17 @@ def _bump_llm_usage(
             row["prompt_tokens"] += pt
             row["completion_tokens"] += ct
             row["total_tokens"] += tt
+        else:
+            try:
+                pl = int(prompt_len or 0)
+                cl = int(content_len or 0)
+                if pl > 0:
+                    row["est_prompt_tokens"] += max(1, (pl + 3) // 4)
+                if cl > 0:
+                    row["est_completion_tokens"] += max(1, (cl + 3) // 4)
+                row["est_total_tokens"] = int(row.get("est_prompt_tokens") or 0) + int(row.get("est_completion_tokens") or 0)
+            except Exception:
+                pass
         _LLM_USAGE_META[run_id] = {"provider": str(provider or ""), "model": str(model or "")}
 
 
@@ -400,8 +517,17 @@ def _flush_llm_usage(papers_data: Dict[str, Any]) -> bool:
         phases = existing.get("phases") if isinstance(existing.get("phases"), dict) else {}
 
         for phase, row in buffered.items():
-            dst = phases.get(phase) if isinstance(phases.get(phase), dict) else {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-            for k in ("calls", "errors", "prompt_tokens", "completion_tokens", "total_tokens"):
+            dst = phases.get(phase) if isinstance(phases.get(phase), dict) else {
+                "calls": 0,
+                "errors": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "est_prompt_tokens": 0,
+                "est_completion_tokens": 0,
+                "est_total_tokens": 0,
+            }
+            for k in ("calls", "errors", "prompt_tokens", "completion_tokens", "total_tokens", "est_prompt_tokens", "est_completion_tokens", "est_total_tokens"):
                 dst[k] = int(dst.get(k) or 0) + int(row.get(k) or 0)
             phases[phase] = dst
 
@@ -427,6 +553,7 @@ def _decorate_stage_experiments(papers_data: Dict[str, Any]) -> List[dict]:
     activity = papers_data.get("research_activity") if isinstance(papers_data.get("research_activity"), dict) else {}
     phase = str(activity.get("phase") or "idle")
     overall_progress = float(activity.get("progress") or 0.0)
+    inflight = _llm_inflight_snapshot(papers_data)
 
     registry = get_registry() or {}
     seed_count = int((registry.get("seed_papers") or {}).get("count") or 0)
@@ -451,7 +578,16 @@ def _decorate_stage_experiments(papers_data: Dict[str, Any]) -> List[dict]:
             return 0.0
 
     def _sum_usage(phases: List[str]) -> Dict[str, int]:
-        total = {"calls": 0, "errors": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        total = {
+            "calls": 0,
+            "errors": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "est_prompt_tokens": 0,
+            "est_completion_tokens": 0,
+            "est_total_tokens": 0,
+        }
         for p in phases:
             row = phase_metrics.get(p)
             if not isinstance(row, dict):
@@ -481,6 +617,7 @@ def _decorate_stage_experiments(papers_data: Dict[str, Any]) -> List[dict]:
             "进度%": progress_pct,
             "LLM调用": usage["calls"],
             "Token": usage["total_tokens"],
+            "Token估算": usage["est_total_tokens"],
             "失败": usage["errors"],
         }
         if exp_dict.get("id") == "exp_1":
@@ -497,6 +634,9 @@ def _decorate_stage_experiments(papers_data: Dict[str, Any]) -> List[dict]:
             metrics["产物论文"] = papers_count
             write_row = phase_metrics.get("writing") if isinstance(phase_metrics.get("writing"), dict) else {}
             metrics["写作用时(s)"] = write_row.get("writing_seconds") or _elapsed_seconds(write_row)
+            if inflight and str(inflight.get("phase") or "") == "writing":
+                metrics["LLM进行中"] = 1.0
+                metrics["本次LLM等待(s)"] = float(inflight.get("elapsed_s") or 0.0)
         if exp_dict.get("id") == "exp_2":
             graph_row = phase_metrics.get("experimenting") if isinstance(phase_metrics.get("experimenting"), dict) else {}
             metrics["图谱耗时(s)"] = graph_row.get("graph_build_seconds") or _elapsed_seconds(graph_row)
@@ -523,15 +663,32 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
     model = str(cfg.get("model") or ("abab6.5s-chat" if provider == "minimax" else "gpt-4o"))
     temp = float(temperature if temperature is not None else cfg.get("temperature", 0.7))
     mt = int(max_tokens if max_tokens is not None else cfg.get("max_tokens", 4096))
-    timeout_s = 600 if provider == "minimax" else 180
+    timeout_s = 600  # 统一600s超时，论文生成需要更长时间
     papers_ctx = load_papers()
     run_id = ((papers_ctx.get("current_run") or {}).get("run_id") if isinstance(papers_ctx.get("current_run"), dict) else "") or ""
     phase = str((papers_ctx.get("research_activity") or {}).get("phase") if isinstance(papers_ctx.get("research_activity"), dict) else "unknown")
+    cfg_timeout = cfg.get("request_timeout_s")
+    try:
+        cfg_timeout_s = int(cfg_timeout) if cfg_timeout is not None else 0
+    except Exception:
+        cfg_timeout_s = 0
+    try:
+        env_timeout_s = int(os.environ.get("LLM_REQUEST_TIMEOUT_S") or 0)
+    except Exception:
+        env_timeout_s = 0
+    if env_timeout_s > 0:
+        timeout_s = env_timeout_s
+    if cfg_timeout_s > 0:
+        timeout_s = cfg_timeout_s
+    elif provider == "minimax" and phase == "writing":
+        timeout_s = min(timeout_s, 600)  # writing阶段最多600秒
     prompt_len = len(prompt or "")
     prompt_sample = (prompt or "")[:200]
     _dbg_event("llm_call_prepare", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "timeout_s": timeout_s, "max_tokens": mt, "temperature": temp, "prompt_len": prompt_len, "prompt_sample": prompt_sample})
 
     if provider == "gemini":
+        req_id = str(uuid4())
+        _llm_inflight_start(run_id=run_id, phase=phase, provider=provider, model=model, attempt=1, req_id=req_id, prompt_len=prompt_len, max_tokens=mt, timeout_s=timeout_s)
         base = _llm_endpoint(provider, str(cfg.get("base_url") or "")).rstrip("/")
         key = cfg.get("api_key") or ""
         url = f"{base}/models/{model}:generateContent?key={key}"
@@ -539,18 +696,47 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": temp, "maxOutputTokens": mt},
         }
-        resp = session.post(url, json=body, timeout=timeout_s)
+        t0 = time.time()
+        resp_box: Dict[str, Any] = {}
+        exc_box: Dict[str, Any] = {}
+
+        def _do_post_gemini():
+            try:
+                resp_box["resp"] = session.post(url, json=body, timeout=timeout_s)
+            except Exception as e:
+                exc_box["exc"] = e
+
+        th = threading.Thread(target=_do_post_gemini, daemon=True)
+        th.start()
+        th.join(timeout_s)
+        if th.is_alive():
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
+            _dbg_event("llm_call_timeout", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": 1, "error": f"total timeout {timeout_s}s"})
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=False)
+            raise requests.exceptions.Timeout(f"llm total timeout ({timeout_s}s)")
+        if exc_box.get("exc"):
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
+            raise exc_box["exc"]
+        resp = resp_box.get("resp")
+        if resp is None:
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
+            raise RuntimeError("llm request failed")
+        _llm_inflight_heartbeat(run_id=run_id, req_id=req_id, elapsed_s=time.time() - t0)
         data = resp.json()
         if "error" in data:
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
             _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=False)
             raise RuntimeError(data["error"].get("message") or str(data["error"]))
         candidates = data.get("candidates") or []
         if not candidates:
-            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True)
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True, prompt_len=prompt_len, content_len=0)
             return ""
         content = (candidates[0].get("content") or {}).get("parts") or []
-        _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True)
-        return (content[0].get("text") if content else "") or ""
+        _llm_inflight_end(run_id=run_id, req_id=req_id)
+        text_out = (content[0].get("text") if content else "") or ""
+        _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, ok=True, prompt_len=prompt_len, content_len=len(text_out))
+        return text_out
 
     url = _llm_chat_url(provider, str(cfg.get("base_url") or ""))
     headers = {"Content-Type": "application/json"}
@@ -560,11 +746,8 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": temp,
+        "max_tokens": mt,  # MiniMax也使用max_tokens (不是max_completion_tokens)
     }
-    if provider == "minimax":
-        payload["max_completion_tokens"] = mt
-    else:
-        payload["max_tokens"] = mt
 
     last_exc: Optional[Exception] = None
     for attempt in range(3):
@@ -575,38 +758,92 @@ def call_llm(prompt: str, *, temperature: Optional[float] = None, max_tokens: Op
             def _hb():
                 t0 = time.time()
                 while not stop_evt.wait(10.0):
-                    _dbg_event("llm_call_heartbeat", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "elapsed_s": round(time.time() - t0, 2), "timeout_s": timeout_s, "prompt_len": prompt_len})
+                    elapsed_s = time.time() - t0
+                    _llm_inflight_heartbeat(run_id=run_id, req_id=req_id, elapsed_s=elapsed_s)
+                    _dbg_event("llm_call_heartbeat", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "elapsed_s": round(elapsed_s, 2), "timeout_s": timeout_s, "prompt_len": prompt_len})
 
             threading.Thread(target=_hb, daemon=True).start()
+            _llm_inflight_start(run_id=run_id, phase=phase, provider=provider, model=model, attempt=attempt + 1, req_id=req_id, prompt_len=prompt_len, max_tokens=mt, timeout_s=timeout_s)
             _dbg_event("llm_call_start", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "url": url, "timeout_s": timeout_s, "max_tokens": mt})
-            resp = session.post(url, headers=headers, json=payload, timeout=timeout_s)
+            resp_box: Dict[str, Any] = {}
+            exc_box: Dict[str, Any] = {}
+
+            def _do_post():
+                try:
+                    resp_box["resp"] = session.post(url, headers=headers, json=payload, timeout=timeout_s)
+                except Exception as e:
+                    exc_box["exc"] = e
+
+            th = threading.Thread(target=_do_post, daemon=True)
+            th.start()
+            th.join(timeout_s)
+            if th.is_alive():
+                stop_evt.set()
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+                _dbg_event("llm_call_timeout", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "error": f"total timeout {timeout_s}s"})
+                raise requests.exceptions.Timeout(f"llm total timeout ({timeout_s}s)")
+            if exc_box.get("exc"):
+                stop_evt.set()
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+                raise exc_box["exc"]
+            resp = resp_box.get("resp")
             stop_evt.set()
+            if resp is None:
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+                raise RuntimeError("llm request failed")
             try:
                 data = resp.json()
             except ValueError:
                 snippet = (resp.text or "")[:200]
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
                 _dbg_event("llm_call_non_json", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "snippet": snippet})
                 raise RuntimeError(f"非JSON响应: HTTP {resp.status_code} {snippet}")
             if "error" in data:
                 err = data["error"].get("message") if isinstance(data["error"], dict) else str(data["error"])
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
                 _dbg_event("llm_call_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "error": err})
                 raise RuntimeError(err or "llm error")
             content = (
                 (data.get("choices") or [{}])[0].get("message", {}).get("content")
+                or (data.get("choices") or [{}])[0].get("message", {}).get("reasoning")  # MiniMax reasoning fallback
                 or (data.get("choices") or [{}])[0].get("text", "")
                 or ""
             )
+            # 去除 MiniMax-M2.7 推理模型的 <think>...</think> 标签
+            if content and "<think>" in content:
+                content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+            if not content:
+                finish_reason = (data.get("choices") or [{}])[0].get("finish_reason", "unknown")
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+                _dbg_event("llm_call_empty", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "finish_reason": finish_reason})
+                raise RuntimeError(f"LLM返回空内容, finish_reason={finish_reason}")
             _dbg_event("llm_call_ok", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "req_id": req_id, "status": resp.status_code, "usage": (data.get("usage") if isinstance(data.get("usage"), dict) else None), "content_len": len(content), "content_sample": content[:200]})
-            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, usage=(data.get("usage") if isinstance(data.get("usage"), dict) else None), ok=True)
+            _llm_inflight_end(run_id=run_id, req_id=req_id)
+            usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
+            _bump_llm_usage(run_id=run_id, phase=phase, provider=provider, model=model, usage=usage, ok=True, prompt_len=prompt_len, content_len=len(content))
             return content
         except requests.exceptions.Timeout as exc:
             last_exc = exc
+            try:
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+            except Exception:
+                pass
             _dbg_event("llm_call_timeout", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
+            if "total timeout" in str(exc) and phase == "writing":
+                break
         except requests.exceptions.ConnectionError as exc:
             last_exc = exc
+            try:
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+            except Exception:
+                pass
             _dbg_event("llm_call_conn_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
         except RuntimeError as exc:
             last_exc = exc
+            try:
+                _llm_inflight_end(run_id=run_id, req_id=req_id)
+            except Exception:
+                pass
             _dbg_event("llm_call_runtime_error", {"run_id": run_id, "phase": phase, "provider": provider, "model": model, "attempt": attempt + 1, "error": str(exc)})
         if attempt < 2:
             time.sleep(1.5 * (attempt + 1))
@@ -1377,11 +1614,175 @@ def api_history_detail(record_id: int):
 
 # ============ 分支研究系统 API ============
 
+def _parse_iso_dt(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def _compute_last_active(papers_data: Dict[str, Any], inflight: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    candidates: List[Tuple[str, Optional[str]]] = []
+    activity = papers_data.get("research_activity") if isinstance(papers_data.get("research_activity"), dict) else {}
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    run_metrics = papers_data.get("run_metrics") if isinstance(papers_data.get("run_metrics"), dict) else {}
+    candidates.append(("research_activity", activity.get("updated_at")))
+    candidates.append(("current_run", current_run.get("updated_at")))
+    candidates.append(("run_metrics", run_metrics.get("updated_at")))
+    if isinstance(inflight, dict):
+        candidates.append(("llm_inflight", inflight.get("updated_at")))
+
+    best_src: Optional[str] = None
+    best_ts: Optional[str] = None
+    best_dt: Optional[datetime] = None
+    for src, ts in candidates:
+        dt = _parse_iso_dt(ts)
+        if dt is None:
+            continue
+        if best_dt is None or dt > best_dt:
+            best_dt = dt
+            best_src = src
+            best_ts = str(ts)
+
+    stall_seconds: Optional[int] = None
+    if best_dt is not None:
+        stall_seconds = int(max(0.0, (datetime.now() - best_dt).total_seconds()))
+
+    return {
+        "last_active_at": best_ts,
+        "last_active_source": best_src,
+        "stall_seconds": stall_seconds,
+    }
+
+
+def _maybe_self_heal_startup(papers_data: Dict[str, Any], inflight: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not papers_data.get("is_generating"):
+        return None
+    if inflight:
+        return None
+    runner = get_research_runner()
+    runner_running = False
+    try:
+        runner_running = bool(runner.is_running())
+    except Exception:
+        runner_running = False
+    if runner_running:
+        return None
+
+    now = datetime.now().isoformat()
+    activity = papers_data.get("research_activity") if isinstance(papers_data.get("research_activity"), dict) else {}
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+
+    progress = activity.get("progress")
+    try:
+        progress_val = float(progress) if progress is not None else 0.0
+    except Exception:
+        progress_val = 0.0
+
+    papers_data["is_generating"] = False
+    papers_data["is_paused"] = True
+    papers_data["stop_requested"] = False
+
+    if isinstance(current_run, dict):
+        current_run["status"] = "paused"
+        current_run["updated_at"] = now
+        papers_data["current_run"] = current_run
+
+    papers_data["research_activity"] = {
+        "phase": "paused",
+        "message": "检测到服务重启或后台线程丢失，已自动暂停（可点击“继续”断点续传）",
+        "progress": progress_val,
+        "updated_at": now,
+    }
+
+    payload = {"type": "startup_self_heal", "reason": "runner_not_running", "at": now}
+    papers_data["last_self_heal"] = payload
+    return payload
+
+
+def _maybe_auto_pause_stall(
+    papers_data: Dict[str, Any],
+    inflight: Optional[Dict[str, Any]],
+    last_active: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    if not papers_data.get("is_generating"):
+        return None
+    if papers_data.get("is_paused"):
+        return None
+    if inflight:
+        return None
+
+    stall_s = last_active.get("stall_seconds")
+    if stall_s is None:
+        return None
+    try:
+        threshold_s = int(os.environ.get("STALL_AUTO_PAUSE_S") or "120")
+    except Exception:
+        threshold_s = 120
+    if threshold_s <= 0:
+        threshold_s = 120
+    if int(stall_s) < threshold_s:
+        return None
+
+    now = datetime.now().isoformat()
+    activity = papers_data.get("research_activity") if isinstance(papers_data.get("research_activity"), dict) else {}
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    phase = str(activity.get("phase") or "")
+    if phase in ("idle", "completed", "error"):
+        return None
+
+    progress = activity.get("progress")
+    try:
+        progress_val = float(progress) if progress is not None else 0.0
+    except Exception:
+        progress_val = 0.0
+
+    last_src = last_active.get("last_active_source") or "unknown"
+    papers_data["is_generating"] = False
+    papers_data["is_paused"] = True
+    papers_data["stop_requested"] = True
+
+    if isinstance(current_run, dict):
+        current_run["status"] = "paused"
+        current_run["updated_at"] = now
+        papers_data["current_run"] = current_run
+
+    papers_data["research_activity"] = {
+        "phase": "paused",
+        "message": f"检测到超过 {threshold_s}s 无活动（source={last_src}），已自动暂停（可点击“继续”断点续传）",
+        "progress": progress_val,
+        "updated_at": now,
+    }
+
+    payload = {
+        "type": "stall_auto_pause",
+        "reason": "no_activity_no_inflight",
+        "threshold_s": threshold_s,
+        "stall_seconds": int(stall_s),
+        "last_active_at": last_active.get("last_active_at"),
+        "last_active_source": last_src,
+        "at": now,
+    }
+    papers_data["last_self_heal"] = payload
+    return payload
+
+
 @app.route('/api/research/state', methods=['GET'])
 def api_research_state():
     """获取研究状态"""
     papers_data = load_papers()
     dirty = _flush_llm_usage(papers_data)
+    inflight = _llm_inflight_snapshot(papers_data)
+    last_active = _compute_last_active(papers_data, inflight)
+    self_heal = _maybe_self_heal_startup(papers_data, inflight)
+    if self_heal:
+        dirty = True
+    stall_action = _maybe_auto_pause_stall(papers_data, inflight, last_active)
+    if stall_action:
+        self_heal = stall_action
+        dirty = True
     branches_data = load_branches()
     workflow = load_workflow_state()
     current_branch = get_current_branch()
@@ -1393,6 +1794,7 @@ def api_research_state():
     if dirty:
         save_papers(papers_data)
 
+    last_active = _compute_last_active(papers_data, inflight)
     return jsonify({
         "success": True,
         "is_generating": papers_data.get('is_generating', False),
@@ -1405,10 +1807,15 @@ def api_research_state():
         "hypotheses": papers_data.get('hypotheses', []),
         "experiments": papers_data.get('experiments', []),
         "run_metrics": papers_data.get("run_metrics", {}),
+        "llm_inflight": inflight,
         "live_graphs": papers_data.get("live_graphs", {}),
         "current_run": papers_data.get('current_run'),
         "runs": papers_data.get('runs', []),
         "research_activity": papers_data.get('research_activity', {}),
+        "last_active_at": last_active.get("last_active_at"),
+        "last_active_source": last_active.get("last_active_source"),
+        "stall_seconds": last_active.get("stall_seconds"),
+        "self_heal": self_heal,
         "queue_length": len(papers_data.get('generation_queue', [])),
         "all_branches": branches_data.get('branches', []),
         "workflow": workflow,
@@ -1626,6 +2033,126 @@ def api_branches_list():
     })
 
 
+# ============ LLM调用记录 API ============
+
+@app.route('/api/llm-calls', methods=['GET'])
+def api_llm_calls_list():
+    """获取LLM调用记录列表"""
+    try:
+        limit = request.args.get('limit', 100, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        agent_name = request.args.get('agent')
+        status = request.args.get('status')
+        research_id = request.args.get('research_id')
+
+        # 读取JSON文件作为数据源
+        history_file = Path(__file__).resolve().parent / "data" / "llm_call_logs.json"
+        calls = []
+        if history_file.exists():
+            try:
+                calls = json.loads(history_file.read_text(encoding='utf-8'))
+            except Exception:
+                calls = []
+
+        # 应用过滤器
+        if agent_name:
+            calls = [c for c in calls if c.get('agent_name') == agent_name]
+        if status:
+            calls = [c for c in calls if c.get('status') == status]
+        if research_id:
+            calls = [c for c in calls if c.get('research_id') == research_id]
+
+        # 按时间倒序
+        calls.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        # 分页
+        total = len(calls)
+        calls = calls[offset:offset + limit]
+
+        return jsonify({
+            "calls": calls,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/llm-calls/<call_id>', methods=['GET'])
+def api_llm_call_detail(call_id: str):
+    """获取单条LLM调用详情"""
+    try:
+        history_file = Path(__file__).resolve().parent / "data" / "llm_call_logs.json"
+        if not history_file.exists():
+            return jsonify({"error": "调用记录不存在"}), 404
+
+        calls = json.loads(history_file.read_text(encoding='utf-8'))
+        call = next((c for c in calls if c.get('call_id') == call_id), None)
+
+        if not call:
+            return jsonify({"error": "调用记录不存在"}), 404
+
+        return jsonify(call)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/llm-calls/stats', methods=['GET'])
+def api_llm_calls_stats():
+    """获取LLM调用统计信息"""
+    try:
+        history_file = Path(__file__).resolve().parent / "data" / "llm_call_logs.json"
+        calls = []
+        if history_file.exists():
+            try:
+                calls = json.loads(history_file.read_text(encoding='utf-8'))
+            except Exception:
+                calls = []
+
+        total_calls = len(calls)
+        success_calls = len([c for c in calls if c.get('status') == 'success'])
+        failed_calls = len([c for c in calls if c.get('status') == 'failed'])
+
+        total_tokens = sum(c.get('total_tokens', 0) for c in calls)
+        avg_latency = sum(c.get('latency_ms', 0) for c in calls) / total_calls if total_calls > 0 else 0
+
+        # 按Agent统计
+        agent_stats = {}
+        for c in calls:
+            agent = c.get('agent_name', 'unknown')
+            if agent not in agent_stats:
+                agent_stats[agent] = {'call_count': 0, 'tokens': 0, 'latency_sum': 0}
+            agent_stats[agent]['call_count'] += 1
+            agent_stats[agent]['tokens'] += c.get('total_tokens', 0)
+            agent_stats[agent]['latency_sum'] += c.get('latency_ms', 0)
+
+        agent_stats_list = [
+            {
+                'agent_name': agent,
+                'call_count': stats['call_count'],
+                'tokens': stats['tokens'],
+                'avg_latency': stats['latency_sum'] / stats['call_count'] if stats['call_count'] > 0 else 0
+            }
+            for agent, stats in agent_stats.items()
+        ]
+
+        return jsonify({
+            "total_calls": total_calls,
+            "success_calls": success_calls,
+            "failed_calls": failed_calls,
+            "success_rate": round(success_calls / total_calls * 100, 2) if total_calls > 0 else 0,
+            "total_tokens": total_tokens,
+            "avg_latency_ms": round(avg_latency, 2),
+            "agent_stats": agent_stats_list
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/branches', methods=['POST'])
 def api_create_branch():
     """创建新分支"""
@@ -1776,8 +2303,10 @@ def _run_experiment_and_collect(*, root: Path, research_id: str) -> Dict[str, An
     names = {
         "experiment": root / "code" / f"{research_id}_experiment.py",
         "backtest_results": root / "metrics" / f"{research_id}_backtest_results.json",
+        "quantagent_results": root / "metrics" / f"{research_id}_quantagent_results.json",
         "indicator_sample": root / "data" / f"{research_id}_indicator_sample.json",
         "experiment_data": root / "data" / f"{research_id}_experiment_data.json",
+        "quantagent_trace": root / "data" / f"{research_id}_quantagent_trace.json",
         "log": root / "logs" / f"{research_id}_experiment.log",
     }
     result: Dict[str, Any] = {
@@ -1787,6 +2316,39 @@ def _run_experiment_and_collect(*, root: Path, research_id: str) -> Dict[str, An
         "paths": {k: str(v) for k, v in names.items() if k != "log"},
         "data": {},
     }
+
+    try:
+        if str(os.environ.get("AUTO_UPDATE_EXPERIMENT_CODE") or "1") != "0":
+            if names["experiment"].exists():
+                exp_text = names["experiment"].read_text(encoding="utf-8", errors="replace")
+            else:
+                exp_text = ""
+            needs_update = ("EXPERIMENT_TEMPLATE_VERSION" not in exp_text) or ("v3_multi_asset_cost_freq" not in exp_text)
+            if (not exp_text) or needs_update:
+                meta = {}
+                meta_path = root / "meta.json"
+                if meta_path.exists():
+                    try:
+                        meta = json.loads(meta_path.read_text(encoding="utf-8", errors="replace"))
+                    except Exception:
+                        meta = {}
+                title = str(meta.get("title") or meta.get("topic") or research_id)
+                topic = str(meta.get("topic") or title)
+                scaffold_experiment_code(root, research_id, title, topic)
+    except Exception:
+        pass
+
+    if not names["quantagent_results"].exists():
+        _write_json(
+            names["quantagent_results"],
+            {"research_id": research_id, "status": "pending", "metrics": {}, "benchmark": {}, "created_at": datetime.now().isoformat()},
+        )
+    if not names["quantagent_trace"].exists():
+        _write_json(
+            names["quantagent_trace"],
+            {"research_id": research_id, "status": "pending", "trace": [], "created_at": datetime.now().isoformat()},
+        )
+
     if not names["experiment"].exists():
         result["error"] = "experiment_code_missing"
         return result
@@ -1820,8 +2382,10 @@ def _run_experiment_and_collect(*, root: Path, research_id: str) -> Dict[str, An
 
     result["data"] = {
         "backtest_results": _load_json_maybe(names["backtest_results"]),
+        "quantagent_results": _load_json_maybe(names["quantagent_results"]),
         "indicator_sample": _load_json_maybe(names["indicator_sample"]),
         "experiment_data": _load_json_maybe(names["experiment_data"]),
+        "quantagent_trace": _load_json_maybe(names["quantagent_trace"]),
     }
     return result
 
@@ -1848,6 +2412,8 @@ def _persist_experiment_documents(
             f"- data/{research_id}_experiment_data.json：实验配置与中间数据（可复现输入/输出字段）",
             f"- data/{research_id}_indicator_sample.json：指标样本（特征列、时间索引、示例记录）",
             f"- metrics/{research_id}_backtest_results.json：回测结果（收益、风险、基准对比、统计检验）",
+            f"- data/{research_id}_quantagent_trace.json：QuantAgent 多智能体决策 trace（每步信号、投票结果、持仓与收益）",
+            f"- metrics/{research_id}_quantagent_results.json：QuantAgent 结果汇总（与 baseline/基准对比的指标）",
             f"- code/{research_id}_experiment.py：实验代码（可直接运行）",
             "",
             "约定：所有表格与结论必须以以上 JSON 的真实字段为依据，不得编造。",
@@ -1953,12 +2519,17 @@ def _persist_experiment_documents(
 def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None) -> dict:
     """创建并持久化一篇论文记录"""
     papers_data = load_papers()
-    paper_id = len(papers_data.get('papers', [])) + 1
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    pending_rid = str(current_run.get("pending_research_id") or "")
+    pending_dir = str(current_run.get("pending_research_dir") or "")
+    pending_pid = int(current_run.get("pending_paper_id") or 0)
+    resume_workspace = bool(pending_rid and pending_dir and pending_pid)
+    paper_id = pending_pid if resume_workspace else (len(papers_data.get('papers', [])) + 1)
     branch_papers = [
         p for p in papers_data.get('papers', [])
         if p.get('branch_id') == branch_id and p.get("status") == "generated"
     ]
-    research_id = allocate_research_id(papers_data)
+    research_id = pending_rid if resume_workspace else allocate_research_id(papers_data)
     branches_data = load_branches()
     branch_review = None
     for b in branches_data.get('branches', []):
@@ -1974,30 +2545,89 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
                 parent_research_id = p.get('research_id')
                 break
 
-    workspace = create_research_workspace(
-        research_id=research_id,
-        paper_id=paper_id,
-        branch_id=branch_id,
-        title=provisional_title,
-        topic=topic,
-        content=f"# {provisional_title}\n\n> 实验运行中，将在完成后生成完整论文正文。\n",
-        parent_research_id=parent_research_id,
-    )
-    root = Path(workspace["research_dir"])
+    def _read_json(path: Path) -> Optional[Any]:
+        try:
+            return json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        except Exception:
+            return None
+
+    def _load_experiment_bundle_from_workspace(*, root: Path, research_id: str) -> Dict[str, Any]:
+        names = artifact_filenames(research_id)
+        exp_path = root / "code" / names["experiment_code"]
+        ind_path = root / "data" / names["indicator_sample"]
+        data_path = root / "data" / names["experiment_data"]
+        bt_path = root / "metrics" / names["backtest_results"]
+        qa_trace_path = root / "data" / names["quantagent_trace"]
+        qa_res_path = root / "metrics" / names["quantagent_results"]
+        return {
+            "ran": True,
+            "ok": True,
+            "error": None,
+            "paths": {
+                "experiment": str(exp_path),
+                "indicator_sample": str(ind_path),
+                "experiment_data": str(data_path),
+                "backtest_results": str(bt_path),
+                "quantagent_trace": str(qa_trace_path),
+                "quantagent_results": str(qa_res_path),
+            },
+            "data": {
+                "indicator_sample": _read_json(ind_path) if ind_path.exists() else None,
+                "experiment_data": _read_json(data_path) if data_path.exists() else None,
+                "backtest_results": _read_json(bt_path) if bt_path.exists() else None,
+                "quantagent_trace": _read_json(qa_trace_path) if qa_trace_path.exists() else None,
+                "quantagent_results": _read_json(qa_res_path) if qa_res_path.exists() else None,
+            },
+        }
+
+    if resume_workspace:
+        root = Path(pending_dir)
+        workspace = {
+            "research_id": research_id,
+            "research_dir": str(root),
+            "file_path": str(root / "article" / f"{research_id}_paper.md"),
+            "artifacts": artifacts_for_api(root, research_id),
+        }
+        experiment_bundle = _load_experiment_bundle_from_workspace(root=root, research_id=research_id)
+        qa = experiment_bundle.get("data", {}).get("quantagent_results") if isinstance(experiment_bundle, dict) else None
+        if (not qa) or (isinstance(qa, dict) and qa.get("status") == "pending"):
+            experiment_bundle = None
+    else:
+        workspace = create_research_workspace(
+            research_id=research_id,
+            paper_id=paper_id,
+            branch_id=branch_id,
+            title=provisional_title,
+            topic=topic,
+            content=f"# {provisional_title}\n\n> 实验运行中，将在完成后生成完整论文正文。\n",
+            status="paused",
+            parent_research_id=parent_research_id,
+        )
+        root = Path(workspace["research_dir"])
+        current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+        current_run["pending_paper_id"] = paper_id
+        current_run["pending_research_id"] = research_id
+        current_run["pending_research_dir"] = str(root)
+        current_run["updated_at"] = datetime.now().isoformat()
+        papers_data["current_run"] = current_run
+        save_papers(papers_data)
+        experiment_bundle = None
+
     _dbg_set_context(research_id=research_id, research_dir=str(root))
     _dbg_event("paper_create_start", {"research_id": research_id, "paper_id": paper_id, "branch_id": branch_id, "topic": topic})
     try:
-        exp_started = time.perf_counter()
-        _dbg_event("paper_experiment_start", {"research_id": research_id, "paper_id": paper_id})
-        experiment_bundle = _run_experiment_and_collect(root=root, research_id=research_id)
-        _dbg_event("paper_experiment_done", {
-            "research_id": research_id,
-            "paper_id": paper_id,
-            "elapsed_s": round(max(0.0, time.perf_counter() - exp_started), 3),
-            "ran": (experiment_bundle.get("ran") if isinstance(experiment_bundle, dict) else None),
-            "ok": (experiment_bundle.get("ok") if isinstance(experiment_bundle, dict) else None),
-            "error": (str(experiment_bundle.get("error"))[:300] if isinstance(experiment_bundle, dict) and experiment_bundle.get("error") else None),
-        })
+        if experiment_bundle is None:
+            exp_started = time.perf_counter()
+            _dbg_event("paper_experiment_start", {"research_id": research_id, "paper_id": paper_id})
+            experiment_bundle = _run_experiment_and_collect(root=root, research_id=research_id)
+            _dbg_event("paper_experiment_done", {
+                "research_id": research_id,
+                "paper_id": paper_id,
+                "elapsed_s": round(max(0.0, time.perf_counter() - exp_started), 3),
+                "ran": (experiment_bundle.get("ran") if isinstance(experiment_bundle, dict) else None),
+                "ok": (experiment_bundle.get("ok") if isinstance(experiment_bundle, dict) else None),
+                "error": (str(experiment_bundle.get("error"))[:300] if isinstance(experiment_bundle, dict) and experiment_bundle.get("error") else None),
+            })
 
         persist_started = time.perf_counter()
         _dbg_event("paper_persist_docs_start", {"research_id": research_id, "paper_id": paper_id})
@@ -2006,18 +2636,18 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
 
         writing_started = time.perf_counter()
         _dbg_event("paper_writing_start", {"research_id": research_id, "paper_id": paper_id})
-        paper_content = generate_paper_content(
+        gen = generate_paper_content(
             topic,
             branch_papers,
             branch_review=branch_review,
             research_id=research_id,
             experiment_bundle=experiment_bundle,
+            root=root,
         )
-        _dbg_event("paper_writing_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - writing_started), 3), "content_len": len(paper_content or ""), "content_sample": (paper_content or "")[:200]})
+        paper_content = str(gen.get("content") or "")
+        status = str(gen.get("status") or "failed")
+        _dbg_event("paper_writing_done", {"research_id": research_id, "paper_id": paper_id, "elapsed_s": round(max(0.0, time.perf_counter() - writing_started), 3), "content_len": len(paper_content or ""), "content_sample": (paper_content or "")[:200], "status": status, "reason": str(gen.get("reason") or "")[:300]})
 
-        status = "generated"
-        if isinstance(paper_content, str) and ("论文生成失败:" in paper_content or paper_content.startswith("LLM 未就绪:")):
-            status = "failed"
         title = extract_title(paper_content) or provisional_title
 
         save_started = time.perf_counter()
@@ -2041,7 +2671,8 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
 
         workspace["file_path"] = str(root / "article" / f"{research_id}_paper.md")
         workspace["artifacts"] = artifacts_for_api(root, research_id)
-        bump_research_seq(papers_data, research_id)
+        if not resume_workspace:
+            bump_research_seq(papers_data, research_id)
     except Exception as e:
         _dbg_event("paper_create_exception", {"research_id": research_id, "paper_id": paper_id, "error": str(e)[:600]})
         raise
@@ -2064,8 +2695,27 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
         **paper_record_paths(workspace),
     }
 
-    papers_data.setdefault('papers', []).append(paper_record)
+    if resume_workspace:
+        updated = False
+        for idx, existing in enumerate(papers_data.get("papers", []) or []):
+            if existing.get("id") == paper_id:
+                merged = dict(existing)
+                merged.update(paper_record)
+                papers_data["papers"][idx] = merged
+                updated = True
+                break
+        if not updated:
+            papers_data.setdefault('papers', []).append(paper_record)
+    else:
+        papers_data.setdefault('papers', []).append(paper_record)
     papers_data['current_paper_id'] = paper_id
+    current_run = papers_data.get("current_run") if isinstance(papers_data.get("current_run"), dict) else {}
+    if status == "generated":
+        current_run.pop("pending_paper_id", None)
+        current_run.pop("pending_research_id", None)
+        current_run.pop("pending_research_dir", None)
+        current_run["updated_at"] = datetime.now().isoformat()
+        papers_data["current_run"] = current_run
     save_papers(papers_data)
 
     for branch in branches_data.get('branches', []):
@@ -2085,27 +2735,343 @@ def create_paper_record(topic: str, branch_id: int, parent_paper_id: int = None)
         "status": status
     })
 
-    mongo_result = index_paper_to_mongo(paper_record)
-    paper_record["mongo_index"] = mongo_result
+    if status == "generated":
+        mongo_result = index_paper_to_mongo(paper_record)
+        paper_record["mongo_index"] = mongo_result
+    else:
+        paper_record["mongo_index"] = {"success": False, "indexed": False, "error": f"skip_mongo_when_{status}"}
 
     return paper_record
+
+
+def _seed_papers_for_references(*, limit: int = 12) -> List[Dict[str, Any]]:
+    seeds = list_seed_papers() or []
+    def _score(p: Dict[str, Any]) -> int:
+        try:
+            return int(p.get("citation_count") or 0)
+        except Exception:
+            return 0
+    seeds = sorted(seeds, key=_score, reverse=True)
+    return seeds[: max(1, int(limit))]
+
+
+def _build_seed_references_block(*, limit: int = 12) -> str:
+    items = _seed_papers_for_references(limit=limit)
+    lines = ["## 参考文献", ""]
+    for idx, p in enumerate(items, start=1):
+        title = (p.get("title") or "").strip()
+        authors = (p.get("authors") or "").strip()
+        year = p.get("year")
+        arxiv_id = (p.get("arxiv_id") or "").strip()
+        url = (p.get("arxiv_url") or p.get("pdf_url") or "").strip()
+        parts = []
+        if authors:
+            parts.append(authors)
+        if year:
+            parts.append(f"({year})")
+        if title:
+            parts.append(title)
+        if arxiv_id:
+            parts.append(f"arXiv:{arxiv_id}")
+        if url:
+            parts.append(url)
+        text = " ".join([x for x in parts if x])
+        if not text:
+            continue
+        lines.append(f"[{idx}] {text}")
+    return "\n".join(lines).strip() + "\n"
+
+
+def _apply_reference_block(content: str, ref_block: str) -> str:
+    if not content:
+        return ref_block
+    markers = ["\n## 参考文献", "\n# 参考文献"]
+    cut = -1
+    for m in markers:
+        pos = content.find(m)
+        if pos >= 0:
+            cut = pos + 1
+            break
+    if cut >= 0:
+        return content[:cut].rstrip() + "\n\n" + ref_block.strip() + "\n"
+    return content.rstrip() + "\n\n" + ref_block.strip() + "\n"
+
+
+def _apply_truthfulness_guard(content: str, *, experiment_bundle: Optional[Dict[str, Any]] = None) -> str:
+    if not content or not experiment_bundle or not isinstance(experiment_bundle.get("data"), dict):
+        return content
+    qa = experiment_bundle["data"].get("quantagent_results")
+    if not isinstance(qa, dict):
+        return content
+    q = qa.get("quantagent") if isinstance(qa.get("quantagent"), dict) else {}
+    agents = q.get("agents") if isinstance(q.get("agents"), list) else []
+    rule_based = False
+    for a in agents:
+        if not isinstance(a, dict):
+            continue
+        sig = str(a.get("signal") or "").lower()
+        if ("ma" in sig) or ("rsi" in sig) or ("bb_" in sig) or ("boll" in sig) or ("close" in sig):
+            rule_based = True
+            break
+    if not rule_based:
+        return content
+    note = "说明：本文 QuantAgent 实验为规则代理投票模拟（信号由 MA/RSI/布林带等规则产生），作为多智能体框架的可复现实验基线；真实逐 tick 的 LLM agent 交易与在线实盘验证留作未来工作。"
+    if note in content:
+        return content
+    marker = "\n## 摘要\n"
+    pos = content.find(marker)
+    if pos >= 0:
+        insert_at = pos + len(marker)
+        return content[:insert_at] + "\n" + note + "\n\n" + content[insert_at:].lstrip()
+    return note + "\n\n" + content
+
+
+def _build_experiment_facts_block(experiment_bundle: Optional[Dict[str, Any]]) -> str:
+    if not experiment_bundle or not isinstance(experiment_bundle.get("data"), dict):
+        return ""
+    data = experiment_bundle["data"]
+    bt = data.get("backtest_results") if isinstance(data.get("backtest_results"), dict) else {}
+    qa = data.get("quantagent_results") if isinstance(data.get("quantagent_results"), dict) else {}
+    if not bt and not qa:
+        return ""
+
+    facts: List[str] = []
+    if isinstance(bt, dict):
+        strategies: Dict[str, Any] = {}
+        best = str(bt.get("best_strategy") or "")
+        primary_symbol = ""
+        try:
+            universe = bt.get("universe") if isinstance(bt.get("universe"), dict) else {}
+            syms = universe.get("symbols") if isinstance(universe.get("symbols"), list) else []
+            if syms:
+                primary_symbol = str(syms[0] or "")
+        except Exception:
+            primary_symbol = ""
+
+        if isinstance(bt.get("results"), dict):
+            results = bt.get("results") if isinstance(bt.get("results"), dict) else {}
+            freq = "1d" if "1d" in results else (next(iter(results.keys()), "") if results else "")
+            scope = results.get(freq) if isinstance(results.get(freq), dict) else {}
+            portfolio = scope.get("portfolio") if isinstance(scope.get("portfolio"), dict) else {}
+            best = str(portfolio.get("best_strategy") or best)
+            by_symbol = scope.get("by_symbol") if isinstance(scope.get("by_symbol"), dict) else {}
+            if primary_symbol and isinstance(by_symbol.get(primary_symbol), dict):
+                strategies = (by_symbol.get(primary_symbol) or {}).get("strategies") if isinstance((by_symbol.get(primary_symbol) or {}).get("strategies"), dict) else {}
+            else:
+                any_sym = next(iter(by_symbol.keys()), "")
+                if any_sym and isinstance(by_symbol.get(any_sym), dict):
+                    strategies = (by_symbol.get(any_sym) or {}).get("strategies") if isinstance((by_symbol.get(any_sym) or {}).get("strategies"), dict) else {}
+        else:
+            strategies = bt.get("strategies") if isinstance(bt.get("strategies"), dict) else {}
+
+        if best:
+            facts.append(f"- baseline_best_strategy: {best}")
+
+        ma = strategies.get("ma_crossover") if isinstance(strategies.get("ma_crossover"), dict) else {}
+        if ma:
+            fast_ma = ma.get("fast_ma")
+            slow_ma = ma.get("slow_ma")
+            if fast_ma and slow_ma:
+                facts.append(f"- baseline_ma_crossover: MA{fast_ma}/MA{slow_ma}")
+        rsi = strategies.get("rsi_mean_reversion") if isinstance(strategies.get("rsi_mean_reversion"), dict) else {}
+        if rsi:
+            lb = rsi.get("lookback")
+            lo = rsi.get("lower_threshold")
+            hi = rsi.get("upper_threshold")
+            hold = rsi.get("hold_days")
+            if lb and lo is not None and hi is not None:
+                tail = f", hold_days={hold}" if hold is not None else ""
+                facts.append(f"- baseline_rsi_mean_reversion: lookback={lb}, lower={lo}, upper={hi}{tail}")
+        bb = strategies.get("bollinger_bands") if isinstance(strategies.get("bollinger_bands"), dict) else {}
+        if bb:
+            window = bb.get("window")
+            std_mult = bb.get("std_mult")
+            if window and std_mult is not None:
+                facts.append(f"- baseline_bollinger_bands: window={window}, std_mult={std_mult}")
+
+        cost_model = bt.get("cost_model") if isinstance(bt.get("cost_model"), dict) else {}
+        if cost_model:
+            total_bps = cost_model.get("total_bps")
+            comm = cost_model.get("commission_bps")
+            slip = cost_model.get("slippage_bps")
+            if total_bps is not None:
+                facts.append(f"- cost_total_bps: {total_bps}")
+            if comm is not None or slip is not None:
+                facts.append(f"- cost_breakdown_bps: commission={comm}, slippage={slip}")
+
+    if isinstance(qa, dict):
+        q = qa.get("quantagent") if isinstance(qa.get("quantagent"), dict) else {}
+        agents = q.get("agents") if isinstance(q.get("agents"), list) else []
+        if agents:
+            for a in agents[:6]:
+                if isinstance(a, dict) and a.get("id") and a.get("signal"):
+                    facts.append(f"- quantagent_agent_{a.get('id')}_signal: {a.get('signal')}")
+        agg = q.get("aggregator")
+        if agg:
+            facts.append(f"- quantagent_aggregator: {agg}")
+
+    if not facts:
+        return ""
+    return "## 实验事实（必须严格一致，不得自行改写）\n" + "\n".join(facts) + "\n"
+
+
+def _section_target_chars(title: str) -> int:
+    targets = {
+        "摘要": 700,
+        "引言": 2200,
+        "文献综述": 1800,
+        "数据与实验设置": 2200,
+        "方法论": 2600,
+        "实验过程与可重复实现": 2000,
+        "实验结果与分析": 2400,
+        "消融实验": 1400,
+        "结论与未来工作": 900,
+        "参考文献": 600,
+    }
+    return int(targets.get(title) or 1200)
+
+
+def _section_needs_more(title: str, body: str) -> bool:
+    text = (body or "").strip()
+    if not text:
+        return True
+    if len(text) < _section_target_chars(title):
+        return True
+    if text.count("$$") % 2 == 1:
+        return True
+    tail = text[-30:]
+    if tail.endswith(("(", "（", "=", "\\frac", "\\sum", "max(", "min(", "在多", "在文", "在实", "其中")):
+        return True
+    return False
+
+
+def _extract_expected_experiment_params(experiment_bundle: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not experiment_bundle or not isinstance(experiment_bundle.get("data"), dict):
+        return {}
+    data = experiment_bundle["data"]
+    bt = data.get("backtest_results") if isinstance(data.get("backtest_results"), dict) else {}
+    qa = data.get("quantagent_results") if isinstance(data.get("quantagent_results"), dict) else {}
+
+    expected: Dict[str, Any] = {}
+    cost_model = {}
+    if isinstance(bt, dict):
+        cost_model = bt.get("cost_model") if isinstance(bt.get("cost_model"), dict) else {}
+    if isinstance(qa, dict) and not cost_model:
+        cost_model = qa.get("cost_model") if isinstance(qa.get("cost_model"), dict) else {}
+    if cost_model:
+        expected["cost_model"] = {
+            "commission_bps": cost_model.get("commission_bps"),
+            "slippage_bps": cost_model.get("slippage_bps"),
+            "total_bps": cost_model.get("total_bps"),
+        }
+
+    by_symbol = qa.get("by_symbol") if isinstance(qa, dict) and isinstance(qa.get("by_symbol"), dict) else {}
+    sym = next(iter(by_symbol.keys()), "")
+    sym_obj = by_symbol.get(sym) if sym and isinstance(by_symbol.get(sym), dict) else {}
+    strategies = sym_obj.get("strategies") if isinstance(sym_obj.get("strategies"), dict) else {}
+    ma = strategies.get("ma_crossover") if isinstance(strategies.get("ma_crossover"), dict) else {}
+    if ma:
+        expected["baseline_ma"] = {"fast": ma.get("fast_ma"), "slow": ma.get("slow_ma")}
+    rsi = strategies.get("rsi_mean_reversion") if isinstance(strategies.get("rsi_mean_reversion"), dict) else {}
+    if rsi:
+        expected["baseline_rsi"] = {
+            "lookback": rsi.get("lookback"),
+            "lower": rsi.get("lower_threshold"),
+            "upper": rsi.get("upper_threshold"),
+            "hold_days": rsi.get("hold_days"),
+        }
+    bb = strategies.get("bollinger_bands") if isinstance(strategies.get("bollinger_bands"), dict) else {}
+    if bb:
+        expected["baseline_bb"] = {"window": bb.get("window"), "std_mult": bb.get("std_mult")}
+
+    q = qa.get("quantagent") if isinstance(qa, dict) else {}
+    agents = q.get("agents") if isinstance(q, dict) else []
+    if isinstance(agents, list):
+        for a in agents:
+            if not isinstance(a, dict):
+                continue
+            if a.get("id") == "trend":
+                expected["quantagent_trend_signal"] = a.get("signal")
+            if a.get("id") == "meanrev":
+                expected["quantagent_meanrev_signal"] = a.get("signal")
+            if a.get("id") == "vol":
+                expected["quantagent_vol_signal"] = a.get("signal")
+
+    return expected
+
+
+def _extract_section_text(content: str, title: str) -> str:
+    header = f"## {title}"
+    start = content.find(header)
+    if start < 0:
+        return ""
+    after = start + len(header)
+    nxt = content.find("\n## ", after)
+    end = len(content) if nxt < 0 else nxt
+    return content[start:end]
+
+
+def _paper_needs_experiment_fix(content: str, *, experiment_bundle: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    expected = _extract_expected_experiment_params(experiment_bundle)
+    issues: List[Dict[str, Any]] = []
+    if not expected:
+        return {"ok": True, "issues": issues, "expected": expected}
+
+    def _find_ma_pair(text: str) -> Optional[Tuple[int, int]]:
+        m = re.search(r"MA\\s*5\\s*/\\s*MA\\s*(\\d+)", text, flags=re.I)
+        if m:
+            try:
+                return 5, int(m.group(1))
+            except Exception:
+                return None
+        m = re.search(r"MA\\s*5[^\\d]{0,20}MA\\s*(\\d+)", text, flags=re.I)
+        if m:
+            try:
+                return 5, int(m.group(1))
+            except Exception:
+                return None
+        return None
+
+    baseline = expected.get("baseline_ma") if isinstance(expected.get("baseline_ma"), dict) else {}
+    baseline_slow = baseline.get("slow")
+    baseline_fast = baseline.get("fast")
+    if baseline_fast and baseline_slow:
+        for sec in ("数据与实验设置", "方法论"):
+            sec_text = _extract_section_text(content, sec)
+            if not sec_text:
+                continue
+            if ("均线交叉" in sec_text) or ("ma_crossover" in sec_text.lower()):
+                pair = _find_ma_pair(sec_text)
+                if pair and int(pair[0]) == int(baseline_fast) and int(pair[1]) != int(baseline_slow):
+                    issues.append({"type": "baseline_ma_mismatch", "section": sec, "found": f"MA{pair[0]}/MA{pair[1]}", "expected": f"MA{baseline_fast}/MA{baseline_slow}"})
+
+    for sec in ("数据与实验设置", "方法论"):
+        sec_text = _extract_section_text(content, sec)
+        if not sec_text:
+            continue
+        if "趋势" in sec_text or "Trend" in sec_text:
+            pair = _find_ma_pair(sec_text)
+            if pair and int(pair[1]) == int(baseline_slow or 60) and "ma5 > ma20" in str(expected.get("quantagent_trend_signal") or ""):
+                issues.append({"type": "trend_ma_confused_with_baseline", "section": sec, "found": f"MA{pair[0]}/MA{pair[1]}", "expected": "MA5/MA20 (trend agent) 与 MA5/MA60 (baseline) 区分"})
+
+    return {"ok": (len(issues) == 0), "issues": issues, "expected": expected}
+
 
 
 def generate_paper_content(
     topic: str,
     existing_papers: list,
-    *,
-    branch_review: Optional[str] = None,
     research_id: Optional[str] = None,
     experiment_bundle: Optional[Dict[str, Any]] = None,
-) -> str:
+    root: Optional[Path] = None,
+) -> Dict[str, Any]:
     """生成论文内容"""
     cfg = get_effective_llm_config()
     ok, reason = _llm_available(cfg)
     if not ok:
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         rid = research_id or stamp
-        return f"""# {topic}
+        return {"status": "generated", "reason": reason, "content": f"""# {topic}
 
 > LLM 未配置（{reason}），当前为离线占位输出。生成时间: {stamp}，Run: {rid}
 
@@ -2128,7 +3094,7 @@ def generate_paper_content(
 ## 4. 结论
 
 本文提出的策略在回测中表现优异...
-"""
+"""}
 
     topic_list = ""
     if existing_papers:
@@ -2142,11 +3108,18 @@ def generate_paper_content(
         if experiment_bundle.get("ran") and not experiment_bundle.get("ok"):
             run_info = f"\n- 实验运行失败: {experiment_bundle.get('error')}\n"
         backtest = (experiment_bundle["data"].get("backtest_results") or {})
+        quantagent_results = (experiment_bundle["data"].get("quantagent_results") or {})
+        quantagent_trace = experiment_bundle["data"].get("quantagent_trace")
         exp_data = (experiment_bundle["data"].get("experiment_data") or {})
         indicator = experiment_bundle["data"].get("indicator_sample")
         bt_str = json.dumps(backtest, ensure_ascii=False)[:6000] if backtest else ""
+        qa_res_str = json.dumps(quantagent_results, ensure_ascii=False)[:4000] if quantagent_results else ""
+        qa_trace_dump = quantagent_trace
+        if isinstance(quantagent_trace, list):
+            qa_trace_dump = quantagent_trace[:20]
+        qa_trace_str = json.dumps(qa_trace_dump, ensure_ascii=False)[:2000] if quantagent_trace else ""
         exp_str = json.dumps(exp_data, ensure_ascii=False)[:2000] if exp_data else ""
-        ind_str = json.dumps(indicator, ensure_ascii=False)[:2000] if isinstance(indicator, list) else ""
+        ind_str = json.dumps(indicator, ensure_ascii=False)[:2000] if isinstance(indicator, (list, dict)) else ""
         exp_block = f"""
 
 ## 实验产物（请基于真实数据撰写，不得编造）
@@ -2155,6 +3128,8 @@ def generate_paper_content(
 - 指标样本: {experiment_bundle.get("paths", {}).get("indicator_sample") if experiment_bundle else ""}
 - 实验数据: {experiment_bundle.get("paths", {}).get("experiment_data") if experiment_bundle else ""}
 - 回测结果: {experiment_bundle.get("paths", {}).get("backtest_results") if experiment_bundle else ""}
+- QuantAgent trace: {experiment_bundle.get("paths", {}).get("quantagent_trace") if experiment_bundle else ""}
+- QuantAgent 结果汇总: {experiment_bundle.get("paths", {}).get("quantagent_results") if experiment_bundle else ""}
 {run_info}
 
 ### experiment_data.json（节选）
@@ -2163,9 +3138,16 @@ def generate_paper_content(
 ### backtest_results.json（节选）
 {bt_str}
 
+### quantagent_results.json（节选）
+{qa_res_str}
+
+### quantagent_trace.json（节选）
+{qa_trace_str}
+
 ### indicator_sample.json（节选）
 {ind_str}
 """
+    facts_block = _build_experiment_facts_block(experiment_bundle)
 
     min_chars = 14000
     prompt = f"""作为量化交易领域的学术论文写作专家，请根据以下主题生成一篇**详细完整、可复现、重视实验**的学术论文。
@@ -2191,11 +3173,31 @@ def generate_paper_content(
 - 全文字数不少于 {min_chars} 中文字符（约 4-5 页 A4 正文）
 - 不要写占位符（如"此处省略..."），每个章节都必须有实质内容
 - 实验部分必须以提供的实验产物为依据，不得编造具体数值
+- 实验对齐：metrics/*_backtest_results.json 表示 baseline（技术指标策略回测）；metrics/*_quantagent_results.json 表示 QuantAgent（多智能体投票模拟）结果；两者均存在时必须同时报告并明确区分
+- 如果 QuantAgent 实验仅为“投票模拟/规则代理”，必须如实描述，不得声称已完成逐 tick LLM 交易/线上实盘验证
+- 参考文献只允许来自“允许引用列表”，不得杜撰论文/作者/年份/arXiv
 
 {exp_block}
+{facts_block}
 
 请直接输出完整论文，不包含任何其他说明。
 """
+
+    seed_refs = _seed_papers_for_references(limit=12)
+    if seed_refs:
+        lines = []
+        for p in seed_refs:
+            arxiv_id = (p.get("arxiv_id") or "").strip()
+            title = (p.get("title") or "").strip()
+            year = p.get("year")
+            url = (p.get("arxiv_url") or p.get("pdf_url") or "").strip()
+            prefix = f"arXiv:{arxiv_id}" if arxiv_id else "seed"
+            tail = f" ({year})" if year else ""
+            if url:
+                lines.append(f"- {prefix}{tail} {title} {url}".strip())
+            else:
+                lines.append(f"- {prefix}{tail} {title}".strip())
+        prompt += "\n\n## 允许引用列表（只能从这里挑选写入参考文献）\n" + "\n".join(lines) + "\n"
 
     if topic_list:
         prompt += f"已有关键主题：\n{topic_list}\n\n请确保新论文与上述主题有显著区别。\n"
@@ -2212,58 +3214,686 @@ def generate_paper_content(
     if data_context.strip():
         prompt += f"\n\n## 可用研究数据与文献背景\n{data_context}\n"
 
-    # 宽松限制prompt总长度（完整论文生成需要更多上下文）
-    # MiniMax abab6.5s-chat 上下文窗口 196608 tokens，prompt 最大可达约 15000 字符
-    max_prompt_len = 15000
+    provider = str(cfg.get("provider") or "").lower()
+    model = str(cfg.get("model") or "")
+    context_window_tokens = 0
+    try:
+        context_window_tokens = int(os.environ.get("CONTEXT_WINDOW_TOKENS") or 0)
+    except Exception:
+        context_window_tokens = 0
+    if context_window_tokens <= 0:
+        context_window_tokens = 204800 if provider == "minimax" else 128000
+
+    max_prompt_len = 0
+    try:
+        max_prompt_len = int(os.environ.get("WRITING_MAX_PROMPT_CHARS") or 0)
+    except Exception:
+        max_prompt_len = 0
+    if max_prompt_len <= 0:
+        max_prompt_len = 60000 if provider == "minimax" else 30000
     if len(prompt) > max_prompt_len:
-        # 优先截断 data_context，保留结构和要求
         if data_context:
-            # data_context 截断到 6000 字符
-            data_context = data_context[:6000]
+            try:
+                ctx_cap = int(os.environ.get("WRITING_DATA_CONTEXT_CHARS") or 0)
+            except Exception:
+                ctx_cap = 0
+            if ctx_cap <= 0:
+                ctx_cap = 12000
+            data_context = data_context[:ctx_cap]
             prompt = prompt[:max_prompt_len - len(data_context) - 50] + f"\n\n## 可用研究数据与文献背景\n{data_context}\n"
         else:
             prompt = prompt[:max_prompt_len]
 
     estimated_input_tokens = len(prompt) // 3
-    max_output_tokens = min(32000, max(2048, 196608 - estimated_input_tokens - 20000))
+    reserve_tokens = 0
+    try:
+        reserve_tokens = int(os.environ.get("WRITING_CONTEXT_RESERVE_TOKENS") or 0)
+    except Exception:
+        reserve_tokens = 0
+    if reserve_tokens <= 0:
+        reserve_tokens = 20000
+    max_output_tokens_cap = 0
+    try:
+        max_output_tokens_cap = int(os.environ.get("WRITING_MAX_OUTPUT_TOKENS") or 0)
+    except Exception:
+        max_output_tokens_cap = 0
+    if max_output_tokens_cap <= 0:
+        max_output_tokens_cap = 32000
+
+    max_output_tokens = min(
+        int(max_output_tokens_cap),
+        max(2048, int(context_window_tokens) - int(estimated_input_tokens) - int(reserve_tokens)),
+    )
     cfg_max = int(cfg.get("max_tokens") or 0)
     if cfg_max > 0:
         max_output_tokens = min(max_output_tokens, cfg_max)
 
+    total_timeout_s = 0
     try:
-        def _call_with_backoff(p: str, *, temperature: float, max_tokens: int) -> str:
+        total_timeout_s = int(cfg.get("writing_total_timeout_s") or 0)
+    except Exception:
+        total_timeout_s = 0
+    try:
+        env_total_s = int(os.environ.get("WRITING_TOTAL_TIMEOUT_S") or 0)
+    except Exception:
+        env_total_s = 0
+    if env_total_s > 0:
+        total_timeout_s = env_total_s
+    if total_timeout_s <= 0:
+        total_timeout_s = 1800  # 论文生成需要更长时间(30分钟)
+    writing_t0 = time.perf_counter()
+
+    def _remaining_s() -> float:
+        return max(0.0, float(total_timeout_s) - max(0.0, time.perf_counter() - writing_t0))
+
+    checkpoint_path: Optional[Path] = None
+    article_path: Optional[Path] = None
+    if root and research_id:
+        checkpoint_path = root / "logs" / f"{research_id}_writing_checkpoint.json"
+        article_path = root / "article" / f"{research_id}_paper.md"
+
+    def _load_checkpoint() -> Dict[str, Any]:
+        if not checkpoint_path or (not checkpoint_path.exists()):
+            return {}
+        try:
+            return json.loads(checkpoint_path.read_text(encoding="utf-8", errors="replace"))
+        except Exception:
+            return {}
+
+    def _save_checkpoint(patch: Dict[str, Any]) -> None:
+        if not checkpoint_path:
+            return
+        started = time.perf_counter()
+        existing = _load_checkpoint()
+        merged = dict(existing)
+        merged.update(patch)
+        merged["updated_at"] = datetime.now().isoformat()
+        _dbg_event("writing_checkpoint_save_start", {"research_id": research_id or "", "path": str(checkpoint_path), "patch_keys": list(patch.keys())})
+        _write_json(checkpoint_path, merged)
+        wrote_bytes: Optional[int] = None
+        try:
+            wrote_bytes = int(checkpoint_path.stat().st_size)
+        except Exception:
+            wrote_bytes = None
+        _dbg_event("writing_checkpoint_save_done", {"research_id": research_id or "", "path": str(checkpoint_path), "elapsed_s": round(max(0.0, time.perf_counter() - started), 3), "bytes": wrote_bytes})
+
+    def _save_draft(text: str) -> None:
+        if root and research_id:
+            started = time.perf_counter()
+            _dbg_event("writing_draft_save_start", {"research_id": research_id or "", "path": str(root / "article" / f"{research_id}_paper.md"), "content_len": len(text or "")})
+            save_article_markdown(root, research_id, text or "")
+            wrote_bytes: Optional[int] = None
+            try:
+                wrote_bytes = int((root / "article" / f"{research_id}_paper.md").stat().st_size)
+            except Exception:
+                wrote_bytes = None
+            _dbg_event("writing_draft_save_done", {"research_id": research_id or "", "elapsed_s": round(max(0.0, time.perf_counter() - started), 3), "bytes": wrote_bytes})
+
+    content = ""
+    try:
+        last_tick = time.perf_counter()
+        checkpoint = _load_checkpoint()
+
+        try:
+            min_chunk_tokens = int(os.environ.get("WRITING_CHUNK_MIN_TOKENS") or 0)
+        except Exception:
+            min_chunk_tokens = 0
+        if min_chunk_tokens <= 0:
+            min_chunk_tokens = 800
+
+        try:
+            max_chunk_tokens = int(os.environ.get("WRITING_CHUNK_MAX_TOKENS") or 0)
+        except Exception:
+            max_chunk_tokens = 0
+        if max_chunk_tokens <= 0:
+            max_chunk_tokens = 8000 if provider == "minimax" else 6000
+        if cfg_max > 0:
+            max_chunk_tokens = min(int(max_chunk_tokens), int(cfg_max))
+
+        try:
+            forced_chunk = int(os.environ.get("WRITING_CHUNK_TOKENS") or 0)
+        except Exception:
+            forced_chunk = 0
+
+        if forced_chunk > 0:
+            chunk_tokens = int(forced_chunk)
+        else:
+            base_chunk = int(max_output_tokens)
+            if cfg_max > 0:
+                base_chunk = max(int(min_chunk_tokens), min(int(max_output_tokens), int(cfg_max // 2 if cfg_max >= 4096 else cfg_max)))
+            else:
+                base_chunk = max(int(min_chunk_tokens), min(int(max_output_tokens), 6000))
+
+            chk_chunk = checkpoint.get("chunk_tokens")
+            if isinstance(chk_chunk, int):
+                chunk_tokens = chk_chunk
+            else:
+                try:
+                    chunk_tokens = int(chk_chunk)
+                except Exception:
+                    chunk_tokens = base_chunk
+            if int(chunk_tokens) <= 0:
+                chunk_tokens = base_chunk
+
+        chunk_tokens = max(int(min_chunk_tokens), min(int(max_chunk_tokens), int(chunk_tokens)))
+
+        def _call_with_backoff(p: str, *, temperature: float, max_tokens: int) -> Tuple[str, Dict[str, Any]]:
             tokens = int(max_tokens)
             last_err: Optional[Exception] = None
             for attempt in range(5):
+                if _remaining_s() <= 1.0:
+                    raise TimeoutError(f"writing total timeout ({total_timeout_s}s)")
                 try:
+                    started = time.perf_counter()
                     _dbg_event("writing_llm_attempt", {"topic": topic, "stage": "call_with_backoff", "attempt": attempt + 1, "max_tokens": tokens, "prompt_len": len(p or ""), "prompt_sample": (p or "")[:200]})
-                    return call_llm(p, temperature=temperature, max_tokens=tokens)
+                    text = call_llm(p, temperature=temperature, max_tokens=tokens)
+                    elapsed_s = max(0.0, time.perf_counter() - started)
+                    _dbg_event("writing_llm_ok", {"topic": topic, "stage": "call_with_backoff", "attempt": attempt + 1, "max_tokens": tokens, "elapsed_s": round(elapsed_s, 3), "content_len": len(text or "")})
+                    return text, {"attempt": attempt + 1, "elapsed_s": elapsed_s, "used_tokens": tokens}
                 except Exception as exc:
                     last_err = exc
                     msg = str(exc)
                     _dbg_event("writing_llm_error", {"topic": topic, "stage": "call_with_backoff", "attempt": attempt + 1, "max_tokens": tokens, "error": msg[:400]})
-                    if ("HTTP 504" in msg) or ("Gateway Time-out" in msg) or ("Gateway Timeout" in msg):
-                        tokens = max(1024, tokens // 2)
+                    lower = msg.lower()
+                    retryable = (
+                        ("http 504" in lower)
+                        or ("gateway time-out" in lower)
+                        or ("gateway timeout" in lower)
+                        or ("upstream request failed" in lower)
+                        or ("temporarily unavailable" in lower)
+                    )
+                    if retryable:
+                        tokens = max(int(min_chunk_tokens), int(tokens * 0.6))
                         continue
                     raise
             if last_err:
                 raise last_err
             raise RuntimeError("llm request failed")
 
-        chunk_tokens = max_output_tokens
-        if cfg_max > 0:
-            chunk_tokens = max(1024, min(max_output_tokens, cfg_max // 4 if cfg_max >= 4096 else cfg_max))
-        else:
-            chunk_tokens = max(1024, min(max_output_tokens, 4096))
+        def _adapt_chunk_tokens(current: int, meta: Dict[str, Any]) -> int:
+            used = int(meta.get("used_tokens") or current)
+            attempt = int(meta.get("attempt") or 1)
+            try:
+                elapsed_s = float(meta.get("elapsed_s") or 0.0)
+            except Exception:
+                elapsed_s = 0.0
+            nxt = used
+            if attempt == 1 and elapsed_s > 0 and elapsed_s <= 12.0:
+                nxt = min(int(max_chunk_tokens), max(int(min_chunk_tokens), int(current * 1.25) + 200))
+            elif attempt >= 2 or elapsed_s >= 25.0:
+                nxt = max(int(min_chunk_tokens), int(min(current, used) * 0.85))
+            if _remaining_s() <= 300.0:
+                nxt = min(int(nxt), max(int(min_chunk_tokens), 1200))
+            if int(nxt) != int(current):
+                _save_checkpoint({"chunk_tokens": int(nxt)})
+            return int(nxt)
 
-        _dbg_event("writing_start", {"topic": topic, "min_chars": min_chars, "chunk_tokens": chunk_tokens, "max_output_tokens": max_output_tokens, "prompt_len": len(prompt), "data_context_len": len(data_context or "")})
-        content = _call_with_backoff(prompt, temperature=0.7, max_tokens=chunk_tokens)
-        _dbg_event("writing_first_chunk_done", {"topic": topic, "content_len": len(content or ""), "content_sample": (content or "")[:200]})
-        if not content:
-            return ""
-        if content.startswith("LLM 未就绪"):
-            return content
-        for idx in range(10):
+        def _fmt_metric_row(name: str, m: Dict[str, Any]) -> str:
+            keys = ("total_return", "annual_return", "sharpe_ratio", "max_drawdown", "win_rate", "total_trades", "annual_vol")
+            vals = []
+            for k in keys:
+                v = m.get(k) if isinstance(m, dict) else None
+                vals.append("-" if v is None else str(v))
+            return f"| {name} | " + " | ".join(vals) + " |"
+
+        def _build_metrics_tables() -> Dict[str, str]:
+            if not experiment_bundle or not isinstance(experiment_bundle.get("data"), dict):
+                return {}
+            data = experiment_bundle["data"]
+            qa = data.get("quantagent_results")
+            bt = data.get("backtest_results")
+            if not isinstance(qa, dict) and not isinstance(bt, dict):
+                return {}
+
+            baseline_name = "baseline_best"
+            baseline_metrics: Dict[str, Any] = {}
+            benchmark_metrics: Dict[str, Any] = {}
+            quantagent_metrics: Dict[str, Any] = {}
+            ablations: Dict[str, Any] = {}
+
+            if isinstance(qa, dict):
+                baseline_name = str(qa.get("baseline_best_strategy") or "baseline_best")
+                baseline_metrics = qa.get("baseline_best_strategy_metrics") if isinstance(qa.get("baseline_best_strategy_metrics"), dict) else {}
+                benchmark_metrics = qa.get("benchmark") if isinstance(qa.get("benchmark"), dict) else {}
+                q = qa.get("quantagent") if isinstance(qa.get("quantagent"), dict) else {}
+                quantagent_metrics = q.get("metrics") if isinstance(q.get("metrics"), dict) else {}
+                ablations = q.get("ablations") if isinstance(q.get("ablations"), dict) else {}
+            elif isinstance(bt, dict):
+                strategies = bt.get("strategies") if isinstance(bt.get("strategies"), dict) else {}
+                best_key = str(bt.get("best_strategy") or "")
+                best = strategies.get(best_key) if isinstance(strategies.get(best_key), dict) else {}
+                baseline_name = best_key or "baseline_best"
+                baseline_metrics = best.get("metrics") if isinstance(best.get("metrics"), dict) else {}
+                benchmark_metrics = bt.get("benchmark") if isinstance(bt.get("benchmark"), dict) else {}
+
+            compare_lines = [
+                "### 指标对比表（程序注入）",
+                "",
+                "| 策略 | total_return(%) | annual_return(%) | sharpe | max_drawdown(%) | win_rate(%) | trades | annual_vol(%) |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+            if quantagent_metrics:
+                compare_lines.append(_fmt_metric_row("QuantAgent", quantagent_metrics))
+            if baseline_metrics:
+                compare_lines.append(_fmt_metric_row(f"Baseline:{baseline_name}", baseline_metrics))
+            if benchmark_metrics:
+                br = dict(benchmark_metrics)
+                if "sharpe_ratio" not in br:
+                    br["sharpe_ratio"] = "-"
+                if "max_drawdown" not in br:
+                    br["max_drawdown"] = "-"
+                if "win_rate" not in br:
+                    br["win_rate"] = "-"
+                if "total_trades" not in br:
+                    br["total_trades"] = "-"
+                if "annual_vol" not in br:
+                    br["annual_vol"] = "-"
+                compare_lines.append(_fmt_metric_row(f"Benchmark:{str(benchmark_metrics.get('name') or 'buy&hold')}", br))
+            compare_md = "\n".join(compare_lines).strip()
+
+            ab_lines = [
+                "### 消融对比表（程序注入）",
+                "",
+                "| 变体 | total_return(%) | annual_return(%) | sharpe | max_drawdown(%) | win_rate(%) | trades | annual_vol(%) |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+            if isinstance(ablations, dict) and ablations:
+                order = list(ablations.keys())
+                for key in order[:12]:
+                    m = ablations.get(key)
+                    if isinstance(m, dict):
+                        ab_lines.append(_fmt_metric_row(str(key), m))
+            ab_md = "\n".join(ab_lines).strip()
+
+            return {
+                "实验结果与分析": compare_md if compare_md else "",
+                "消融实验": ab_md if ab_md else "",
+            }
+
+        tables_by_section = _build_metrics_tables()
+        try:
+            writing_mode = str(
+                (checkpoint.get("writing_mode") if isinstance(checkpoint.get("writing_mode"), str) else "")
+                or (cfg.get("writing_mode") if isinstance(cfg.get("writing_mode"), str) else "")
+                or (os.environ.get("WRITING_MODE") or "")
+                or "sectioned"
+            )
+        except Exception:
+            writing_mode = "sectioned"
+        writing_mode = writing_mode.strip().lower() or "sectioned"
+        outline = checkpoint.get("outline") if isinstance(checkpoint.get("outline"), str) else ""
+        use_sectioned = (writing_mode == "sectioned") or bool(outline)
+        if use_sectioned and (not isinstance(outline, str)):
+            use_sectioned = False
+        _dbg_event("writing_start", {"topic": topic, "min_chars": min_chars, "chunk_tokens": chunk_tokens, "min_chunk_tokens": int(min_chunk_tokens), "max_chunk_tokens": int(max_chunk_tokens), "max_output_tokens": max_output_tokens, "prompt_len": len(prompt), "data_context_len": len(data_context or ""), "mode": writing_mode, "context_window_tokens": int(context_window_tokens), "model": model})
+        resumed = False
+        content = ""
+        next_step = 0
+        if article_path and article_path.exists() and isinstance(checkpoint.get("status"), str) and checkpoint.get("status") in ("paused", "in_progress", "failed", "completed"):
+            try:
+                content = article_path.read_text(encoding="utf-8", errors="replace")
+                next_step = int(checkpoint.get("next_step") or 0)
+                resumed = True
+            except Exception:
+                content = ""
+                next_step = 0
+                resumed = False
+        if resumed and isinstance(checkpoint.get("status"), str) and checkpoint.get("status") == "completed":
+            if (len(content or "") < int(min_chars)) or ("## 参考文献" not in (content or "")):
+                _save_checkpoint({"status": "paused", "reason": "incomplete", "content_len": len(content or ""), "has_refs": ("## 参考文献" in (content or ""))})
+        if resumed:
+            _dbg_event("writing_resume_loaded", {"topic": topic, "research_id": research_id or "", "content_len": len(content), "next_step": next_step})
+        if use_sectioned:
+            sections: List[Tuple[str, str]] = [
+                ("摘要", "300-500字（问题、方法、结果、贡献）"),
+                ("引言", "至少1200字（背景、动机、现有方法不足、贡献点列表、结构安排）"),
+                ("文献综述", "至少1000字（分小节对比 6-10 篇相关方向，指出空白）"),
+                ("数据与实验设置", "至少1200字（数据源、时间范围、预处理、特征/指标、基准定义、评价指标、训练/验证划分）"),
+                ("方法论", "至少1600字（完整公式、算法伪代码、参数设置、复杂度与风险控制）"),
+                ("实验过程与可重复实现", "至少1200字（如何运行脚本、依赖、随机性控制、输出文件解释）"),
+                ("实验结果与分析", "至少1600字（必须同时报告 baseline(backtest_results) 与 QuantAgent(quantagent_results) 的指标对比表，解释差异、收益曲线文字解读、统计检验；数值只能来自 JSON）"),
+                ("消融实验", "至少800字（必须使用 quantagent_results.ablations 给出至少 3 组消融对比表，并解释每个智能体的贡献；数值只能来自 JSON）"),
+                ("结论与未来工作", "400-600字"),
+                ("参考文献", "至少 8 条"),
+            ]
+
+            if resumed and content:
+                dup = False
+                if content.count("\n# ") >= 1:
+                    dup = True
+                if not dup:
+                    for sec_title, _ in sections:
+                        if content.count(f"## {sec_title}") > 1:
+                            dup = True
+                            break
+                if dup:
+                    _dbg_event("writing_restart_for_structure", {"topic": topic, "research_id": research_id or "", "content_len": len(content), "next_step": next_step})
+                    resumed = False
+                    next_step = 0
+                    outline = ""
+                    content = f"# {topic}\n\n"
+                    _save_draft(content)
+                    _save_checkpoint({"status": "in_progress", "writing_mode": "sectioned", "next_step": 0, "reason": "restart_for_structure"})
+
+            outline_prompt = f"""你将撰写一篇量化交易学术论文，请先生成“详细提纲”，用于后续分章节生成。
+
+研究主题：{topic}
+研究编号：{research_id or ""}
+
+要求：
+- 仅输出提纲，不要写正文
+- 使用 Markdown 输出，每个章节必须以二级标题开头，格式为：## <章节名>
+- 必须覆盖以下章节（顺序一致）：{", ".join([s[0] for s in sections])}
+- 每章给出 4-8 条要点（用 - 列表），包括应写的内容、表格/公式/伪代码建议
+- “实验结果与分析/消融实验”只能基于给定实验产物，不得编造数值
+
+{exp_block}
+{facts_block}
+
+## 可用研究数据与文献背景
+{(data_context or "")[:6000]}
+"""
+
+            if (not resumed) or (not outline):
+                _save_checkpoint({"status": "in_progress", "writing_mode": "sectioned", "min_chars": min_chars, "next_step": 0})
+                outline, meta = _call_with_backoff(outline_prompt, temperature=0.4, max_tokens=min(1200, chunk_tokens))
+                chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
+                outline = (outline or "").strip()
+                if not outline:
+                    _save_checkpoint({"status": "failed", "reason": "empty_outline"})
+                    return {"status": "failed", "reason": "empty_outline", "content": ""}
+                _save_checkpoint({"status": "in_progress", "writing_mode": "sectioned", "outline": outline, "next_step": 0})
+                content = f"# {topic}\n\n"
+                _save_draft(content)
+            else:
+                _save_checkpoint({"writing_mode": "sectioned"})
+                if not content.strip():
+                    content = f"# {topic}\n\n"
+                    _save_draft(content)
+
+            for idx in range(next_step, len(sections)):
+                if _remaining_s() <= 1.0:
+                    raise TimeoutError(f"writing total timeout ({total_timeout_s}s)")
+                if time.perf_counter() - last_tick >= 10.0:
+                    last_tick = time.perf_counter()
+                    _dbg_event("writing_tick", {"topic": topic, "step": idx, "content_len": len(content or ""), "remaining_s": round(_remaining_s(), 1), "has_refs": ("## 参考文献" in content)})
+                    try:
+                        papers = load_papers()
+                        run_metrics = papers.get("run_metrics") if isinstance(papers.get("run_metrics"), dict) else {}
+                        run_metrics["writing_heartbeat"] = {
+                            "research_id": research_id or "",
+                            "step": idx,
+                            "section": str(sections[idx][0]),
+                            "content_len": len(content or ""),
+                            "updated_at": datetime.now().isoformat(),
+                        }
+                        run_metrics["updated_at"] = datetime.now().isoformat()
+                        papers["run_metrics"] = run_metrics
+                        save_papers(papers)
+                    except Exception:
+                        pass
+                sec_title, sec_req = sections[idx]
+                tail = (content or "")[-2400:]
+                injected_table = (tables_by_section.get(sec_title) or "").strip()
+                injected_hint = ""
+                if injected_table:
+                    injected_hint = "\n\n你必须原样包含下方表格块（不要改动任何数字/字段，不要删除表格）：\n\n" + injected_table + "\n"
+                sec_prompt = f"""你正在分章节撰写量化交易学术论文，请只输出当前章节内容。
+
+研究主题：{topic}
+研究编号：{research_id or ""}
+
+提纲：
+{outline[:8000]}
+
+已写内容末尾（供你续写衔接，不要重复）：
+{tail}
+
+当前要写的章节：{sec_title}
+章节要求：{sec_req}
+
+约束：
+- 只输出本章节，不要输出其他章节
+- 不要输出任何以 "# " 或 "## " 开头的标题行（标题由系统自动添加）；允许使用 "###" 及更低级标题作为小节
+- 如果需要表格，必须用 Markdown 表格
+- 涉及实验数值时，只能引用实验产物内容，不得编造
+
+{exp_block}
+{facts_block}
+{injected_hint}
+"""
+                _dbg_event("writing_section_prepare", {"topic": topic, "step": idx, "section": sec_title, "tail_len": len(tail), "outline_len": len(outline or "")})
+                more = ""
+                meta: Dict[str, Any] = {}
+                for _ in range(2):
+                    more, meta = _call_with_backoff(sec_prompt, temperature=0.7, max_tokens=chunk_tokens)
+                    chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
+                    more = (more or "").strip()
+                    if more:
+                        break
+                _dbg_event("writing_section_done", {"topic": topic, "step": idx, "section": sec_title, "more_len": len(more), "more_sample": more[:200]})
+                if not more:
+                    _save_checkpoint({"status": "paused", "writing_mode": "sectioned", "outline": outline, "next_step": idx, "content_len": len(content), "has_refs": ("## 参考文献" in content), "reason": f"empty_section:{sec_title}"})
+                    return {"status": "paused", "reason": f"empty_section:{sec_title}", "content": content}
+                header = f"## {sec_title}"
+                if (not resumed) and header in content:
+                    content = content.split(header)[0].rstrip() + "\n\n"
+                body_lines = (more or "").splitlines()
+                while body_lines and (not body_lines[0].strip()):
+                    body_lines.pop(0)
+                while body_lines and (body_lines[0].startswith("# ") or body_lines[0].startswith("## ")):
+                    body_lines.pop(0)
+                    while body_lines and (not body_lines[0].strip()):
+                        body_lines.pop(0)
+                more_body = "\n".join(body_lines).strip()
+                if injected_table and ("### 指标对比表（程序注入）" not in (more_body or "")) and ("### 消融对比表（程序注入）" not in (more_body or "")):
+                    more_body = injected_table + "\n\n" + (more_body or "")
+                tries = 0
+                while _section_needs_more(sec_title, more_body) and tries < 3 and _remaining_s() > 20.0:
+                    tries += 1
+                    sec_tail = (more_body or "")[-1600:]
+                    cont_prompt = f"""你正在完善论文的单个章节，请继续补全当前章节内容，只输出需要追加的正文，不要重复已有内容。
+
+章节：{sec_title}
+章节要求：{sec_req}
+
+已写章节末尾（供你衔接续写，不要重复）：
+{sec_tail}
+
+约束：
+- 不要输出任何以 "# " 或 "## " 开头的标题行
+- 如有公式，请确保 $$ 成对闭合
+- 涉及实验数值时，只能引用实验产物内容，不得编造
+
+{exp_block}
+{facts_block}
+{injected_hint}
+"""
+                    extra, meta2 = _call_with_backoff(cont_prompt, temperature=0.65, max_tokens=max(int(min_chunk_tokens), int(chunk_tokens * 0.75)))
+                    chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta2)
+                    extra = (extra or "").strip()
+                    if not extra:
+                        break
+                    extra_lines = extra.splitlines()
+                    while extra_lines and (not extra_lines[0].strip()):
+                        extra_lines.pop(0)
+                    while extra_lines and (extra_lines[0].startswith("# ") or extra_lines[0].startswith("## ")):
+                        extra_lines.pop(0)
+                        while extra_lines and (not extra_lines[0].strip()):
+                            extra_lines.pop(0)
+                    extra_body = "\n".join(extra_lines).strip()
+                    if extra_body:
+                        more_body = (more_body.rstrip() + "\n\n" + extra_body).strip()
+                content = content.rstrip() + "\n\n" + header + "\n\n" + (more_body or "")
+                _save_draft(content)
+                _save_checkpoint({"status": "in_progress", "writing_mode": "sectioned", "outline": outline, "next_step": idx + 1, "content_len": len(content), "has_refs": ("## 参考文献" in content)})
+
+            def _find_section_span(text: str, title: str) -> Optional[Tuple[int, int]]:
+                header = f"## {title}"
+                start = text.find(header)
+                if start < 0:
+                    return None
+                after = start + len(header)
+                nxt = text.find("\n## ", after)
+                end = len(text) if nxt < 0 else nxt
+                return start, end
+
+            def _expand_section_once(text: str, title: str, req: str) -> str:
+                span = _find_section_span(text, title)
+                if not span:
+                    return text
+                start, end = span
+                section_block = text[start:end]
+                tail = section_block[-1800:]
+                expand_prompt = f"""你正在补全论文的单个章节，请在不改变已有内容的前提下，在该章节末尾追加补充内容。
+
+章节：{title}
+章节要求：{req}
+
+该章节末尾（供你衔接续写，不要重复）：
+{tail}
+
+约束：
+- 只输出需要追加的正文，不要输出任何以 "# " 或 "## " 开头的标题行
+- 允许使用 "###" 作为小节标题
+- 如有公式，请确保 $$ 成对闭合
+- 涉及实验数值时，只能引用实验产物内容，不得编造
+
+{exp_block}
+{facts_block}
+"""
+                extra, meta = _call_with_backoff(expand_prompt, temperature=0.6, max_tokens=max(int(min_chunk_tokens), int(chunk_tokens * 0.75)))
+                chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
+                extra = (extra or "").strip()
+                if not extra:
+                    return text
+                extra_lines = extra.splitlines()
+                while extra_lines and (not extra_lines[0].strip()):
+                    extra_lines.pop(0)
+                while extra_lines and (extra_lines[0].startswith("# ") or extra_lines[0].startswith("## ")):
+                    extra_lines.pop(0)
+                    while extra_lines and (not extra_lines[0].strip()):
+                        extra_lines.pop(0)
+                extra_body = "\n".join(extra_lines).strip()
+                if not extra_body:
+                    return text
+                new_section = (section_block.rstrip() + "\n\n" + extra_body).rstrip()
+                return text[:start] + new_section + text[end:]
+
+            expansions = 0
+            while len(content) < int(min_chars) and _remaining_s() > 25.0 and expansions < 3:
+                expansions += 1
+                candidates = ["实验结果与分析", "方法论", "数据与实验设置", "文献综述", "引言"]
+                picked: Optional[str] = None
+                picked_req: Optional[str] = None
+                for t, r in sections:
+                    if t in candidates:
+                        span = _find_section_span(content, t)
+                        if not span:
+                            continue
+                        start, end = span
+                        body = content[start:end]
+                        if _section_needs_more(t, body):
+                            picked = t
+                            picked_req = r
+                            break
+                if not picked or not picked_req:
+                    break
+                before_len = len(content)
+                content = _expand_section_once(content, picked, picked_req)
+                if len(content) <= before_len:
+                    break
+                _save_draft(content)
+                _save_checkpoint({"status": "in_progress", "writing_mode": "sectioned", "outline": outline, "next_step": len(sections), "content_len": len(content), "has_refs": ("## 参考文献" in content)})
+
+            done = (len(content) >= min_chars and "## 参考文献" in content)
+            if done:
+                content = _apply_reference_block(content, _build_seed_references_block(limit=12))
+                content = _apply_truthfulness_guard(content, experiment_bundle=experiment_bundle)
+                quality = _paper_needs_experiment_fix(content, experiment_bundle=experiment_bundle)
+                if (not quality.get("ok")) and isinstance(quality.get("issues"), list):
+                    rewrites: List[str] = []
+                    for it in quality.get("issues")[:2]:
+                        sec = str((it or {}).get("section") or "")
+                        if sec and sec not in rewrites:
+                            rewrites.append(sec)
+
+                    for sec_title in rewrites:
+                        sec_req = ""
+                        for t, r in sections:
+                            if t == sec_title:
+                                sec_req = r
+                                break
+                        span = _find_section_span(content, sec_title)
+                        if not span:
+                            continue
+                        start, end = span
+                        current = content[start:end]
+                        tail = current[-1800:]
+                        injected_table = (tables_by_section.get(sec_title) or "").strip()
+                        injected_hint = ""
+                        if injected_table:
+                            injected_hint = "\n\n你必须原样包含下方表格块（不要改动任何数字/字段，不要删除表格）：\n\n" + injected_table + "\n"
+                        fix_prompt = f"""你正在修复论文的单个章节，使其与实验 JSON 完全一致。请重写该章节的正文内容（不输出任何 #/## 标题行），并确保不出现与实验事实相矛盾的参数/数值。
+
+章节：{sec_title}
+章节要求：{sec_req}
+
+该章节当前末尾（供你理解原文风格；输出时不要复刻错误）：
+{tail}
+
+硬性约束：
+- 不要输出任何以 \"# \" 或 \"## \" 开头的标题行
+- 只在需要时使用 \"###\" 小节标题
+- 涉及任何实验参数/数值时，只能引用实验产物内容，不得编造
+
+{exp_block}
+{facts_block}
+{injected_hint}
+"""
+                        fixed, meta = _call_with_backoff(fix_prompt, temperature=0.55, max_tokens=max(int(min_chunk_tokens), min(int(chunk_tokens), 2200)))
+                        chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
+                        fixed = (fixed or "").strip()
+                        if fixed:
+                            fixed_lines = fixed.splitlines()
+                            while fixed_lines and (not fixed_lines[0].strip()):
+                                fixed_lines.pop(0)
+                            while fixed_lines and (fixed_lines[0].startswith("# ") or fixed_lines[0].startswith("## ")):
+                                fixed_lines.pop(0)
+                                while fixed_lines and (not fixed_lines[0].strip()):
+                                    fixed_lines.pop(0)
+                            fixed_body = "\n".join(fixed_lines).strip()
+                            if injected_table and ("### 指标对比表（程序注入）" not in fixed_body) and ("### 消融对比表（程序注入）" not in fixed_body) and (sec_title in ("实验结果与分析", "消融实验")):
+                                fixed_body = injected_table + "\n\n" + fixed_body
+                            if fixed_body:
+                                content = content[:start] + f"## {sec_title}\n\n" + fixed_body.rstrip() + content[end:]
+                                _save_draft(content)
+                    _save_checkpoint({"quality": quality, "quality_rewrites": rewrites})
+                _save_checkpoint({"status": "completed", "writing_mode": "sectioned", "outline": outline, "next_step": len(sections), "content_len": len(content), "has_refs": True, "reason": None})
+                return {"status": "generated", "reason": None, "content": content}
+            _save_checkpoint({"status": "paused", "writing_mode": "sectioned", "outline": outline, "next_step": int(checkpoint.get("next_step") or next_step), "content_len": len(content), "has_refs": ("## 参考文献" in content), "reason": "incomplete"})
+            return {"status": "paused", "reason": "incomplete", "content": content}
+
+        if not resumed:
+            _save_checkpoint({"status": "in_progress", "next_step": 0, "min_chars": min_chars})
+            content, meta = _call_with_backoff(prompt, temperature=0.7, max_tokens=chunk_tokens)
+            chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
+            _dbg_event("writing_first_chunk_done", {"topic": topic, "content_len": len(content or ""), "content_sample": (content or "")[:200]})
+            if not content:
+                _save_checkpoint({"status": "failed", "reason": "empty_content"})
+                return {"status": "failed", "reason": "empty_content", "content": ""}
+            if content.startswith("LLM 未就绪"):
+                _save_checkpoint({"status": "failed", "reason": "llm_not_ready"})
+                return {"status": "failed", "reason": "llm_not_ready", "content": content}
+            _save_draft(content)
+            _save_checkpoint({"status": "in_progress", "next_step": 0, "content_len": len(content), "has_refs": ("## 参考文献" in content)})
+
+        for idx in range(next_step, 10):
+            if _remaining_s() <= 1.0:
+                raise TimeoutError(f"writing total timeout ({total_timeout_s}s)")
+            if time.perf_counter() - last_tick >= 10.0:
+                last_tick = time.perf_counter()
+                _dbg_event("writing_tick", {"topic": topic, "step": idx, "content_len": len(content or ""), "remaining_s": round(_remaining_s(), 1), "has_refs": ("## 参考文献" in content)})
             if len(content) >= min_chars and "## 参考文献" in content:
                 break
             tail = content[-1800:]
@@ -2279,17 +3909,47 @@ def generate_paper_content(
 {tail}
 """
             _dbg_event("writing_continue_prepare", {"topic": topic, "step": idx + 1, "tail_len": len(tail), "tail_sample": tail[:200], "min_chars": min_chars, "has_refs": ("## 参考文献" in content), "content_len": len(content)})
-            more = _call_with_backoff(cont_prompt, temperature=0.7, max_tokens=chunk_tokens)
+            more, meta = _call_with_backoff(cont_prompt, temperature=0.7, max_tokens=chunk_tokens)
+            chunk_tokens = _adapt_chunk_tokens(int(chunk_tokens), meta)
             _dbg_event("writing_continue_done", {"topic": topic, "step": idx + 1, "more_len": len(more or ""), "more_sample": (more or "")[:200]})
             if not more:
                 break
             if more.strip() in content:
                 break
             content = content.rstrip() + "\n\n" + more.lstrip()
-        return content
+            _save_draft(content)
+            _save_checkpoint({"status": "in_progress", "next_step": idx + 1, "content_len": len(content), "has_refs": ("## 参考文献" in content)})
+        done = (len(content) >= min_chars and "## 参考文献" in content)
+        if done:
+            content = _apply_reference_block(content, _build_seed_references_block(limit=12))
+            content = _apply_truthfulness_guard(content, experiment_bundle=experiment_bundle)
+            _save_checkpoint({"status": "completed", "next_step": 10, "content_len": len(content), "has_refs": True})
+            return {"status": "generated", "reason": None, "content": content}
+        _save_checkpoint({"status": "paused", "next_step": int(checkpoint.get("next_step") or next_step), "content_len": len(content), "has_refs": ("## 参考文献" in content), "reason": "incomplete"})
+        return {"status": "paused", "reason": "incomplete", "content": content}
     except Exception as e:
         _dbg_event("writing_failed", {"topic": topic, "error": str(e)[:600]})
-        return f"# {topic}\n\n论文生成失败: {str(e)}"
+        msg = str(e)
+        lower = msg.lower()
+        retryable = (
+            ("http 504" in lower)
+            or ("gateway time-out" in lower)
+            or ("gateway timeout" in lower)
+            or ("upstream request failed" in lower)
+            or ("temporarily unavailable" in lower)
+        )
+        if retryable:
+            _save_draft(content or f"# {topic}\n\n")
+            _save_checkpoint({"status": "paused", "reason": msg[:300], "content_len": len(content or ""), "has_refs": ("## 参考文献" in (content or ""))})
+            return {"status": "paused", "reason": msg[:300], "content": content or f"# {topic}\n\n"}
+        if isinstance(e, TimeoutError) or ("timeout" in lower):
+            _save_draft(content or f"# {topic}\n\n")
+            _save_checkpoint({"status": "paused", "reason": msg[:300], "content_len": len(content or ""), "has_refs": ("## 参考文献" in (content or ""))})
+            return {"status": "paused", "reason": msg[:300], "content": content or f"# {topic}\n\n"}
+        failure = (content or f"# {topic}\n\n") + f"\n\n论文生成失败: {msg}"
+        _save_draft(failure)
+        _save_checkpoint({"status": "failed", "reason": msg[:300], "content_len": len(failure), "has_refs": ("## 参考文献" in failure)})
+        return {"status": "failed", "reason": msg[:300], "content": failure}
 
 
 def extract_title(content: str) -> str:
@@ -2373,9 +4033,9 @@ def api_paper_detail(paper_id: int):
     papers_data = load_papers()
     for p in papers_data.get('papers', []):
         if p.get('id') == paper_id:
-            return jsonify({"paper": p})
+            return jsonify({"success": True, "paper": p})
 
-    return jsonify({"error": "论文不存在"}), 404
+    return jsonify({"success": False, "error": "论文不存在"}), 404
 
 
 @app.route('/api/papers/<int:paper_id>/score', methods=['POST'])
@@ -2871,7 +4531,7 @@ def index_v2():
 @app.route('/v2/<path:static_file>')
 def index_v2_static(static_file):
     """FARS v2 静态资源（CSS/JS/组件）"""
-    return app.send_from_directory(os.path.join(app.static_folder, 'v2'), static_file)
+    return send_from_directory(os.path.join(app.static_folder, 'v2'), static_file)
 
 
 @app.route('/health')
@@ -2882,10 +4542,11 @@ def health():
 # ============ 文献综述生成 (STORM-style) ============
 
 def generate_with_minimax(prompt: str, max_output_tokens: int = 8192) -> str:
-    """使用MiniMax API生成内容（带token限制保护）"""
+    """使用MiniMax API生成内容（带token限制保护，记录错误）"""
     cfg = get_effective_llm_config()
-    ok, _ = _llm_available(cfg)
+    ok, reason = _llm_available(cfg)
     if not ok:
+        print(f"[generate_with_minimax] LLM未就绪: {reason}")
         return None
 
     try:
@@ -2896,16 +4557,21 @@ def generate_with_minimax(prompt: str, max_output_tokens: int = 8192) -> str:
             safe_max_output = min(safe_max_output, cfg_max)
 
         if safe_max_output < 500:
+            print(f"[generate_with_minimax] token配额不足: safe_max_output={safe_max_output}")
             return None
-        return call_llm(prompt, temperature=0.7, max_tokens=safe_max_output)
+        result = call_llm(prompt, temperature=0.7, max_tokens=safe_max_output)
+        if not result:
+            print(f"[generate_with_minimax] call_llm返回空结果")
+        return result
     except Exception as e:
+        print(f"[generate_with_minimax] 异常: {type(e).__name__}: {e}")
         return None
 
 
 def generate_perspectives(topic: str) -> list:
     """生成研究视角 (STORM-style Perspective Generation)"""
     prompt = fill_perspective_prompt(topic)
-    response = generate_with_minimax(prompt, max_output_tokens=4096)
+    response = generate_with_minimax(prompt, max_output_tokens=8192)  # 推理模型需预留~300token思考
 
     if not response:
         # 回退：返回默认视角
@@ -2929,7 +4595,7 @@ def generate_perspectives(topic: str) -> list:
 def generate_questions_for_perspective(topic: str, perspective: str) -> list:
     """为视角生成深度研究问题 (STORM-style Question Asking)"""
     prompt = fill_question_prompt(topic, perspective)
-    response = generate_with_minimax(prompt, max_output_tokens=4096)
+    response = generate_with_minimax(prompt, max_output_tokens=8192)  # 推理模型额外消耗~300token
 
     if not response:
         return []
@@ -2954,7 +4620,7 @@ def generate_literature_review_section(topic: str, perspectives: list, all_quest
     }
 
     prompt = fill_literature_review_prompt(topic, json.dumps(evidence, ensure_ascii=False, indent=2))
-    response = generate_with_minimax(prompt, max_output_tokens=8192)
+    response = generate_with_minimax(prompt, max_output_tokens=16384)  # 推理模型额外消耗~300token
 
     return response if response else ""
 
@@ -2962,7 +4628,7 @@ def generate_literature_review_section(topic: str, perspectives: list, all_quest
 def review_content(title: str, content: str) -> dict:
     """评审论文内容 (GPT Researcher-style Review)"""
     prompt = fill_review_prompt(title, content)
-    response = generate_with_minimax(prompt, max_output_tokens=4096)
+    response = generate_with_minimax(prompt, max_output_tokens=8192)
 
     if not response:
         return {
@@ -2999,17 +4665,28 @@ def revise_content(original_content: str, review_result: dict) -> str:
 
 
 def generate_full_latex_paper(topic: str, template: str = "icml") -> str:
-    """生成完整LaTeX论文 (集成STORM + GPT Researcher)"""
+    """生成完整LaTeX论文 (集成STORM + GPT Researcher，并行化优化)"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
     # Phase 1: 文献综述生成 (STORM-style)
     print(f"[INFO] Phase 1: Generating literature review for topic: {topic}")
     perspectives = generate_perspectives(topic)
 
+    # 并发生成所有视角的研究问题 (原来串行N次LLM调用，现在并发)
     all_questions = []
-    for persp in perspectives:
-        persp_name = persp.get("name", "")
-        questions = generate_questions_for_perspective(topic, persp_name)
-        all_questions.extend(questions)
+    if perspectives:
+        def _gen_questions(persp):
+            persp_name = persp.get("name", "")
+            return generate_questions_for_perspective(topic, persp_name)
+
+        with ThreadPoolExecutor(max_workers=min(len(perspectives), 4)) as pool:
+            futures = {pool.submit(_gen_questions, p): p for p in perspectives}
+            for fut in as_completed(futures):
+                try:
+                    qs = fut.result(timeout=200)  # 单个视角问题生成最多200s
+                    all_questions.extend(qs or [])
+                except Exception as e:
+                    print(f"[WARN] 视角问题生成失败: {e}")
 
     lit_review = generate_literature_review_section(topic, perspectives, all_questions)
 
@@ -3033,7 +4710,7 @@ def generate_full_latex_paper(topic: str, template: str = "icml") -> str:
         novelty_points=novelty_points
     )
 
-    full_paper = generate_with_minimax(prompt, max_output_tokens=16384)
+    full_paper = generate_with_minimax(prompt, max_output_tokens=32000)  # 完整论文需要大量 token
 
     if not full_paper:
         # 回退：生成简化版
@@ -3076,7 +4753,9 @@ def generate_full_latex_paper(topic: str, template: str = "icml") -> str:
 
 @app.route('/api/research/literature-review', methods=['POST'])
 def api_generate_literature_review():
-    """生成文献综述章节 (STORM-style)"""
+    """生成文献综述章节 (STORM-style, 并行化)"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     data = request.json
     topic = data.get('topic', '')
 
@@ -3088,14 +4767,28 @@ def api_generate_literature_review():
     # 生成视角
     perspectives = generate_perspectives(topic)
 
-    # 为每个视角生成问题
-    perspectives_with_questions = []
-    for persp in perspectives:
+    # 并发生成每个视角的研究问题
+    def _gen_qs_for_persp(persp):
         persp_copy = persp.copy()
         persp_copy["generated_questions"] = generate_questions_for_perspective(
             topic, persp.get("name", "")
         )
-        perspectives_with_questions.append(persp_copy)
+        return persp_copy
+
+    perspectives_with_questions = []
+    if perspectives:
+        with ThreadPoolExecutor(max_workers=min(len(perspectives), 4)) as pool:
+            futures = {pool.submit(_gen_qs_for_persp, p): i for i, p in enumerate(perspectives)}
+            results_map = {}
+            for fut in as_completed(futures):
+                idx = futures[fut]
+                try:
+                    results_map[idx] = fut.result(timeout=200)
+                except Exception as e:
+                    print(f"[WARN] 视角问题生成失败: {e}")
+                    p = perspectives[idx]
+                    results_map[idx] = {**p, "generated_questions": []}
+            perspectives_with_questions = [results_map[i] for i in sorted(results_map)]
 
     # 生成文献综述章节
     all_questions = []

@@ -1,301 +1,274 @@
 /**
- * FARS v2 — REST API Client
- * 封装所有与 server.py 的通信
+ * FARS v2 API Client
+ * 完整REST API封装（40+端点）
  */
-(function (root) {
-  'use strict';
 
-  const BASE = ''; // 同源，server.py 提供静态文件和 API
-
-  // ── Core fetch wrapper ───────────────────────────────────
-  async function apiFetch(path, options) {
-    const url = BASE + path;
-    const opts = Object.assign({
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-    }, options);
-
-    const resp = await fetch(url, opts);
-    const text = await resp.text();
-
-    let data;
-    try { data = JSON.parse(text); }
-    catch { data = { error: 'Non-JSON response: ' + text.slice(0, 200) }; }
-
-    if (!resp.ok) {
-      const msg = (data && (data.error || data.message)) || `HTTP ${resp.status}`;
-      const err = new Error(msg);
-      err.status = resp.status;
-      err.data = data;
-      throw err;
+class FARSApi {
+    constructor(baseUrl = '') {
+        this.baseUrl = baseUrl || window.location.origin;
+        this.endpoints = {
+            // Papers
+            papers: '/api/papers',
+            paper: (id) => `/api/papers/${id}`,
+            
+            // Research
+            research: '/api/research/state',
+            researchStart: '/api/research/start',
+            researchStop: '/api/research/stop',
+            researchPause: '/api/research/pause',
+            researchResume: '/api/research/resume',
+            
+            // Branches
+            branches: '/api/branches',
+            branch: (id) => `/api/branches/${id}`,
+            branchSwitch: (id) => `/api/branches/${id}/switch`,
+            
+            // Experiments
+            experiments: '/api/experiments',
+            experiment: (id) => `/api/experiments/${id}`,
+            
+            // Quality
+            quality: '/api/quality',
+            qualityCheck: (id) => `/api/quality/check/${id}`,
+            
+            // LLM Monitoring
+            llmCalls: '/api/llm-calls',
+            llmCall: (id) => `/api/llm-calls/${id}`,
+            llmStats: '/api/llm-calls/stats',
+            
+            // System
+            status: '/api/status',
+            health: '/api/health',
+            config: '/api/config',
+            
+            // Topology
+            topology: '/api/topology',
+            
+            // Checkpoints
+            checkpoints: '/api/checkpoints',
+            checkpoint: (id) => `/api/checkpoints/${id}`,
+            
+            // Compare
+            compare: '/api/compare'
+        };
     }
 
-    return data;
-  }
+    async request(endpoint, options = {}) {
+        const url = `${this.baseUrl}${endpoint}`;
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            ...options
+        };
 
-  // ── Research / Papers ────────────────────────────────────
-  const FARSApi = {
+        try {
+            const response = await fetch(url, config);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('API request failed:', error);
+            throw error;
+        }
+    }
 
-    /* State */
-    getResearchState: function () {
-      return apiFetch('/api/research/state');
-    },
+    // Papers API
+    async getPapers(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${this.endpoints.papers}${query ? '?' + query : ''}`);
+    }
 
-    getResearchRun: function () {
-      return apiFetch('/api/research/run');
-    },
+    async getPaper(id) {
+        return this.request(this.endpoints.paper(id));
+    }
 
-    /* Branches */
-    getBranches: function () {
-      return apiFetch('/api/branches');
-    },
+    async createPaper(data) {
+        return this.request(this.endpoints.papers, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
 
-    createBranch: function (name, reviewContent) {
-      return apiFetch('/api/branches', {
-        method: 'POST',
-        body: JSON.stringify({ name: name, review_content: reviewContent || '' }),
-      });
-    },
+    async updatePaper(id, data) {
+        return this.request(this.endpoints.paper(id), {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
 
-    switchBranch: function (branchId) {
-      return apiFetch('/api/branches/switch/' + branchId, { method: 'POST' });
-    },
+    async deletePaper(id) {
+        return this.request(this.endpoints.paper(id), {
+            method: 'DELETE'
+        });
+    }
 
-    /* Papers */
-    getPapers: function (branchId) {
-      const url = '/api/papers' + (branchId ? '?branch_id=' + branchId : '');
-      return apiFetch(url);
-    },
+    // Research API
+    async getResearchStatus() {
+        return this.request(this.endpoints.research);
+    }
 
-    getPaper: function (paperId) {
-      return apiFetch('/api/papers/' + paperId);
-    },
+    async startResearch(topic) {
+        return this.request(this.endpoints.researchStart, {
+            method: 'POST',
+            body: JSON.stringify({ topic })
+        });
+    }
 
-    scorePaper: function (paperId) {
-      return apiFetch('/api/papers/' + paperId + '/score', { method: 'POST' });
-    },
+    async stopResearch() {
+        return this.request(this.endpoints.researchStop, {
+            method: 'POST'
+        });
+    }
 
-    improvePaper: function (paperId) {
-      return apiFetch('/api/papers/' + paperId + '/improve', { method: 'POST' });
-    },
+    async pauseResearch() {
+        return this.request(this.endpoints.researchPause, {
+            method: 'POST'
+        });
+    }
 
-    getFinalStatus: function (paperId) {
-      return apiFetch('/api/papers/' + paperId + '/final-status');
-    },
+    async resumeResearch() {
+        return this.request(this.endpoints.researchResume, {
+            method: 'POST'
+        });
+    }
 
-    /* Research Control */
-    startResearch: function (topic) {
-      return apiFetch('/api/generate/start', {
-        method: 'POST',
-        body: JSON.stringify({ topic: topic || '' }),
-      });
-    },
+    // Branches API
+    async getBranches() {
+        return this.request(this.endpoints.branches);
+    }
 
-    pauseResearch: function () {
-      return apiFetch('/api/generate/pause', { method: 'POST' });
-    },
+    async getBranch(id) {
+        return this.request(this.endpoints.branch(id));
+    }
 
-    resumeResearch: function () {
-      return apiFetch('/api/generate/resume', { method: 'POST' });
-    },
+    async createBranch(data) {
+        return this.request(this.endpoints.branches, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
 
-    stopResearch: function () {
-      return apiFetch('/api/generate/stop', { method: 'POST' });
-    },
+    async switchBranch(id) {
+        return this.request(this.endpoints.branchSwitch(id), {
+            method: 'POST'
+        });
+    }
 
-    generateNext: function (opts) {
-      opts = opts || {};
-      return apiFetch('/api/generate/next', {
-        method: 'POST',
-        body: JSON.stringify({ topic: opts.topic || '', branch_id: opts.branch_id }),
-      });
-    },
+    // Experiments API
+    async getExperiments(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${this.endpoints.experiments}${query ? '?' + query : ''}`);
+    }
 
-    /* Checkpoints */
-    getCheckpoints: function () {
-      return apiFetch('/api/research/checkpoints');
-    },
+    async getExperiment(id) {
+        return this.request(this.endpoints.experiment(id));
+    }
 
-    resumeCheckpoint: function (researchId) {
-      return apiFetch('/api/research/resume/' + researchId, { method: 'POST' });
-    },
+    async createExperiment(data) {
+        return this.request(this.endpoints.experiments, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
 
-    /* Research Logs */
-    getResearchLogs: function (opts) {
-      opts = opts || {};
-      let url = '/api/research/logs?limit=' + (opts.limit || 50);
-      if (opts.paperId) url += '&paper_id=' + opts.paperId;
-      if (opts.researchId) url += '&research_id=' + opts.researchId;
-      return apiFetch(url);
-    },
+    // Quality API
+    async getQualityResults() {
+        return this.request(this.endpoints.quality);
+    }
 
-    getResearchLogsSummary: function () {
-      return apiFetch('/api/research/logs/summary');
-    },
+    async runQualityCheck(paperId) {
+        return this.request(this.endpoints.qualityCheck(paperId), {
+            method: 'POST'
+        });
+    }
 
-    /* Quality Pipeline */
-    runQualityPipeline: function (opts) {
-      opts = opts || {};
-      return apiFetch('/api/quality/pipeline', {
-        method: 'POST',
-        body: JSON.stringify({
-          paper_id: opts.paperId || null,
-          content: opts.content || '',
-          title: opts.title || '',
-          run_ai_detection: opts.runAiDetection !== false,
-          run_paper_review: opts.runPaperReview !== false,
-          anthropic_api_key: opts.anthropicApiKey || '',
-        }),
-      });
-    },
+    // LLM Monitoring API
+    async getLLMCalls(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${this.endpoints.llmCalls}${query ? '?' + query : ''}`);
+    }
 
-    detectAI: function (opts) {
-      opts = opts || {};
-      return apiFetch('/api/quality/detect-ai', {
-        method: 'POST',
-        body: JSON.stringify({
-          content: opts.content || '',
-          paper_id: opts.paperId || null,
-        }),
-      });
-    },
+    async getLLMCallDetail(callId) {
+        return this.request(this.endpoints.llmCall(callId));
+    }
 
-    reviewPaper: function (opts) {
-      opts = opts || {};
-      return apiFetch('/api/quality/review-paper', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: opts.title || '',
-          content: opts.content || '',
-          paper_id: opts.paperId || null,
-          anthropic_api_key: opts.anthropicApiKey || '',
-        }),
-      });
-    },
+    async getLLMCallStats() {
+        return this.request(this.endpoints.llmStats);
+    }
 
-    getQualityReport: function (paperId) {
-      return apiFetch('/api/papers/' + paperId + '/quality-report');
-    },
+    // System API
+    async getStatus() {
+        return this.request(this.endpoints.status);
+    }
 
-    /* External Review */
-    submitExternalReview: function (paperId, email, venue) {
-      return apiFetch('/api/papers/' + paperId + '/submit-review', {
-        method: 'POST',
-        body: JSON.stringify({ email: email, venue: venue || 'ICLR' }),
-      });
-    },
+    async getHealth() {
+        return this.request(this.endpoints.health);
+    }
 
-    getExternalReviewStatus: function (paperId) {
-      return apiFetch('/api/papers/' + paperId + '/review-status');
-    },
+    async getConfig() {
+        return this.request(this.endpoints.config);
+    }
 
-    pollExternalReview: function (paperId, intervalMinutes) {
-      return apiFetch('/api/papers/' + paperId + '/poll-review', {
-        method: 'POST',
-        body: JSON.stringify({ interval_minutes: intervalMinutes || 1 }),
-      });
-    },
+    // Topology API
+    async getTopology() {
+        return this.request(this.endpoints.topology);
+    }
 
-    /* Full Evaluation */
-    evaluatePaper: function (paperId, opts) {
-      opts = opts || {};
-      return apiFetch('/api/papers/' + paperId + '/evaluate', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: opts.email || '',
-          venue: opts.venue || 'ICLR',
-          internal_threshold: opts.internalThreshold || 7.0,
-          external_threshold: opts.externalThreshold || 5.0,
-          submit_external: opts.submitExternal || false,
-        }),
-      });
-    },
+    // Checkpoints API
+    async getCheckpoints() {
+        return this.request(this.endpoints.checkpoints);
+    }
 
-    /* Literature Review */
-    generateLiteratureReview: function (topic) {
-      return apiFetch('/api/research/literature-review', {
-        method: 'POST',
-        body: JSON.stringify({ topic: topic }),
-      });
-    },
+    async getCheckpoint(id) {
+        return this.request(this.endpoints.checkpoint(id));
+    }
 
-    generateFullPaper: function (topic, template) {
-      return apiFetch('/api/research/generate-full', {
-        method: 'POST',
-        body: JSON.stringify({ topic: topic, template: template || 'icml' }),
-      });
-    },
+    async restoreCheckpoint(id) {
+        return this.request(this.endpoints.checkpoint(id), {
+            method: 'POST'
+        });
+    }
 
-    reviewAndRevise: function (paperId, rounds) {
-      return apiFetch('/api/research/review-and-revise', {
-        method: 'POST',
-        body: JSON.stringify({ paper_id: paperId, rounds: rounds || 2 }),
-      });
-    },
+    // Compare API
+    async comparePapers(paperIds) {
+        return this.request(this.endpoints.compare, {
+            method: 'POST',
+            body: JSON.stringify({ paper_ids: paperIds })
+        });
+    }
 
-    /* LLM Config */
-    getLLMConfig: function () {
-      return apiFetch('/api/config/llm');
-    },
+    // Utility methods
+    async pollResearchStatus(callback, interval = 2000) {
+        const poll = async () => {
+            try {
+                const status = await this.getResearchStatus();
+                callback(null, status);
+                if (status.is_running) {
+                    setTimeout(poll, interval);
+                }
+            } catch (error) {
+                callback(error);
+            }
+        };
+        poll();
+    }
 
-    updateLLMConfig: function (llm, providers) {
-      return apiFetch('/api/config/llm', {
-        method: 'POST',
-        body: JSON.stringify({ llm: llm || {}, llm_providers: providers || {} }),
-      });
-    },
+    async pollLLMStats(callback, interval = 5000) {
+        const poll = async () => {
+            try {
+                const stats = await this.getLLMCallStats();
+                callback(null, stats);
+                setTimeout(poll, interval);
+            } catch (error) {
+                callback(error);
+            }
+        };
+        poll();
+    }
+}
 
-    /* Data Registry */
-    getDataRegistry: function () {
-      return apiFetch('/api/data/registry');
-    },
-
-    /* Seed Papers */
-    getSeedPapers: function () {
-      return apiFetch('/api/seed-papers');
-    },
-
-    fetchSeedPapers: function (count) {
-      return apiFetch('/api/seed-papers/fetch', {
-        method: 'POST',
-        body: JSON.stringify({ count: count || 15 }),
-      });
-    },
-
-    /* Author Network */
-    getAuthorNetwork: function () {
-      return apiFetch('/api/research/author-network/latest');
-    },
-
-    /* History */
-    getHistory: function () {
-      return apiFetch('/api/history');
-    },
-
-    getHistoryDetail: function (recordId) {
-      return apiFetch('/api/history/' + recordId);
-    },
-
-    /* Download */
-    getDownloadList: function (paperId) {
-      return apiFetch('/api/download/list?paper_id=' + paperId);
-    },
-
-    /* Improvements */
-    getImprovements: function (branchId) {
-      const url = '/api/improvements' + (branchId ? '?branch_id=' + branchId : '');
-      return apiFetch(url);
-    },
-
-    saveImprovement: function (branchId, idea, paperId) {
-      return apiFetch('/api/improvements', {
-        method: 'POST',
-        body: JSON.stringify({ branch_id: branchId, idea: idea, paper_id: paperId }),
-      });
-    },
-  };
-
-  // ── Export ────────────────────────────────────────────────
-  root.FARSApi = FARSApi;
-
-})(window);
+// 创建全局实例
+window.farsApi = new FARSApi();

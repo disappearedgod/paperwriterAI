@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import warnings
+import uuid
+import traceback
 
 # ============== 论文获取工具 ==============
 
@@ -290,7 +292,9 @@ class LLMCaller:
 
     def __init__(self, provider: str = "openai", model: str = "gpt-4o",
                  api_key: str = None, base_url: str = None,
-                 fallback_providers: List[dict] = None):
+                 fallback_providers: List[dict] = None,
+                 agent_name: str = None, method_name: str = None,
+                 run_id: str = None, research_id: str = None):
         """
         初始化LLM调用器
 
@@ -300,20 +304,89 @@ class LLMCaller:
             api_key: API密钥
             base_url: 自定义API地址
             fallback_providers: 备用provider列表，如 [{"provider": "ollama", "model": "gemma4"}]
+            agent_name: 调用此LLM的Agent名称
+            method_name: 调用此LLM的方法名称
+            run_id: 当前运行ID
+            research_id: 当前研究ID
         """
-        # 从config.json读取配置
-        _cfg_file = os.path.join(os.path.dirname(__file__), '..', '..', 'config.json')
-        _llm_cfg = {}
-        if os.path.exists(_cfg_file):
-            with open(_cfg_file, 'r') as _f:
-                _llm_cfg = json.load(_f).get('llm', {})
-
-        self.primary_provider = provider if provider != "openai" else _llm_cfg.get('provider', 'minimax')
-        self.primary_model = model if model != "gpt-4o" else _llm_cfg.get('model', 'MiniMax-M2.7')
-        self.api_key = api_key or _llm_cfg.get('api_key', '') or os.environ.get("OPENAI_API_KEY")
-        self.base_url = base_url or _llm_cfg.get('base_url', '')
+        self.primary_provider = provider
+        self.primary_model = model
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.base_url = base_url
         self.fallback_providers = fallback_providers or []
         self.last_error = None
+        self.agent_name = agent_name
+        self.method_name = method_name
+        self.run_id = run_id
+        self.research_id = research_id
+        self._call_history = []
+
+    def _log_llm_call(self, provider: str, model: str, system_prompt: str,
+                      user_prompt: str, full_prompt: str, completion: str,
+                      prompt_tokens: int, completion_tokens: int, total_tokens: int,
+                      latency_ms: int, status: str, error_message: str = None,
+                      error_detail: str = None):
+        """记录LLM调用到JSON文件"""
+        try:
+            call_id = f"LLM-{datetime.now().strftime('%Y%m%d%H%M%S')}-{str(uuid.uuid4())[:8]}"
+
+            call_record = {
+                "call_id": call_id,
+                "run_id": self.run_id,
+                "research_id": self.research_id,
+                "agent_name": self.agent_name,
+                "method_name": self.method_name,
+                "provider": provider,
+                "model": model,
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "full_prompt": full_prompt,
+                "completion": completion,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "latency_ms": latency_ms,
+                "status": status,
+                "error_message": error_message,
+                "error_detail": error_detail,
+                "created_at": datetime.now().isoformat()
+            }
+
+            # 保存到JSON文件
+            history_file = Path(__file__).resolve().parent.parent.parent / "data" / "llm_call_logs.json"
+            history_file.parent.mkdir(parents=True, exist_ok=True)
+
+            calls = []
+            if history_file.exists():
+                try:
+                    calls = json.loads(history_file.read_text(encoding='utf-8'))
+                except Exception:
+                    calls = []
+
+            calls.append(call_record)
+
+            # 限制历史记录数量（最多1000条）
+            if len(calls) > 1000:
+                calls = calls[-1000:]
+
+            history_file.write_text(json.dumps(calls, ensure_ascii=False, indent=2), encoding='utf-8')
+
+            # 同时保存到内存历史
+            self._call_history.append({
+                "call_id": call_id,
+                "provider": provider,
+                "model": model,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "latency_ms": latency_ms,
+                "status": status,
+                "created_at": datetime.now().isoformat()
+            })
+
+        except Exception as e:
+            print(f"[LLMCaller] 记录LLM调用失败: {e}")
+            traceback.print_exc()
 
     def call(self, prompt: str, system_prompt: str = None,
              temperature: float = 0.7, max_tokens: int = 4096) -> Optional[str]:
@@ -323,10 +396,20 @@ class LLMCaller:
         Returns:
             LLM回复文本，失败返回None
         """
+        start_time = datetime.now()
+
         # 先尝试主provider
-        result = self._call_provider(self.primary_provider, self.primary_model,
+        result, tokens, error = self._call_provider_with_stats(self.primary_provider, self.primary_model,
                                      prompt, system_prompt, temperature, max_tokens)
+        latency_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+
         if result:
+            self._log_llm_call(
+                self.primary_provider, self.primary_model, system_prompt,
+                prompt, f"{system_prompt}\n\n{prompt}" if system_prompt else prompt,
+                result, tokens.get("prompt_tokens", 0), tokens.get("completion_tokens", 0),
+                tokens.get("total_tokens", 0), latency_ms, "success"
+            )
             return result
 
         # 尝试每个备选provider
@@ -337,15 +420,59 @@ class LLMCaller:
             fb_base_url = fallback.get("base_url")
 
             print(f"[LLMCaller] 主provider失败，尝试备用: {fb_provider}/{fb_model}")
-            result = self._call_provider(fb_provider, fb_model,
+            start_time = datetime.now()
+            result, tokens, fallback_error = self._call_provider_with_stats(fb_provider, fb_model,
                                          prompt, system_prompt, temperature, max_tokens,
                                          api_key=fb_api_key, base_url=fb_base_url)
+            latency_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+
             if result:
                 print(f"[LLMCaller] 备用provider成功: {fb_provider}/{fb_model}")
+                self._log_llm_call(
+                    fb_provider, fb_model, system_prompt,
+                    prompt, f"{system_prompt}\n\n{prompt}" if system_prompt else prompt,
+                    result, tokens.get("prompt_tokens", 0), tokens.get("completion_tokens", 0),
+                    tokens.get("total_tokens", 0), latency_ms, "success"
+                )
                 return result
 
         print(f"[LLMCaller] 所有provider均失败，最后错误: {self.last_error}")
+
+        # 记录失败的调用
+        self._log_llm_call(
+            self.primary_provider, self.primary_model, system_prompt,
+            prompt, f"{system_prompt}\n\n{prompt}" if system_prompt else prompt,
+            None, 0, 0, 0, latency_ms, "failed",
+            error_message=self.last_error,
+            error_detail=traceback.format_exc()
+        )
         return None
+
+    def _call_provider_with_stats(self, provider: str, model: str,
+                                   prompt: str, system_prompt: str = None,
+                                   temperature: float = 0.7, max_tokens: int = 4096,
+                                   api_key: str = None, base_url: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用指定provider并返回统计信息"""
+        api_key = api_key or self.api_key
+        base_url = base_url or self.base_url
+
+        try:
+            if provider == "openai":
+                return self._call_openai_with_stats(model, prompt, system_prompt, temperature, max_tokens, api_key, base_url)
+            elif provider == "anthropic":
+                return self._call_anthropic_with_stats(model, prompt, system_prompt, temperature, max_tokens, api_key)
+            elif provider == "deepseek":
+                return self._call_deepseek_with_stats(model, prompt, system_prompt, temperature, max_tokens, api_key, base_url)
+            elif provider == "minimax":
+                return self._call_minimax_with_stats(model, prompt, system_prompt, temperature, max_tokens, api_key, base_url)
+            elif provider == "ollama":
+                return self._call_ollama_with_stats(model, prompt, system_prompt, temperature, max_tokens, base_url)
+            else:
+                raise ValueError(f"Unknown provider: {provider}")
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] {provider} 调用失败: {e}")
+            return None, {}, str(e)
 
     def _call_provider(self, provider: str, model: str,
                        prompt: str, system_prompt: str = None,
@@ -372,6 +499,171 @@ class LLMCaller:
             self.last_error = str(e)
             print(f"[LLMCaller] {provider} 调用失败: {e}")
             return None
+
+    def _call_openai_with_stats(self, model: str, prompt: str, system_prompt: str = None,
+                                temperature: float = 0.7, max_tokens: int = 4096,
+                                api_key: str = None, base_url: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用OpenAI API并返回统计信息"""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key, base_url=base_url)
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            tokens = {
+                "prompt_tokens": getattr(response, 'usage', {}).get('prompt_tokens', 0) if hasattr(response, 'usage') else 0,
+                "completion_tokens": getattr(response, 'usage', {}).get('completion_tokens', 0) if hasattr(response, 'usage') else 0,
+                "total_tokens": getattr(response, 'usage', {}).get('total_tokens', 0) if hasattr(response, 'usage') else 0
+            }
+            return response.choices[0].message.content, tokens, None
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] OpenAI API错误: {e}")
+            return None, {}, str(e)
+
+    def _call_anthropic_with_stats(self, model: str, prompt: str, system_prompt: str = None,
+                                   temperature: float = 0.7, max_tokens: int = 4096,
+                                   api_key: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用Anthropic API并返回统计信息"""
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "user", "content": system_prompt + "\n\n" + prompt})
+            else:
+                messages.append({"role": "user", "content": prompt})
+
+            response = client.messages.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            tokens = {
+                "prompt_tokens": getattr(response, 'usage', {}).get('input_tokens', 0) if hasattr(response, 'usage') else 0,
+                "completion_tokens": getattr(response, 'usage', {}).get('output_tokens', 0) if hasattr(response, 'usage') else 0,
+                "total_tokens": (getattr(response, 'usage', {}).get('input_tokens', 0) if hasattr(response, 'usage') else 0) +
+                               (getattr(response, 'usage', {}).get('output_tokens', 0) if hasattr(response, 'usage') else 0)
+            }
+            return response.content[0].text, tokens, None
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] Anthropic API错误: {e}")
+            return None, {}, str(e)
+
+    def _call_deepseek_with_stats(self, model: str, prompt: str, system_prompt: str = None,
+                                  temperature: float = 0.7, max_tokens: int = 4096,
+                                  api_key: str = None, base_url: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用DeepSeek API并返回统计信息"""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key, base_url=base_url or "https://api.deepseek.com")
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            tokens = {
+                "prompt_tokens": getattr(response, 'usage', {}).get('prompt_tokens', 0) if hasattr(response, 'usage') else 0,
+                "completion_tokens": getattr(response, 'usage', {}).get('completion_tokens', 0) if hasattr(response, 'usage') else 0,
+                "total_tokens": getattr(response, 'usage', {}).get('total_tokens', 0) if hasattr(response, 'usage') else 0
+            }
+            return response.choices[0].message.content, tokens, None
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] DeepSeek API错误: {e}")
+            return None, {}, str(e)
+
+    def _call_minimax_with_stats(self, model: str, prompt: str, system_prompt: str = None,
+                                 temperature: float = 0.7, max_tokens: int = 4096,
+                                 api_key: str = None, base_url: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用MiniMax API并返回统计信息"""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key, base_url=base_url or "https://token.juda.dev/v1")
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            content = response.choices[0].message.content
+            # MiniMax 推理模式可能返回 content=null，实际内容在 reasoning 里
+            if content is None and hasattr(response.choices[0].message, 'reasoning'):
+                content = response.choices[0].message.reasoning
+
+            tokens = {
+                "prompt_tokens": getattr(response, 'usage', {}).get('prompt_tokens', 0) if hasattr(response, 'usage') else 0,
+                "completion_tokens": getattr(response, 'usage', {}).get('completion_tokens', 0) if hasattr(response, 'usage') else 0,
+                "total_tokens": getattr(response, 'usage', {}).get('total_tokens', 0) if hasattr(response, 'usage') else 0
+            }
+            return content, tokens, None
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] MiniMax API错误: {e}")
+            return None, {}, str(e)
+
+    def _call_ollama_with_stats(self, model: str, prompt: str, system_prompt: str = None,
+                                temperature: float = 0.7, max_tokens: int = 4096,
+                                base_url: str = None) -> Tuple[Optional[str], Dict, Optional[str]]:
+        """调用Ollama本地模型并返回统计信息"""
+        try:
+            import os
+            from openai import OpenAI
+            # Ollama不需要真正的API key，但OpenAI客户端需要非空值
+            os.environ.setdefault('OPENAI_API_KEY', 'ollama')
+            client = OpenAI(base_url=base_url or "http://localhost:11434/v1")
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            tokens = {
+                "prompt_tokens": getattr(response, 'usage', {}).get('prompt_tokens', 0) if hasattr(response, 'usage') else 0,
+                "completion_tokens": getattr(response, 'usage', {}).get('completion_tokens', 0) if hasattr(response, 'usage') else 0,
+                "total_tokens": getattr(response, 'usage', {}).get('total_tokens', 0) if hasattr(response, 'usage') else 0
+            }
+            return response.choices[0].message.content, tokens, None
+        except Exception as e:
+            self.last_error = str(e)
+            print(f"[LLMCaller] Ollama API错误: {e}")
+            return None, {}, str(e)
 
     def _call_openai(self, model: str, prompt: str, system_prompt: str = None,
                      temperature: float = 0.7, max_tokens: int = 4096,

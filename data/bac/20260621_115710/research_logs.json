@@ -1,0 +1,61 @@
+[
+  {
+    "id": 4,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621115707-bcb25dbc"
+    },
+    "timestamp": "2026-06-21T11:57:07.888309"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621115707-bcb25dbc"
+    },
+    "timestamp": "2026-06-21T11:57:07.545422"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "完成种子论文分析：已解析 23 篇，提炼 8 个主题",
+    "details": {
+      "topic": "E2E API Test Topic",
+      "run_id": "RUN-20260621115707-bcb25dbc",
+      "papers_read_count": 23,
+      "papers_to_read_count": 0,
+      "key_themes": [
+        "LLM",
+        "量化交易",
+        "风险控制",
+        "多智能体",
+        "评估与回测",
+        "金融预测",
+        "金融工程",
+        "信号系统"
+      ]
+    },
+    "timestamp": "2026-06-21T11:57:07.542460"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "开始解析 23 篇种子文献并生成综述分析",
+    "details": {
+      "topic": "E2E API Test Topic",
+      "run_id": "RUN-20260621115707-bcb25dbc"
+    },
+    "timestamp": "2026-06-21T11:57:07.524204"
+  }
+]

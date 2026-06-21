@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-027",
+  "paper_id": 8,
+  "branch_id": 1,
+  "title": "Model Validation of Agentic AI Systems: A POMDP-Based Framework for Belief-State",
+  "topic": "Model Validation of Agentic AI Systems: A POMDP-Based Framework for Belief-State, Forecast, and Policy Validation（扩展 060939）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T06:09:43.343211",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-027_Model_Validation_of_Agentic_AI_Systems_A/article/RS-20260621-027_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-027_Model_Validation_of_Agentic_AI_Systems_A/data/RS-20260621-027_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-027_Model_Validation_of_Agentic_AI_Systems_A/data/RS-20260621-027_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-027_Model_Validation_of_Agentic_AI_Systems_A/metrics/RS-20260621-027_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-027_Model_Validation_of_Agentic_AI_Systems_A/code/RS-20260621-027_experiment.py"
+  }
+}

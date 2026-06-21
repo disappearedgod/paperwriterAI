@@ -1,0 +1,37 @@
+[
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621094753-91e2eb53"
+    },
+    "timestamp": "2026-06-21T09:47:55.702027"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 3 条假设",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621094753-91e2eb53"
+    },
+    "timestamp": "2026-06-21T09:47:54.692512"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621094753-91e2eb53"
+    },
+    "timestamp": "2026-06-21T09:47:53.483415"
+  }
+]

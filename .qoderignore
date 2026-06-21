@@ -1,0 +1,33 @@
+# Qoder 索引忽略规则
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 数据目录（大量生成文件，不需要索引）
+data/
+workspace/
+uploads/
+
+# 输出和报告
+outputs/
+reports/
+papers/
+
+# 第三方 vendor（不需要理解其内部实现）
+vendor/
+
+# 日志
+*.log
+.dbg/
+
+# 前端静态资源（太大且不影响后端逻辑）
+docs/v2/css/
+docs/v2/lib/
+
+# Git
+.git/
+
+# OS
+.DS_Store

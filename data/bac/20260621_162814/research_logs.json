@@ -1,0 +1,146 @@
+[
+  {
+    "id": 10,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621162622-9a5445de"
+    },
+    "timestamp": "2026-06-21T16:26:22.829324"
+  },
+  {
+    "id": 9,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621162622-9a5445de"
+    },
+    "timestamp": "2026-06-21T16:26:22.514226"
+  },
+  {
+    "id": 8,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "完成种子论文分析：已解析 23 篇，提炼 8 个主题",
+    "details": {
+      "topic": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）",
+      "run_id": "RUN-20260621162622-9a5445de",
+      "papers_read_count": 23,
+      "papers_to_read_count": 0,
+      "key_themes": [
+        "LLM",
+        "量化交易",
+        "风险控制",
+        "多智能体",
+        "评估与回测",
+        "金融预测",
+        "金融工程",
+        "信号系统"
+      ]
+    },
+    "timestamp": "2026-06-21T16:26:22.510379"
+  },
+  {
+    "id": 7,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "开始解析 23 篇种子文献并生成综述分析",
+    "details": {
+      "topic": "TradingAgents: Multi-Agents LLM Financial Trading Framework（扩展 162622）",
+      "run_id": "RUN-20260621162622-9a5445de"
+    },
+    "timestamp": "2026-06-21T16:26:22.500858"
+  },
+  {
+    "id": 6,
+    "paper_id": 2,
+    "research_id": "RS-20260621-092",
+    "status": "completed",
+    "message": "研究完成: <think>",
+    "details": {
+      "research_id": "RS-20260621-092",
+      "run_id": "RUN-20260621160627-de36ca22",
+      "paper_status": "generated"
+    },
+    "timestamp": "2026-06-21T16:26:22.497285"
+  },
+  {
+    "id": 5,
+    "paper_id": 1,
+    "research_id": "RS-20260621-094",
+    "status": "error",
+    "message": "研究失败: 2311.10723 - LLM in Finance Survey (11页)",
+    "details": {
+      "research_id": "RS-20260621-094",
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "paper_status": "failed"
+    },
+    "timestamp": "2026-06-21T16:16:33.786904"
+  },
+  {
+    "id": 4,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "构建引用关系与作者网络",
+    "details": {
+      "run_id": "RUN-20260621161328-4d8b86f6"
+    },
+    "timestamp": "2026-06-21T16:13:29.075601"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621161328-4d8b86f6"
+    },
+    "timestamp": "2026-06-21T16:13:28.730602"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "完成种子论文分析：已解析 23 篇，提炼 8 个主题",
+    "details": {
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621161328-4d8b86f6",
+      "papers_read_count": 23,
+      "papers_to_read_count": 0,
+      "key_themes": [
+        "LLM",
+        "量化交易",
+        "风险控制",
+        "多智能体",
+        "评估与回测",
+        "金融预测",
+        "金融工程",
+        "信号系统"
+      ]
+    },
+    "timestamp": "2026-06-21T16:13:28.727425"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "开始解析 23 篇种子文献并生成综述分析",
+    "details": {
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621161328-4d8b86f6"
+    },
+    "timestamp": "2026-06-21T16:13:28.718228"
+  }
+]

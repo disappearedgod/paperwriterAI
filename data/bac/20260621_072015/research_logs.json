@@ -1,0 +1,38 @@
+[
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    "timestamp": "2026-06-21T07:16:59.440249"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5,
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    "timestamp": "2026-06-21T07:16:58.432482"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "2311.10723 - LLM in Finance Survey (11页)",
+      "run_id": "RUN-20260621071657-417774b6"
+    },
+    "timestamp": "2026-06-21T07:16:57.228360"
+  }
+]

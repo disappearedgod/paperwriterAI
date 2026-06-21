@@ -1,0 +1,90 @@
+[
+  {
+    "id": 8,
+    "paper_id": 2,
+    "research_id": "RS-20260621-002",
+    "status": "completed",
+    "message": "研究完成: 种子论文主题分析",
+    "details": {
+      "research_id": "RS-20260621-002"
+    },
+    "timestamp": "2026-06-21T04:38:46.716058"
+  },
+  {
+    "id": 7,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3
+    },
+    "timestamp": "2026-06-21T04:38:45.267467"
+  },
+  {
+    "id": 6,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5
+    },
+    "timestamp": "2026-06-21T04:38:44.258608"
+  },
+  {
+    "id": 5,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析"
+    },
+    "timestamp": "2026-06-21T04:38:43.047736"
+  },
+  {
+    "id": 4,
+    "paper_id": 1,
+    "research_id": "RS-20260621-001",
+    "status": "completed",
+    "message": "研究完成: 种子论文主题分析",
+    "details": {
+      "research_id": "RS-20260621-001"
+    },
+    "timestamp": "2026-06-21T04:36:46.252607"
+  },
+  {
+    "id": 3,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "experimenting",
+    "message": "启动 3 个实验",
+    "details": {
+      "count": 3
+    },
+    "timestamp": "2026-06-21T04:36:43.693678"
+  },
+  {
+    "id": 2,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "hypothesis",
+    "message": "生成 5 条假设",
+    "details": {
+      "count": 5
+    },
+    "timestamp": "2026-06-21T04:36:42.685753"
+  },
+  {
+    "id": 1,
+    "paper_id": 0,
+    "research_id": "",
+    "status": "literature_review",
+    "message": "读取种子文献 23 篇",
+    "details": {
+      "topic": "种子论文主题分析"
+    },
+    "timestamp": "2026-06-21T04:36:41.476247"
+  }
+]

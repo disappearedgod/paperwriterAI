@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "paper_id": 1,
+    "research_id": "RS-20260620-001",
+    "status": "generated",
+    "message": "论文生成完成",
+    "details": {"topic": "种子综述：Automate Strategy Finding with LLM in Quant Investment"},
+    "timestamp": "2026-06-20T16:03:03.706836"
+  },
+  {
+    "id": 2,
+    "paper_id": 2,
+    "research_id": "RS-20260620-002",
+    "status": "imported",
+    "message": "论文导入完成",
+    "details": {"topic": "Automate Strategy Finding with LLM in Quant Investment"},
+    "timestamp": "2026-06-20T16:12:10.525623"
+  },
+  {
+    "id": 3,
+    "paper_id": 3,
+    "research_id": "RS-20260620-003",
+    "status": "imported",
+    "message": "论文导入完成",
+    "details": {"topic": "Transformer momentum strategies for quantitative trading"},
+    "timestamp": "2026-06-20T16:12:10.529276"
+  },
+  {
+    "id": 4,
+    "paper_id": 4,
+    "research_id": "RS-20260620-004",
+    "status": "imported",
+    "message": "论文导入完成",
+    "details": {"topic": "基于深度学习的A股量化交易策略研究"},
+    "timestamp": "2026-06-20T16:12:10.532472"
+  },
+  {
+    "id": 5,
+    "paper_id": 5,
+    "research_id": "RS-20260620-005",
+    "status": "generated",
+    "message": "论文生成完成",
+    "details": {"topic": "基于深度学习的A股短期价格预测"},
+    "timestamp": "2026-06-20T16:27:22.222125"
+  }
+]

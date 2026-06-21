@@ -1,0 +1,13 @@
+{
+  "status": "manual_required",
+  "conference": "ICML 2026",
+  "email": "weihong.xu@outlook.com",
+  "subject": "ICML 2026 Paper Submission - Transformer-Based Momentum Trading",
+  "email_body": "Dear ICML Submission Committee,\n\nPlease find attached my paper submission for ICML 2026.\n\nTitle: Transformer-Based Momentum Trading Strategy in Chinese A-Shares: An Empirical Study\n\nAbstract: [Please include the abstract from your paper]\n\nAuthors: Wei Zhang, Lin Chen, Ming Li\n\nI confirm that this work is original and has not been submitted to any other conference or journal simultaneously.\n\nBest regards,\nWei Zhang\nSchool of Finance, Shanghai University of Finance and Economics\nweihong.xu@outlook.com\n",
+  "required_attachments": [
+    "paper.pdf - 论文全文",
+    "paper.tex - LaTeX源文件",
+    "supplementary.pdf - 附录（如有）"
+  ],
+  "deadline_note": "请确认ICML 2026的实际截稿日期"
+}

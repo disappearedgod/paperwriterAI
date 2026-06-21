@@ -1,0 +1,9 @@
+{
+  "status": "paused",
+  "next_step": 0,
+  "min_chars": 14000,
+  "updated_at": "2026-06-21T16:28:22.058147",
+  "reason": "llm total timeout (3s)",
+  "content_len": 0,
+  "has_refs": false
+}

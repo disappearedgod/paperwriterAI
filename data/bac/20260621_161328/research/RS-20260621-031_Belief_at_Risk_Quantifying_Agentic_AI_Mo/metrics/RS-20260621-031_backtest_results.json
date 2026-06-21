@@ -1,0 +1,58 @@
+{
+  "experiment_date": "2026-06-21 06:26:05",
+  "stock": "000001 平安银行 (sz.000001)",
+  "data_range": "2019-01-03 至 2024-12-31",
+  "data_points": 1453,
+  "strategies": {
+    "ma_crossover": {
+      "name": "均线交叉策略 (MA5/MA60)",
+      "fast_ma": 5,
+      "slow_ma": 60,
+      "metrics": {
+        "total_return": 7.69,
+        "annual_return": 1.29,
+        "sharpe_ratio": -0.06,
+        "max_drawdown": -36.78,
+        "win_rate": 50.91,
+        "total_trades": 1367,
+        "annual_vol": 30.84
+      }
+    },
+    "rsi_mean_reversion": {
+      "name": "RSI均值回归策略",
+      "lookback": 14,
+      "lower_threshold": 30,
+      "upper_threshold": 80,
+      "hold_days": 5,
+      "metrics": {
+        "total_return": -7.13,
+        "annual_return": -1.28,
+        "sharpe_ratio": -42.75,
+        "max_drawdown": -32.03,
+        "win_rate": 0,
+        "total_trades": 0,
+        "annual_vol": 0.1
+      }
+    },
+    "bollinger_bands": {
+      "name": "布林带策略",
+      "window": 30,
+      "std_mult": 2.2,
+      "metrics": {
+        "total_return": -0.74,
+        "annual_return": -0.13,
+        "sharpe_ratio": -31.29,
+        "max_drawdown": -25.83,
+        "win_rate": 0,
+        "total_trades": 0,
+        "annual_vol": 0.1
+      }
+    }
+  },
+  "benchmark": {
+    "name": "买入持有",
+    "total_return": 48.07,
+    "annual_return": 7.04
+  },
+  "best_strategy": "ma_crossover"
+}

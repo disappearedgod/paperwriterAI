@@ -1,0 +1,104 @@
+{
+  "experiment_date": "2026-06-22 01:17:08",
+  "stock": "000001 平安银行 (sz.000001)",
+  "data_range": "2019-01-03 至 2024-12-31",
+  "data_points": 1453,
+  "quantagent": {
+    "name": "QuantAgent 投票模拟（Trend/MeanRev/Vol 三智能体）",
+    "agents": [
+      {
+        "id": "trend",
+        "signal": "ma5 > ma20 => +1 else -1"
+      },
+      {
+        "id": "meanrev",
+        "signal": "rsi<30 => +1; rsi>70 => -1; else 0"
+      },
+      {
+        "id": "vol",
+        "signal": "close<bb_lower => +1; close>bb_upper => -1; else 0"
+      }
+    ],
+    "aggregator": "majority_vote_on_sign(sum(signals))",
+    "metrics": {
+      "total_return": -60.86,
+      "annual_return": -15.01,
+      "sharpe_ratio": -0.66,
+      "max_drawdown": -66.26,
+      "win_rate": 49.38,
+      "total_trades": 1049,
+      "annual_vol": 27.27
+    },
+    "ablations": {
+      "trend_only": {
+        "total_return": -69.78,
+        "annual_return": -18.74,
+        "sharpe_ratio": -0.69,
+        "max_drawdown": -70.6,
+        "win_rate": 48.11,
+        "total_trades": 1426,
+        "annual_vol": 31.67
+      },
+      "meanrev_only": {
+        "total_return": 31.15,
+        "annual_return": 4.82,
+        "sharpe_ratio": 0.1,
+        "max_drawdown": -15.81,
+        "win_rate": 53.81,
+        "total_trades": 407,
+        "annual_vol": 18.19
+      },
+      "vol_only": {
+        "total_return": -25.45,
+        "annual_return": -4.97,
+        "sharpe_ratio": -0.63,
+        "max_drawdown": -34.39,
+        "win_rate": 52.63,
+        "total_trades": 152,
+        "annual_vol": 12.57
+      },
+      "trend_meanrev": {
+        "total_return": -48.86,
+        "annual_return": -10.98,
+        "sharpe_ratio": -0.54,
+        "max_drawdown": -55.77,
+        "win_rate": 49.03,
+        "total_trades": 1026,
+        "annual_vol": 26.02
+      },
+      "trend_vol": {
+        "total_return": -75.33,
+        "annual_return": -21.55,
+        "sharpe_ratio": -0.84,
+        "max_drawdown": -77.5,
+        "win_rate": 48.16,
+        "total_trades": 1279,
+        "annual_vol": 29.08
+      },
+      "meanrev_vol": {
+        "total_return": 16.49,
+        "annual_return": 2.68,
+        "sharpe_ratio": -0.02,
+        "max_drawdown": -23.02,
+        "win_rate": 53.8,
+        "total_trades": 474,
+        "annual_vol": 19.42
+      }
+    }
+  },
+  "baseline_best_strategy": "ma_crossover",
+  "baseline_best_strategy_metrics": {
+    "total_return": 7.69,
+    "annual_return": 1.29,
+    "sharpe_ratio": -0.06,
+    "max_drawdown": -36.78,
+    "win_rate": 50.91,
+    "total_trades": 1367,
+    "annual_vol": 30.84
+  },
+  "benchmark": {
+    "name": "买入持有",
+    "total_return": 48.07,
+    "annual_return": 7.04
+  }
+}

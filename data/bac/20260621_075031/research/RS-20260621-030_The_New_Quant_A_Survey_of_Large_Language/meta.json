@@ -1,0 +1,18 @@
+{
+  "research_id": "RS-20260621-030",
+  "paper_id": 9,
+  "branch_id": 1,
+  "title": "The New Quant: A Survey of Large Language Models in Financial Prediction and Trading（扩展 060915）",
+  "topic": "The New Quant: A Survey of Large Language Models in Financial Prediction and Trading（扩展 060915）",
+  "status": "generated",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T06:25:59.516579",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-030_The_New_Quant_A_Survey_of_Large_Language/article/RS-20260621-030_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-030_The_New_Quant_A_Survey_of_Large_Language/data/RS-20260621-030_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-030_The_New_Quant_A_Survey_of_Large_Language/data/RS-20260621-030_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-030_The_New_Quant_A_Survey_of_Large_Language/metrics/RS-20260621-030_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-030_The_New_Quant_A_Survey_of_Large_Language/code/RS-20260621-030_experiment.py"
+  }
+}

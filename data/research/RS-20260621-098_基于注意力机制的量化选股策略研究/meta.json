@@ -1,0 +1,25 @@
+{
+  "research_id": "RS-20260621-098",
+  "paper_id": 2,
+  "branch_id": 1,
+  "title": "基于注意力机制的量化选股策略研究",
+  "topic": "基于注意力机制的量化选股策略研究",
+  "status": "paused",
+  "parent_research_id": null,
+  "legacy_project_id": null,
+  "created_at": "2026-06-21T17:02:14.859778",
+  "artifacts": {
+    "markdown": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/article/RS-20260621-098_paper.md",
+    "experiment_data": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/data/RS-20260621-098_experiment_data.json",
+    "indicator_sample": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/data/RS-20260621-098_indicator_sample.json",
+    "backtest_results": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/metrics/RS-20260621-098_backtest_results.json",
+    "code": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/code/RS-20260621-098_experiment.py",
+    "experiment_data_spec": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/experiments/RS-20260621-098_experiment_data_spec.md",
+    "hypotheses_doc": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/experiments/RS-20260621-098_hypotheses.md",
+    "experiment_results_doc": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/experiments/RS-20260621-098_experiment_results.md",
+    "author_network_json": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/graphs/RS-20260621-098_author_network.json",
+    "author_network_md": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/graphs/RS-20260621-098_author_network.md",
+    "citation_network_json": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/graphs/RS-20260621-098_citation_network.json",
+    "citation_network_md": "/Users/derek/Documents/Github/paperwriterAI/data/research/RS-20260621-098_基于注意力机制的量化选股策略研究/graphs/RS-20260621-098_citation_network.md"
+  }
+}
