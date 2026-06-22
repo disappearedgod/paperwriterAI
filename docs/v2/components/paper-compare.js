@@ -74,7 +74,7 @@ class PaperCompare {
     }
     
     updatePaperList() {
-        const listContainer = document.getElementById('paper-list');
+        const listContainer = this.container.querySelector('#paper-list');
         
         if (!this.papers || this.papers.length === 0) {
             listContainer.innerHTML = `
@@ -97,6 +97,13 @@ class PaperCompare {
                         <span class="paper-id">ID: ${paper.id}</span>
                         <span class="paper-status ${paper.status}">${this.getStatusText(paper.status)}</span>
                     </div>
+                    ${paper.paper_kind === 'reference_analysis' && paper.source_links && (paper.source_links.arxiv_url || paper.source_links.pdf_url)
+                        ? `<div class="paper-meta" style="margin-top: 4px;">
+                            <span style="opacity:.8;">原论文:</span>
+                            ${paper.source_links.arxiv_url ? `<a href="${paper.source_links.arxiv_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">arXiv</a>` : ''}
+                            ${paper.source_links.pdf_url ? `<a href="${paper.source_links.pdf_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="margin-left:8px;">PDF</a>` : ''}
+                          </div>`
+                        : ''}
                 </div>
             </div>
         `).join('');
@@ -131,12 +138,12 @@ class PaperCompare {
     }
     
     updateSelectionCount() {
-        const countElement = document.getElementById('selection-count');
+        const countElement = this.container.querySelector('#selection-count');
         countElement.textContent = `已选择 ${this.selectedPapers.length} 篇`;
     }
     
     updateCompareButton() {
-        const compareBtn = document.getElementById('compare-papers');
+        const compareBtn = this.container.querySelector('#compare-papers');
         compareBtn.disabled = this.selectedPapers.length < 2;
     }
     
@@ -164,7 +171,7 @@ class PaperCompare {
     }
     
     updateComparisonResults() {
-        const resultsContainer = document.getElementById('compare-results');
+        const resultsContainer = this.container.querySelector('#compare-results');
         
         if (!this.comparisonResults) {
             resultsContainer.innerHTML = `
@@ -283,8 +290,8 @@ class PaperCompare {
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.papers);
+            (papersState) => {
+                this.updateUI(papersState);
             },
             (state) => state.papers
         );
@@ -299,12 +306,12 @@ class PaperCompare {
     
     setupEventListeners() {
         // Compare button
-        document.getElementById('compare-papers')?.addEventListener('click', () => {
+        this.container.querySelector('#compare-papers')?.addEventListener('click', () => {
             this.runComparison();
         });
         
         // Clear selection button
-        document.getElementById('clear-selection')?.addEventListener('click', () => {
+        this.container.querySelector('#clear-selection')?.addEventListener('click', () => {
             this.clearSelection();
         });
     }

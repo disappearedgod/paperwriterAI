@@ -22,6 +22,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from core.mongo_artifacts import sync_research_file
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 RESEARCH_DIR = PROJECT_ROOT / "data" / "research"
 EXPERIMENT_TEMPLATE = PROJECT_ROOT / "scripts" / "real_experiment_v2.py"
@@ -144,6 +146,7 @@ def write_meta(
         meta.update(extra)
     meta_path = root / "meta.json"
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    sync_research_file(research_root=root, research_id=research_id, file_path=meta_path)
     return meta_path
 
 
@@ -189,6 +192,7 @@ def save_article_markdown(root: Path, research_id: str, content: str) -> Path:
     names = artifact_filenames(research_id)
     path = root / "article" / names["article_md"]
     path.write_text(content, encoding="utf-8")
+    sync_research_file(research_root=root, research_id=research_id, file_path=path)
     return path
 
 
@@ -196,6 +200,7 @@ def save_article_tex(root: Path, research_id: str, content: str) -> Path:
     names = artifact_filenames(research_id)
     path = root / "article" / names["article_tex"]
     path.write_text(content, encoding="utf-8")
+    sync_research_file(research_root=root, research_id=research_id, file_path=path)
     return path
 
 
@@ -309,7 +314,15 @@ def create_research_workspace(
     """创建完整研究档案并保存论文正文。"""
     root = research_root(research_id, title)
     ensure_research_layout(root)
-    article_path = save_article_markdown(root, research_id, content)
+    content_text = str(content or "")
+    names = artifact_filenames(research_id)
+    if re.search(r"\\documentclass", content_text[:4000], flags=re.IGNORECASE):
+        save_article_tex(root, research_id, content_text)
+        article_md = root / "article" / names["article_md"]
+        article_md.write_text(f"# {title}\n\n> LaTeX 原文见 `{names['article_tex']}`\n", encoding="utf-8")
+        article_path = article_md
+    else:
+        article_path = save_article_markdown(root, research_id, content_text)
 
     if scaffold:
         scaffold_placeholder_data(root, research_id, title, topic)

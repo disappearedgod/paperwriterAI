@@ -1,0 +1,22 @@
+schema_version: 1
+module_path: ""
+title: FARS 自动化科研与量化回测系统
+scope:
+    - AGENTS.md
+    - .gitignore
+    - .gitmodules
+    - .qoderignore
+    - requirements.txt
+    - requirements-dev.txt
+    - setup-fast-detectgpt.sh
+    - server.py
+    - server_fars.py
+    - src/
+    - docs/
+    - research/
+    - README.md
+    - config.json
+    - config.local.json
+source_files: []
+depends_on: []
+related_to: []

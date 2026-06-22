@@ -281,8 +281,8 @@ class ExperimentPanel {
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.experiments);
+            (experimentsState) => {
+                this.updateUI(experimentsState);
             },
             (state) => state.experiments
         );

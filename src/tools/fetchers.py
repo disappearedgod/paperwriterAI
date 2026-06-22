@@ -601,7 +601,7 @@ class LLMCaller:
         """调用MiniMax API并返回统计信息"""
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=api_key, base_url=base_url or "https://token.juda.dev/v1")
+            client = OpenAI(api_key=api_key, base_url=base_url or "https://minnimax.chat/v1")
 
             messages = []
             if system_prompt:
@@ -747,10 +747,10 @@ class LLMCaller:
     def _call_minimax(self, model: str, prompt: str, system_prompt: str = None,
                       temperature: float = 0.7, max_tokens: int = 4096,
                       api_key: str = None, base_url: str = None) -> Optional[str]:
-        """调用MiniMax API (https://token.juda.dev/v1)"""
+        """调用MiniMax API (https://minnimax.chat/v1)"""
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=api_key, base_url=base_url or "https://token.juda.dev/v1")
+            client = OpenAI(api_key=api_key, base_url=base_url or "https://minnimax.chat/v1")
 
             messages = []
             if system_prompt:

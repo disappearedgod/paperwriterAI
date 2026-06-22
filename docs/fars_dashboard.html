@@ -195,6 +195,21 @@
             color: var(--accent-yellow);
         }
 
+        .llm-monitor-pill.ok {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .llm-monitor-pill.warn {
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
+
+        .llm-monitor-pill.fail {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
         /* Topology Graph */
         #topology-container {
             height: 500px;
@@ -355,6 +370,18 @@
             font-size: 0.75rem;
             font-weight: 500;
         }
+
+        .paper-kind {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .paper-kind.generated { color: var(--accent-blue); }
+        .paper-kind.reference_analysis { color: var(--accent-purple); }
 
         .status-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
         .status-failed { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
@@ -1154,6 +1181,14 @@
         </div>
 
         <div class="control-group">
+            <span class="control-label">自动恢复:</span>
+            <label style="display:flex; align-items:center; gap:0.4rem;">
+                <input type="checkbox" id="toggle-auto-resume" onchange="updateRuntimeConfig()" />
+                <span style="font-size:0.85rem; color: var(--text-secondary);">服务重启后自动续跑</span>
+            </label>
+        </div>
+
+        <div class="control-group">
             <button id="btn-start" class="control-btn primary" onclick="startGeneration()">
                 ▶ 开始
             </button>
@@ -1162,6 +1197,9 @@
             </button>
             <button id="btn-resume" class="control-btn success" onclick="resumeGeneration()" style="display: none;">
                 ▶ 继续
+            </button>
+            <button id="btn-recover" class="control-btn success" onclick="resumeGeneration()" style="display: none;">
+                🛟 恢复后台线程
             </button>
             <button id="btn-stop" class="control-btn danger" onclick="stopGeneration()" style="display: none;">
                 ⏹ 停止
@@ -1177,6 +1215,9 @@
             </button>
             <button class="control-btn danger" onclick="resetFromZero()" title="备份后清空论文档案，保留种子文献">
                 🧹 从0开始
+            </button>
+            <button class="control-btn warning" onclick="restoreFromBackup()" title="从最近一次备份恢复论文/状态（本地 data/bac 与 Mongo reset 备份）">
+                🧯 一键恢复
             </button>
         </div>
 
@@ -1249,6 +1290,7 @@
                     <h2>LLM 监控</h2>
                 </div>
                 <div class="card-body" style="padding: 1rem 1.25rem;">
+                    <div id="llm-ping-status" class="llm-monitor-summary" style="margin-bottom: 0.35rem;"></div>
                     <div id="llm-monitor-summary" class="llm-monitor-summary"></div>
                     <div style="overflow:auto; margin-top: 0.75rem;">
                         <table id="llm-monitor-table" class="llm-monitor-table"></table>
@@ -1645,6 +1687,12 @@
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                     选择一个已有的研究断点，从上次中断的位置继续生成论文。
                 </p>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                    <input id="checkpoint-include-completed" type="checkbox" onchange="toggleCheckpointIncludeCompleted(this.checked)" />
+                    <label for="checkpoint-include-completed" style="cursor: pointer;">
+                        显示已完成记录（继续生成下一篇，会生成新 research_id）
+                    </label>
+                </div>
                 <div id="checkpoint-list" style="max-height: 350px; overflow-y: auto;">
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         ⏳ 加载中...
@@ -1867,7 +1915,9 @@
                     shortLabel: getShortTitle(p.title, p.research_id || `P${p.id}`),
                     status: logical,
                     paper_id: p.id,
-                    research_id: p.research_id || null
+                    research_id: p.research_id || null,
+                    paper_kind: p.paper_kind || null,
+                    source_links: p.source_links || null,
                 });
                 if (p.branch_id) {
                     edges.push({ source: `branch_${p.branch_id}`, target: `paper_${p.id}` });
@@ -2405,6 +2455,10 @@
                             .attr('font-size', '10px');
                         g.on('mouseover', nodeMouseover).on('mouseout', nodeMouseout);
                         g.on('click', (event, d) => {
+                            if (d.paper_id && d.paper_kind === 'reference_analysis' && d.source_links && (d.source_links.arxiv_url || d.source_links.pdf_url) && event.shiftKey) {
+                                window.open(d.source_links.arxiv_url || d.source_links.pdf_url, '_blank', 'noopener');
+                                return;
+                            }
                             if (d.paper_id) previewPaper(d.paper_id);
                         });
                         g.transition().duration(500).style('opacity', 1);
@@ -2462,12 +2516,21 @@
                     ? '分支/假设'
                     : (d.type === 'paper-success' ? '论文（成功）' : '论文（失败）');
                 const statusLabel = getStatusText(d.status);
+                const src = d.source_links || null;
+                const srcHtml = (d.paper_kind === 'reference_analysis' && src && (src.arxiv_url || src.pdf_url))
+                    ? `<p><strong>原论文:</strong>
+                        ${src.arxiv_url ? `<a href="${src.arxiv_url}" target="_blank" rel="noopener">arXiv</a>` : ''}
+                        ${src.pdf_url ? `<a href="${src.pdf_url}" target="_blank" rel="noopener" style="margin-left:.5rem;">PDF</a>` : ''}
+                      </p>
+                      <p style="opacity:.85;">Shift+点击节点打开原论文；普通点击查看解读结果</p>`
+                    : '';
                 tooltip.innerHTML = `
                     <h4>${d.label}</h4>
                     ${d.research_id ? `<p><strong>Research ID:</strong> ${d.research_id}</p>` : ''}
                     <p><strong>类型:</strong> ${typeLabel}</p>
                     <p><strong>状态:</strong> ${statusLabel}</p>
                     ${d.paper_id ? `<p style="opacity:.85;">点击节点查看全文/失败原因</p>` : ''}
+                    ${srcHtml}
                     ${d.metrics ? `<p><strong>指标:</strong> ${JSON.stringify(d.metrics).substring(0, 50)}...</p>` : ''}
                 `;
                 tooltip.style.display = 'block';
@@ -2519,19 +2582,37 @@
                 const logical = getLogicalPaperStatus(paper);
                 const researchLabel = paper.research_id ? `<span style="color:var(--accent-purple)">${paper.research_id}</span> · ` : '';
                 const abstract = paper.abstract || '';
+                let displayTitle = String(paper.title || '').trim();
+                const titleLower = displayTitle.toLowerCase();
+                if (!displayTitle || titleLower.includes('documentclass') || titleLower.includes('usepackage')) {
+                    displayTitle = String(paper.topic || paper.research_id || `Paper #${paper.id}` || '').trim();
+                }
                 const abstractHtml = abstract
                     ? (logical === 'failed'
                         ? `<pre style="white-space: pre-wrap; word-break: break-word; color: var(--accent-red); font-size: 0.82rem; margin-bottom: 0.75rem;">${escapeHtml(abstract)}</pre>`
                         : `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">${escapeHtml(abstract.substring(0, 200))}${abstract.length > 200 ? '...' : ''}</p>`)
                     : '';
+                const src = paper.source_links || null;
+                const sourceLinkHtml = (paper.paper_kind === 'reference_analysis' && src && (src.arxiv_url || src.pdf_url))
+                    ? `<div class="paper-actions" style="margin-top: 0.25rem;">
+                        <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">原论文:</span>
+                        ${src.arxiv_url ? `<a href="${src.arxiv_url}" target="_blank" rel="noopener" class="download-btn" title="打开 arXiv 页面">🔗 arXiv</a>` : ''}
+                        ${src.pdf_url ? `<a href="${src.pdf_url}" target="_blank" rel="noopener" class="download-btn" title="打开/下载 PDF">📄 PDF</a>` : ''}
+                    </div>`
+                    : '';
+                const pdfHtml = files.pdf
+                    ? `<a href="${files.pdf}" download class="download-btn" title="下载PDF">📄 PDF</a><button onclick="compilePaperPDF(${paper.id})" class="download-btn" title="重新编译PDF（优先用LaTeX）" style="margin-left: 0.25rem;">🧾 重编</button>`
+                    : `<button onclick="compilePaperPDF(${paper.id})" class="download-btn" title="生成PDF（优先用LaTeX）" style="margin-left: 0.25rem;">🧾 生成PDF</button>`;
                 return `
                 <div class="paper-item ${logical}">
-                    <h3 style="cursor: pointer;" onclick="previewPaper(${paper.id})">${paper.title}</h3>
+                    <h3 style="cursor: pointer;" onclick="previewPaper(${paper.id})">${escapeHtml(displayTitle)}</h3>
                     <div class="paper-meta">
                         ${researchLabel}<span>创建: ${new Date(paper.created_at).toLocaleDateString()}</span>
+                        <span class="paper-kind ${escapeHtml(String(paper.paper_kind || 'generated'))}">${escapeHtml(String(paper.paper_kind_label || 'AI撰写'))}</span>
                         <span>质量分: ${paper.quality_score}</span>
                     </div>
                     ${abstractHtml}
+                    ${sourceLinkHtml}
                     <span class="paper-status status-${logical}">${getStatusText(logical)}</span>
                     ${paper.feedback ? `<p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--accent-yellow);">审稿意见: ${paper.feedback}</p>` : ''}
                     <div class="paper-actions">
@@ -2539,6 +2620,7 @@
                         ${files.markdown ? `<a href="${files.markdown}" download class="download-btn" title="下载Markdown">📄 MD</a>` : ''}
                         ${files.latex ? `<a href="${files.latex}" download class="download-btn" title="下载LaTeX">📜 LaTeX</a>` : ''}
                         ${files.icml ? `<a href="${files.icml}" download class="download-btn" title="下载ICML投稿">📋 ICML</a>` : ''}
+                        ${pdfHtml}
                         <button onclick="previewPaper(${paper.id})" class="download-btn" title="查看全文/失败原因" style="margin-left: 0.25rem;">🔍 详情</button>
                     </div>
                     ${files.data || files.code ? `
@@ -2556,6 +2638,21 @@
                     ` : ''}
                 </div>
             `}).join('');
+        }
+
+        async function compilePaperPDF(paperId) {
+            try {
+                const res = await fetch(`/api/papers/${paperId}/compile-pdf`, { method: 'POST' });
+                const data = await res.json();
+                if (!data.success) {
+                    alert('PDF 生成失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+                await loadPaperArchives();
+                alert('PDF 已生成');
+            } catch (e) {
+                alert('PDF 生成失败: ' + (e.message || String(e)));
+            }
         }
 
         // Hypotheses
@@ -4156,11 +4253,13 @@
             lastPaperCount: 0,
             llmInflight: null,
             runMetrics: null,
+            llmPing: null,
         };
 
         let selectedReviewFile = null;
         let statePollInterval = null;
         let statusTickerInterval = null;
+        let llmPingInterval = null;
         let llmReady = false;
         let lastGraphRefreshTs = 0;
 
@@ -4187,8 +4286,11 @@
             await loadDataRegistry();
             await loadPaperArchives();
             await loadResearchState();
+            await loadRuntimeConfig();
             await ensureLLMReady(true);
+            await loadLLMPing();
             startStatePolling();
+            startLLMPingPolling();
             startStatusTicker();
         }
 
@@ -4243,6 +4345,65 @@
                     alert('需要先配置 LLM API Key 才能开始生成。');
                 }
                 return false;
+            }
+        }
+
+        async function loadRuntimeConfig() {
+            try {
+                const res = await fetch('/api/config/runtime', { cache: 'no-store' });
+                const data = await res.json();
+                if (data && data.success) {
+                    researchState.runtime = data.runtime || {};
+                    const el = document.getElementById('toggle-auto-resume');
+                    if (el) {
+                        el.checked = !!(researchState.runtime.auto_resume_on_restart);
+                    }
+                }
+            } catch (e) {
+            }
+        }
+
+        async function updateRuntimeConfig() {
+            try {
+                const el = document.getElementById('toggle-auto-resume');
+                const val = !!(el && el.checked);
+                const res = await fetch('/api/config/runtime', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ runtime: { auto_resume_on_restart: val } })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    researchState.runtime = data.runtime || {};
+                } else {
+                    alert('运行配置更新失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('运行配置更新失败: ' + (e.message || String(e)));
+            }
+        }
+
+        async function loadLLMPing() {
+            try {
+                const res = await fetch('/api/llm/ping', { cache: 'no-store' });
+                const data = await res.json();
+                if (data && data.success) {
+                    researchState.llmPing = data;
+                    const llm = data.llm || {};
+                    if (typeof llm.api_key_configured === 'boolean') {
+                        llmReady = !!llm.api_key_configured;
+                        updateControlButtons();
+                    }
+                }
+                renderLLMMonitor();
+            } catch (e) {
+                researchState.llmPing = {
+                    success: false,
+                    ts: new Date().toISOString(),
+                    llm: null,
+                    ping: { attempted: true, ok: false, error_type: 'fetch_error', error: e.message || String(e) }
+                };
+                renderLLMMonitor();
             }
         }
 
@@ -4302,6 +4463,37 @@
             }
         }
 
+        async function restoreFromBackup() {
+            try {
+                const res = await fetch('/api/research/backups?limit=5');
+                const data = await res.json();
+                const local = (data.local || [])[0];
+                const hint = local ? `最近本地备份: ${local.name}` : '未检测到本地备份目录';
+                const msg = '将尝试一键恢复：\n'
+                    + '• 优先从 Mongo reset 备份恢复（如存在）\n'
+                    + '• 否则从 data/bac 最新目录恢复\n'
+                    + `• ${hint}\n\n`
+                    + '恢复将覆盖当前 data/*.json（并同步写入 Mongo）。\n'
+                    + '确定继续？';
+                if (!confirm(msg)) return;
+
+                const r = await fetch('/api/research/restore-latest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prefer: 'auto' })
+                });
+                const result = await r.json();
+                if (!result.success) {
+                    alert('恢复失败: ' + (result.error || '未知错误'));
+                    return;
+                }
+                await refreshAllPanels();
+                alert(`恢复成功（来源: ${result.restored_from || '-'}）\n建议刷新页面后再继续操作。`);
+            } catch (e) {
+                alert('恢复失败: ' + (e.message || String(e)));
+            }
+        }
+
         async function loadPaperArchives() {
             try {
                 const response = await fetch('/api/papers');
@@ -4315,6 +4507,9 @@
                     quality_score: p.quality_score ?? 'N/A',
                     created_at: p.created_at,
                     abstract: p.content_preview || p.topic || '',
+                    paper_kind: p.paper_kind,
+                    paper_kind_label: p.paper_kind_label,
+                    source_links: p.source_links || null,
                 }));
 
                 // 仅用 API 数据，不合并演示数据
@@ -4329,6 +4524,7 @@
                     farsData.filePaths.papers[p.id] = {
                         markdown: a.markdown,
                         latex: a.latex,
+                        pdf: a.latex_pdf || a.pdf,
                         data: a.backtest_results || a.experiment_data,
                         indicators: a.indicator_sample,
                         code: a.code,
@@ -4478,30 +4674,38 @@
             const btnStart = document.getElementById('btn-start');
             const btnPause = document.getElementById('btn-pause');
             const btnResume = document.getElementById('btn-resume');
+            const btnRecover = document.getElementById('btn-recover');
             const btnStop = document.getElementById('btn-stop');
             const btnNext = document.getElementById('btn-next');
 
             if (researchState.isPaused) {
                 btnStart.style.display = 'none';
                 btnPause.style.display = 'none';
-                btnResume.style.display = 'inline-flex';
+                const heal = researchState.selfHeal || null;
+                const showRecover = !!(heal && (heal.reason === 'runner_not_running' || heal.type === 'startup_self_heal' || heal.type === 'stall_auto_pause'));
+                if (btnRecover) btnRecover.style.display = showRecover ? 'inline-flex' : 'none';
+                btnResume.style.display = showRecover ? 'none' : 'inline-flex';
                 btnStop.style.display = 'inline-flex';
             } else if (researchState.isGenerating) {
                 btnStart.style.display = 'none';
                 btnPause.style.display = 'inline-flex';
                 btnResume.style.display = 'none';
+                if (btnRecover) btnRecover.style.display = 'none';
                 btnStop.style.display = 'inline-flex';
             } else {
                 btnStart.style.display = 'inline-flex';
                 btnPause.style.display = 'none';
                 btnResume.style.display = 'none';
+                if (btnRecover) btnRecover.style.display = 'none';
                 btnStop.style.display = 'none';
             }
 
             const allowGenerate = !!llmReady;
-            if (btnStart) btnStart.disabled = !allowGenerate;
-            if (btnResume) btnResume.disabled = !allowGenerate;
-            if (btnNext) btnNext.disabled = !allowGenerate;
+            const hint = allowGenerate ? '' : '需要先配置 LLM（点击 ⚙️ LLM配置）';
+            if (btnStart) { btnStart.disabled = false; btnStart.title = hint; }
+            if (btnResume) { btnResume.disabled = false; btnResume.title = hint; }
+            if (btnRecover) { btnRecover.disabled = false; btnRecover.title = hint; }
+            if (btnNext) { btnNext.disabled = false; btnNext.title = hint; }
         }
 
         function updateStatus() {
@@ -4518,7 +4722,13 @@
                 statusEl.classList.add('paused');
                 const run = researchState.currentRun || {};
                 const hint = (run && run.status === 'paused') ? ' · 可点击“继续”断点续传' : '';
-                statusText.textContent = `${act.message || '已暂停'}${hint}${elapsedLabel}`;
+                let healLabel = '';
+                const heal = researchState.selfHeal || null;
+                if (heal) {
+                    const reason = (heal.reason === 'runner_not_running') ? 'runner_not_running' : (heal.type === 'stall_auto_pause' ? 'stall_auto_pause' : (heal.reason || heal.type || ''));
+                    if (reason) healLabel = ` · self_heal=${reason}`;
+                }
+                statusText.textContent = `${act.message || '已暂停'}${hint}${healLabel}${elapsedLabel}`;
             } else if (researchState.isGenerating) {
                 statusEl.classList.add('generating');
                 const phaseLabels = {
@@ -4563,7 +4773,9 @@
                     }
                 }
                 if (researchState.selfHeal && researchState.selfHeal.type) {
-                    stallLabel += ` · ${researchState.selfHeal.type}`;
+                    const heal = researchState.selfHeal || {};
+                    const reason = (heal.reason === 'runner_not_running') ? 'runner_not_running' : (heal.type === 'stall_auto_pause' ? 'stall_auto_pause' : (heal.reason || heal.type || ''));
+                    if (reason) stallLabel += ` · self_heal=${reason}`;
                 }
                 statusText.textContent = `${phase} · ${msg}${inflightLabel}${stallLabel}${tokenLabel}${elapsedLabel}`;
             } else if (act.phase === 'completed' && act.message) {
@@ -4596,6 +4808,7 @@
         function renderLLMMonitor() {
             const summaryEl = document.getElementById('llm-monitor-summary');
             const tableEl = document.getElementById('llm-monitor-table');
+            const pingEl = document.getElementById('llm-ping-status');
             if (!summaryEl || !tableEl) return;
 
             const rm = researchState.runMetrics || {};
@@ -4613,6 +4826,42 @@
             if (runId) parts.push(`Run ${escapeHtml(runId)}`);
             if (updatedAt) parts.push(`更新 ${escapeHtml(updatedAt.replace('T', ' ').slice(0, 19))}`);
             summaryEl.innerHTML = parts.length ? parts.join(' · ') : '暂无运行数据';
+
+            if (pingEl) {
+                const pingPayload = researchState.llmPing || null;
+                if (!pingPayload || !pingPayload.llm) {
+                    pingEl.innerHTML = 'Ping 未测试';
+                } else {
+                    const llm = pingPayload.llm || {};
+                    const p = pingPayload.ping || {};
+                    const checked = pingPayload.ts ? String(pingPayload.ts).replace('T', ' ').slice(0, 19) : '-';
+                    const ok = !!p.ok;
+                    const warnType = String(p.warning_type || p.warn_type || p.error_type || '');
+                    const isWarn = (ok && warnType.startsWith('empty')) || ((!ok) && String(p.status_code || '') === '200' && warnType.startsWith('empty'));
+                    const pillClass = isWarn ? 'warn' : (ok ? 'ok' : 'fail');
+                    const pillText = isWarn ? 'WARN' : (ok ? 'OK' : 'FAIL');
+                    const pill = `<span class="llm-monitor-pill ${pillClass}">${pillText}</span>`;
+                    const latency = (p.attempted && p.latency_ms != null) ? `${Number(p.latency_ms) || 0}ms` : '-';
+                    const http = (p.status_code != null) ? `HTTP ${escapeHtml(String(p.status_code))}` : '';
+                    const cfg = `${escapeHtml(llm.base_url || '-')}` + (llm.model ? ` · ${escapeHtml(llm.model)}` : '');
+                    let err = '';
+                    if (isWarn) {
+                        const et = String(p.warning_type || p.warn_type || p.error_type || 'warn');
+                        const em = String(p.warning || p.warn || p.error || '');
+                        err = ` · ${escapeHtml(et)}${em ? `: ${escapeHtml(em)}` : ''}`;
+                    } else if (!ok) {
+                        const et = p.error_type ? String(p.error_type) : 'error';
+                        const em = p.error ? String(p.error) : '';
+                        err = ` · ${escapeHtml(et)}${em ? `: ${escapeHtml(em)}` : ''}`;
+                    }
+                    const actions = [];
+                    actions.push(`<a href="javascript:void(0)" onclick="loadLLMPing()" style="color: var(--accent-blue);">重测</a>`);
+                    if (!ok && String(p.error_type || '') === 'not_configured') {
+                        actions.push(`<a href="javascript:void(0)" onclick="openSettingsModal()" style="color: var(--accent-yellow);">去配置</a>`);
+                    }
+                    pingEl.innerHTML = `Ping ${pill} · ${escapeHtml(latency)}${http ? ` · ${http}` : ''} · ${escapeHtml(checked)} · ${cfg}${err}${actions.length ? ` · ${actions.join(' · ')}` : ''}`;
+                }
+            }
 
             const keys = Object.keys(phases || {}).sort((a, b) => a.localeCompare(b));
             const header = `
@@ -4685,6 +4934,11 @@
         function startStatePolling() {
             if (statePollInterval) clearInterval(statePollInterval);
             statePollInterval = setInterval(loadResearchState, 3000);
+        }
+
+        function startLLMPingPolling() {
+            if (llmPingInterval) clearInterval(llmPingInterval);
+            llmPingInterval = setInterval(loadLLMPing, 30000);
         }
 
         function startFastPolling() {
@@ -5178,10 +5432,14 @@
         });
 
         // ==================== Checkpoint Modal Functions ====================
-        let selectedCheckpointId = null;
+        let selectedCheckpoint = null;
+        let includeCompletedInCheckpointModal = false;
 
         async function showCheckpointModal() {
-            selectedCheckpointId = null;
+            selectedCheckpoint = null;
+            includeCompletedInCheckpointModal = false;
+            const opt = document.getElementById('checkpoint-include-completed');
+            if (opt) opt.checked = false;
             const btn = document.getElementById('btn-confirm-checkpoint');
             btn.disabled = true;
             btn.innerHTML = '▶ 从所选断点继续';
@@ -5196,14 +5454,16 @@
         async function renderCheckpointList() {
             const container = document.getElementById('checkpoint-list');
             try {
-                const resp = await fetch('/api/research/checkpoints');
+                const qs = includeCompletedInCheckpointModal ? '?include_completed=1' : '';
+                const resp = await fetch('/api/research/checkpoints' + qs);
                 const data = await resp.json();
                 const checkpoints = data.checkpoints || [];
 
                 if (checkpoints.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            📭 暂无可用的研究断点<br><small>请先运行一次研究生成</small>
+                            📭 暂无可续写断点<br>
+                            <small>可打开“显示已完成记录”以继续生成下一篇</small>
                         </div>`;
                     return;
                 }
@@ -5214,9 +5474,15 @@
                     const date = meta.started_at ? new Date(meta.started_at).toLocaleString('zh-CN') : '未知时间';
                     const status = meta.status || (cp.has_checkpoint ? '进行中' : '未知');
                     const papers = meta.papers_count || meta.papers || 0;
+                    const selectable = true;
+                    const resumeType = cp.resume_type || (cp.has_checkpoint ? 'paper' : 'continue');
+                    const badge = resumeType === 'paper'
+                        ? '<span style="color: var(--accent-green);">✅ 可断点续写</span>'
+                        : '<span style="color: var(--accent-yellow);">🔁 继续生成下一篇</span>';
+                    const encoded = encodeURIComponent(JSON.stringify(cp));
                     return `
                         <div class="checkpoint-item ${cp.has_checkpoint ? 'has-checkpoint' : ''}"
-                             onclick="selectCheckpoint('${cp.research_id}', this)"
+                             onclick="selectCheckpoint('${encoded}', this)"
                              style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s;">
                             <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">
                                 ${title}
@@ -5225,7 +5491,7 @@
                                 <span>🆔 ${cp.research_id}</span> &nbsp;|&nbsp;
                                 <span>📅 ${date}</span> &nbsp;|&nbsp;
                                 <span>📄 ${papers} 篇</span>
-                                ${cp.has_checkpoint ? '&nbsp;|&nbsp;<span style="color: var(--accent-green);">✅ 有断点</span>' : ''}
+                                &nbsp;|&nbsp;${badge}
                             </div>
                         </div>`;
                 }).join('');
@@ -5234,30 +5500,68 @@
             }
         }
 
-        function selectCheckpoint(researchId, el) {
-            selectedCheckpointId = researchId;
+        function toggleCheckpointIncludeCompleted(checked) {
+            includeCompletedInCheckpointModal = !!checked;
+            selectedCheckpoint = null;
+            const btn = document.getElementById('btn-confirm-checkpoint');
+            btn.disabled = true;
+            btn.innerHTML = '▶ 从所选断点继续';
+            renderCheckpointList();
+        }
+
+        function selectCheckpoint(encodedJson, el) {
+            try {
+                selectedCheckpoint = JSON.parse(decodeURIComponent(encodedJson));
+            } catch (e) {
+                selectedCheckpoint = null;
+            }
             document.querySelectorAll('.checkpoint-item').forEach(item => {
                 item.style.borderColor = 'var(--border-color)';
                 item.style.background = 'transparent';
             });
             el.style.borderColor = 'var(--accent-blue)';
             el.style.background = 'rgba(59, 130, 246, 0.1)';
-            document.getElementById('btn-confirm-checkpoint').disabled = false;
+            const btn = document.getElementById('btn-confirm-checkpoint');
+            btn.disabled = false;
+            const rt = (selectedCheckpoint && selectedCheckpoint.resume_type) ? selectedCheckpoint.resume_type : (selectedCheckpoint && selectedCheckpoint.has_checkpoint ? 'paper' : 'continue');
+            btn.innerHTML = rt === 'paper' ? '▶ 从所选断点继续' : '▶ 继续生成下一篇';
         }
 
         async function confirmCheckpoint() {
-            if (!selectedCheckpointId) return;
+            if (!selectedCheckpoint || !selectedCheckpoint.research_id) return;
             const btn = document.getElementById('btn-confirm-checkpoint');
             btn.disabled = true;
             btn.innerHTML = '⏳ 正在启动...';
 
             try {
-                const resp = await fetch(`/api/research/resume/${selectedCheckpointId}`, { method: 'POST' });
+                const rt = selectedCheckpoint.resume_type || (selectedCheckpoint.has_checkpoint ? 'paper' : 'continue');
+                let resp = null;
+                if (rt === 'paper') {
+                    resp = await fetch(`/api/research/resume-paper/${selectedCheckpoint.research_id}`, { method: 'POST' });
+                } else {
+                    const ok = confirm('该条目将“继续生成下一篇”（会生成新的 research_id / 新论文），确定继续吗？');
+                    if (!ok) {
+                        btn.disabled = false;
+                        btn.innerHTML = '▶ 继续生成下一篇';
+                        return;
+                    }
+                    const meta = selectedCheckpoint.meta || {};
+                    const payload = {
+                        branch_id: meta.branch_id || null,
+                        topic: meta.topic || '',
+                        resume: false
+                    };
+                    resp = await fetch('/api/generate/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
                 const result = await resp.json();
 
                 if (result.success) {
                     closeCheckpointModal();
-                    const state = { phase: 'resuming', message: `从断点 ${selectedCheckpointId} 继续...` };
+                    const state = { phase: 'resuming', message: `继续中 · ${selectedCheckpoint.research_id}` };
                     updateControlButtons();
                     updateStatus(state);
                     startFastPolling();

@@ -313,8 +313,8 @@ class QualityPanel {
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.quality);
+            (qualityState) => {
+                this.updateUI(qualityState);
             },
             (state) => state.quality
         );

@@ -269,8 +269,8 @@ class CheckpointManager {
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.checkpoints);
+            (checkpointsState) => {
+                this.updateUI(checkpointsState);
             },
             (state) => state.checkpoints
         );

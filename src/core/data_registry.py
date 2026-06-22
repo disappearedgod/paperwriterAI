@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.config import load_effective_config
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 RESEARCH_DIR = DATA_DIR / "research"
@@ -32,7 +34,11 @@ def _load_json(path: Path) -> Any:
 
 
 def _load_config() -> dict:
-    return _load_json(CONFIG_FILE) or {}
+    try:
+        cfg = load_effective_config()
+        return cfg if isinstance(cfg, dict) else (_load_json(CONFIG_FILE) or {})
+    except Exception:
+        return _load_json(CONFIG_FILE) or {}
 
 
 def get_mongodb_config() -> Dict[str, str]:

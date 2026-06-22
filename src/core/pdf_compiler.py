@@ -1,5 +1,8 @@
 import os
 import re
+import shutil
+import subprocess
+from pathlib import Path
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -172,3 +175,55 @@ def compile_markdown_to_pdf(md_path: str, pdf_path: str) -> None:
             story.append(Paragraph(clean_text(stripped), body_style))
             
     doc.build(story)
+
+
+def compile_latex_to_pdf(tex_path: str, pdf_path: str) -> None:
+    src = Path(tex_path)
+    if not src.exists():
+        raise FileNotFoundError(f"tex not found: {src}")
+
+    out_pdf = Path(pdf_path)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
+
+    candidates = [
+        ("tectonic", ["tectonic", "-X", "compile", src.name, "--outdir", str(src.parent)]),
+        ("latexmk", ["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", src.name]),
+        ("xelatex", ["xelatex", "-interaction=nonstopmode", "-halt-on-error", src.name]),
+        ("pdflatex", ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", src.name]),
+    ]
+    cmd = None
+    engine = ""
+    for name, argv in candidates:
+        if shutil.which(name):
+            cmd = argv
+            engine = name
+            break
+    if not cmd:
+        raise RuntimeError("LaTeX 编译器未安装（tectonic/latexmk/xelatex/pdflatex）。macOS 推荐：brew install tectonic")
+
+    def run_once() -> subprocess.CompletedProcess:
+        return subprocess.run(
+            cmd,
+            cwd=str(src.parent),
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+
+    result = run_once()
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "LaTeX compile failed")[:2000])
+
+    if engine in ("xelatex", "pdflatex"):
+        result2 = run_once()
+        if result2.returncode != 0:
+            raise RuntimeError((result2.stderr or result2.stdout or "LaTeX compile failed")[:2000])
+
+    produced = src.with_suffix(".pdf")
+    if not produced.exists():
+        produced = src.parent / f"{src.stem}.pdf"
+    if not produced.exists():
+        raise RuntimeError("LaTeX 编译未生成 PDF")
+
+    if produced.resolve() != out_pdf.resolve():
+        shutil.copy2(str(produced), str(out_pdf))

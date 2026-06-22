@@ -161,8 +161,8 @@ class FARSApp {
         
         // Subscribe to toasts
         this.store.subscribe(
-            (state) => {
-                this.renderToasts(state.ui.toasts);
+            (toasts) => {
+                this.renderToasts(toasts);
             },
             (state) => state.ui.toasts
         );

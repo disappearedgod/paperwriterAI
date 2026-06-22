@@ -1018,12 +1018,24 @@ class ResearchRunner:
                 )
 
                 if not paper_ok:
-                    self._set_activity("error", f"论文生成失败 · {paper.get('research_id', '')}", 0.0)
+                    reason = (paper.get("content", "") or "")[:300]
+                    self._set_activity("paused", f"论文失败已暂停 · {paper.get('research_id', '')}", 0.78)
                     papers = self.load_papers()
                     papers["is_generating"] = False
+                    papers["is_paused"] = True
                     if isinstance(papers.get("current_run"), dict):
-                        papers["current_run"]["status"] = "failed"
+                        papers["current_run"]["status"] = "paused"
+                        papers["current_run"]["failure_reason"] = reason
                         papers["current_run"]["updated_at"] = datetime.now().isoformat()
+                    papers["generation_queue"] = [{
+                        "topic": topic,
+                        "branch_id": branch_id,
+                        "added_at": datetime.now().isoformat(),
+                        "priority": "normal",
+                        "status": "paused",
+                        "paper_id": paper.get("id"),
+                        "run_id": run_id,
+                    }]
                     self.save_papers(papers)
                     return
 
@@ -1032,7 +1044,7 @@ class ResearchRunner:
                     self._set_activity("completed", f"已停止（完成当前一篇）· {paper.get('research_id', '')}", 1.0)
                     return
                 pause_after_next = bool((papers.get("settings") or {}).get("pause_after_next"))
-                auto_continue = bool((papers.get("settings") or {}).get("auto_continue"))
+                auto_continue = bool((papers.get("settings") or {}).get("auto_continue", True))
 
                 if pause_after_next:
                     papers["settings"]["pause_after_next"] = False

@@ -18,13 +18,16 @@ papers/
 # 第三方 vendor（不需要理解其内部实现）
 vendor/
 
-# 日志
+# 日志和调试
 *.log
 .dbg/
 
 # 前端静态资源（太大且不影响后端逻辑）
 docs/v2/css/
 docs/v2/lib/
+
+# 脚本目录（独立工具脚本，非核心逻辑）
+scripts/
 
 # Git
 .git/

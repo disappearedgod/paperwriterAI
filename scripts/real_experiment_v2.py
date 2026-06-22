@@ -6,6 +6,7 @@ FARS - 真实量化策略实验
 
 import json
 import os
+import sys
 import warnings
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -17,7 +18,7 @@ import yfinance as yf
 
 warnings.filterwarnings("ignore")
 
-EXPERIMENT_TEMPLATE_VERSION = "v3_multi_asset_cost_freq"
+EXPERIMENT_TEMPLATE_VERSION = "v3_multi_asset_cost_freq_r3"
 
 print("=== FARS 真实量化策略实验 ===")
 print()
@@ -453,6 +454,7 @@ def _metrics_from_returns(returns: pd.Series) -> Dict[str, Any]:
 
 print("\n=== Step: 多标的/多频率实验运行 ===")
 run_results: Dict[str, Any] = {}
+any_success = False
 
 primary_symbol = symbols[0]
 primary_freq = frequencies[0]
@@ -461,51 +463,65 @@ primary_trace: Optional[pd.DataFrame] = None
 
 for freq in frequencies:
     by_symbol: Dict[str, Any] = {}
+    errors: Dict[str, Any] = {}
     portfolio_collect: Dict[str, Dict[str, pd.Series]] = {"benchmark": {}, "ma_crossover": {}, "rsi_mean_reversion": {}, "bollinger_bands": {}, "quantagent": {}}
 
     for sym in symbols:
-        print(f"\n加载数据: symbol={sym}, freq={freq}")
-        raw = load_ohlcv(sym, freq=freq, start=start_date, end=end_date)
-        df = add_indicators(raw)
-        if sym == primary_symbol and freq == primary_freq:
-            primary_df = df
+        try:
+            print(f"\n加载数据: symbol={sym}, freq={freq}")
+            raw = load_ohlcv(sym, freq=freq, start=start_date, end=end_date)
+            df = add_indicators(raw)
+            if df is None or len(df) == 0:
+                raise RuntimeError("insufficient_data_after_indicators")
 
-        single = _run_single(df)
-        trace_tail = single.pop("trace_tail")
-        if sym == primary_symbol and freq == primary_freq:
-            primary_trace = trace_tail.copy()
+            single = _run_single(df)
+            trace_tail = single.pop("trace_tail")
+            if primary_df is None:
+                primary_df = df
+                primary_symbol = sym
+                primary_freq = freq
+                primary_trace = trace_tail.copy()
 
-        by_symbol[sym] = {
-            "symbol": sym,
-            "freq": freq,
-            "data_range": f"{df['date'].iloc[0]} 至 {df['date'].iloc[-1]}",
-            "data_points": int(len(df)),
-            **single,
-        }
+            by_symbol[sym] = {
+                "symbol": sym,
+                "freq": freq,
+                "data_range": f"{df['date'].iloc[0]} 至 {df['date'].iloc[-1]}",
+                "data_points": int(len(df)),
+                **single,
+            }
 
-        benchmark_ret = df["return"].copy()
-        benchmark_ret.index = pd.to_datetime(df["date"])
-        portfolio_collect["benchmark"][sym] = benchmark_ret
+            benchmark_ret = df["return"].copy()
+            benchmark_ret.index = pd.to_datetime(df["date"])
+            portfolio_collect["benchmark"][sym] = benchmark_ret
 
-        df_ma = backtest_ma_strategy(df, fast_ma=by_symbol[sym]["strategies"]["ma_crossover"]["fast_ma"], slow_ma=by_symbol[sym]["strategies"]["ma_crossover"]["slow_ma"])
-        s = df_ma["strategy_return"].copy()
-        s.index = pd.to_datetime(df_ma["date"])
-        portfolio_collect["ma_crossover"][sym] = s
+            df_ma = backtest_ma_strategy(df, fast_ma=by_symbol[sym]["strategies"]["ma_crossover"]["fast_ma"], slow_ma=by_symbol[sym]["strategies"]["ma_crossover"]["slow_ma"])
+            s = df_ma["strategy_return"].copy()
+            s.index = pd.to_datetime(df_ma["date"])
+            portfolio_collect["ma_crossover"][sym] = s
 
-        df_rsi = backtest_rsi_strategy(df, lower=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["lower_threshold"], upper=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["upper_threshold"], hold_days=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["hold_days"])
-        s = df_rsi["rsi_strategy_return"].copy()
-        s.index = pd.to_datetime(df_rsi["date"])
-        portfolio_collect["rsi_mean_reversion"][sym] = s
+            df_rsi = backtest_rsi_strategy(
+                df,
+                lower=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["lower_threshold"],
+                upper=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["upper_threshold"],
+                hold_days=by_symbol[sym]["strategies"]["rsi_mean_reversion"]["hold_days"],
+            )
+            s = df_rsi["rsi_strategy_return"].copy()
+            s.index = pd.to_datetime(df_rsi["date"])
+            portfolio_collect["rsi_mean_reversion"][sym] = s
 
-        df_bb = backtest_bb_strategy(df, window=by_symbol[sym]["strategies"]["bollinger_bands"]["window"], std_mult=by_symbol[sym]["strategies"]["bollinger_bands"]["std_mult"])
-        s = df_bb["bb_strategy_return"].copy()
-        s.index = pd.to_datetime(df_bb["date"])
-        portfolio_collect["bollinger_bands"][sym] = s
+            df_bb = backtest_bb_strategy(df, window=by_symbol[sym]["strategies"]["bollinger_bands"]["window"], std_mult=by_symbol[sym]["strategies"]["bollinger_bands"]["std_mult"])
+            s = df_bb["bb_strategy_return"].copy()
+            s.index = pd.to_datetime(df_bb["date"])
+            portfolio_collect["bollinger_bands"][sym] = s
 
-        df_qa = backtest_quantagent_vote(df)
-        s = df_qa["strategy_return"].copy()
-        s.index = pd.to_datetime(df_qa["date"])
-        portfolio_collect["quantagent"][sym] = s
+            df_qa = backtest_quantagent_vote(df)
+            s = df_qa["strategy_return"].copy()
+            s.index = pd.to_datetime(df_qa["date"])
+            portfolio_collect["quantagent"][sym] = s
+        except Exception as exc:
+            errors[sym] = {"error": str(exc)[:400]}
+            continue
+        any_success = True
 
     portfolio = {
         "benchmark": {"name": "买入持有(等权组合)", "metrics": _metrics_from_returns(_merge_portfolio(portfolio_collect["benchmark"]))},
@@ -519,7 +535,7 @@ for freq in frequencies:
     best_strategy = max(portfolio["strategies"].keys(), key=lambda k: portfolio["strategies"][k]["metrics"]["sharpe_ratio"])
     portfolio["best_strategy"] = best_strategy
 
-    run_results[freq] = {"portfolio": portfolio, "by_symbol": by_symbol}
+    run_results[freq] = {"portfolio": portfolio, "by_symbol": by_symbol, "errors": errors}
 
 
 root_dir = os.environ.get("RESEARCH_ROOT") or os.environ.get("RESEARCH_WORKSPACE")
@@ -616,3 +632,6 @@ with open(exp_data_path, "w", encoding="utf-8") as f:
     json.dump(exp_data, f, ensure_ascii=False, indent=2, default=str)
 
 print("\n实验完成!")
+
+if not any_success:
+    sys.exit(2)

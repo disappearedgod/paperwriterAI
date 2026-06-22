@@ -1,0 +1,29 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: main
+exported_at: "2026-06-21T20:07:54Z"
+modules:
+    "":
+        dir_name: FARS 自动化科研与量化回测系统
+        title: FARS 自动化科研与量化回测系统
+        scope:
+            - AGENTS.md
+            - .gitignore
+            - .gitmodules
+            - .qoderignore
+            - requirements.txt
+            - requirements-dev.txt
+            - setup-fast-detectgpt.sh
+            - server.py
+            - server_fars.py
+            - src/
+            - docs/
+            - research/
+            - README.md
+            - config.json
+            - config.local.json
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

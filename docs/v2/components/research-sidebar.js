@@ -139,14 +139,14 @@ class ResearchSidebar {
     updateStats(papersData) {
         const papers = papersData.papers || [];
         
-        document.getElementById('total-papers').textContent = papers.length;
-        document.getElementById('successful-papers').textContent = 
+        this.container.querySelector('#total-papers').textContent = papers.length;
+        this.container.querySelector('#successful-papers').textContent =
             papers.filter(p => p.status === 'successful').length;
-        document.getElementById('failed-papers').textContent = 
+        this.container.querySelector('#failed-papers').textContent =
             papers.filter(p => p.status === 'failed').length;
         
         // For demo purposes, assume some hypotheses
-        document.getElementById('total-hypotheses').textContent = Math.floor(papers.length * 0.3);
+        this.container.querySelector('#total-hypotheses').textContent = Math.floor(papers.length * 0.3);
     }
     
     subscribeToState() {
@@ -162,14 +162,14 @@ class ResearchSidebar {
         // Update research progress
         const research = state.research;
         
-        document.getElementById('current-stage').textContent = 
+        this.container.querySelector('#current-stage').textContent =
             research.isRunning ? (research.isPaused ? '已暂停' : '进行中') : '等待开始';
         
         if (research.startTime) {
             const startTime = new Date(research.startTime);
             const now = new Date();
             const elapsed = Math.floor((now - startTime) / 1000);
-            document.getElementById('run-time').textContent = this.formatTime(elapsed);
+            this.container.querySelector('#run-time').textContent = this.formatTime(elapsed);
         }
         
         // Update completion rate
@@ -177,7 +177,7 @@ class ResearchSidebar {
         const completed = papers.filter(p => p.status === 'completed').length;
         const total = papers.length;
         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-        document.getElementById('completion-rate').textContent = `${rate}%`;
+        this.container.querySelector('#completion-rate').textContent = `${rate}%`;
         
         // Update paper list
         this.updatePaperList(state.papers.list, state.ui.paperFilter);
@@ -187,7 +187,7 @@ class ResearchSidebar {
     }
     
     updatePaperList(papers, filter = 'all') {
-        const listContainer = document.getElementById('paper-list');
+        const listContainer = this.container.querySelector('#paper-list');
         
         if (!papers || papers.length === 0) {
             listContainer.innerHTML = `
@@ -217,6 +217,13 @@ class ResearchSidebar {
                     <span class="paper-id">ID: ${paper.id}</span>
                     <span class="paper-date">${this.formatDate(paper.created_at)}</span>
                 </div>
+                ${paper.paper_kind === 'reference_analysis' && paper.source_links && (paper.source_links.arxiv_url || paper.source_links.pdf_url)
+                    ? `<div class="paper-meta" style="margin-top: 4px;">
+                        <span style="opacity:.8;">原论文:</span>
+                        ${paper.source_links.arxiv_url ? `<a href="${paper.source_links.arxiv_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">arXiv</a>` : ''}
+                        ${paper.source_links.pdf_url ? `<a href="${paper.source_links.pdf_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="margin-left:8px;">PDF</a>` : ''}
+                      </div>`
+                    : ''}
             </div>
         `).join('');
         
@@ -231,7 +238,7 @@ class ResearchSidebar {
     }
     
     updateHypothesisList() {
-        const listContainer = document.getElementById('hypothesis-list');
+        const listContainer = this.container.querySelector('#hypothesis-list');
         
         // Simulated hypotheses for demo
         const hypotheses = [

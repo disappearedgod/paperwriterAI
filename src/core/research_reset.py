@@ -19,6 +19,7 @@ from core.data_registry import (
     WORKFLOW_STATE_FILE,
     PROJECT_ROOT,
 )
+from core.mongo_store import MongoStateStore
 
 RESEARCH_LOGS = DATA_DIR / "research_logs.json"
 GRADING_HISTORY = DATA_DIR / "grading_history.json"
@@ -116,6 +117,44 @@ def reset_research(
                 shutil.rmtree(item)
                 removed_archives.append(item.name)
 
+    mongo_backup = {"attempted": False, "success": False, "tag": None, "error": ""}
+    tag = f"reset_{ts}"
+    mongo_backup["attempted"] = True
+    mongo_backup["tag"] = tag
+    try:
+        store = MongoStateStore()
+        store.ensure_indexes()
+        prev = {
+            "papers_state": store.get_state("papers_state"),
+            "workflow_state": store.get_state("workflow_state"),
+            "branches_state": store.get_state("branches_state"),
+            "research_logs": store.get_state("research_logs"),
+            "grading_history": store.get_state("grading_history"),
+        }
+        store.put_state(f"backup:{tag}:papers_state", prev.get("papers_state") or {})
+        store.put_state(f"backup:{tag}:workflow_state", prev.get("workflow_state") or {})
+        store.put_state(f"backup:{tag}:branches_state", prev.get("branches_state") or {})
+        store.put_state(f"backup:{tag}:research_logs", prev.get("research_logs") or [])
+        store.put_state(f"backup:{tag}:grading_history", prev.get("grading_history") or [])
+
+        store.put_state("papers_state", _empty_papers_state())
+        if not keep_workflow:
+            store.put_state("workflow_state", _empty_workflow_state())
+        store.put_state(
+            "branches_state",
+            {
+                "branches": [],
+                "current_branch_id": None,
+                "global_settings": {"auto_continue": True, "pause_after_next": False},
+            },
+        )
+        store.put_state("research_logs", [])
+        store.put_state("grading_history", [])
+        mongo_backup["success"] = True
+    except Exception as e:
+        mongo_backup["success"] = False
+        mongo_backup["error"] = str(e)[:200]
+
     # 重置状态文件
     PAPERS_STATE_FILE.write_text(
         json.dumps(_empty_papers_state(), ensure_ascii=False, indent=2), encoding="utf-8"
@@ -142,5 +181,6 @@ def reset_research(
         "kept_seed_papers": keep_seed_papers,
         "kept_workflow": keep_workflow,
         "remove_archives": remove_archives,
+        "mongodb_backup": mongo_backup,
         "message": f"已重置；备份位于 data/bac/{ts}/",
     }

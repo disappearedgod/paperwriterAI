@@ -195,7 +195,19 @@ class ResearchCheckpoint:
 
 def _workspace(research_id: str) -> Path:
     prefix = "" if research_id.startswith("RS-") else "RS-"
-    return SEED_PAPERS_DIR.parent / "research" / f"{prefix}{research_id}_checkpoint"
+    clean_id = f"{prefix}{research_id}"
+    research_dir = SEED_PAPERS_DIR.parent / "research"
+    if research_dir.exists():
+        import glob
+        pattern = str(research_dir / f"{clean_id}_*")
+        matching = glob.glob(pattern)
+        if matching:
+            return Path(matching[0])
+        pattern_exact = str(research_dir / clean_id)
+        matching_exact = glob.glob(pattern_exact)
+        if matching_exact:
+            return Path(matching_exact[0])
+    return research_dir / f"{clean_id}_checkpoint"
 
 
 def _checkpoint_path(research_id: str) -> Path:
@@ -227,7 +239,7 @@ def save_checkpoint(cp: ResearchCheckpoint) -> bool:
 
 
 def create_checkpoint(research_id: str, total_papers: int = 0) -> ResearchCheckpoint:
-    """创建新断点"""
+    """创建新断点并初始化所有流程步骤"""
     cp = ResearchCheckpoint(
         research_id=research_id,
         created_at=datetime.now().isoformat(),
@@ -235,6 +247,45 @@ def create_checkpoint(research_id: str, total_papers: int = 0) -> ResearchCheckp
         current_phase=ResearchPhase.PAPER_SCAN.value,
         total_papers=total_papers,
     )
+    
+    # 1. 论文分析步骤
+    try:
+        from core.seed_library import list_seed_papers
+        seeds = list_seed_papers() or []
+        for sp in seeds:
+            arxiv_id = sp.get("arxiv_id")
+            if arxiv_id:
+                step_id = f"paper_{arxiv_id}"
+                cp.steps[step_id] = StepRecord(
+                    step_id=step_id,
+                    phase=ResearchPhase.PAPER_SCAN.value,
+                    status=StepStatus.PENDING.value,
+                )
+    except Exception as e:
+        print(f"[WARNING] Failed to load seed papers for checkpoint initialization: {e}")
+        
+    # 2. 后续串行分析步骤
+    cp.steps["perspective"] = StepRecord(
+        step_id="perspective",
+        phase=ResearchPhase.PERSPECTIVE.value,
+        status=StepStatus.PENDING.value,
+    )
+    cp.steps["outline"] = StepRecord(
+        step_id="outline",
+        phase=ResearchPhase.OUTLINE.value,
+        status=StepStatus.PENDING.value,
+    )
+    cp.steps["literature_review"] = StepRecord(
+        step_id="literature_review",
+        phase=ResearchPhase.LITERATURE_REVIEW.value,
+        status=StepStatus.PENDING.value,
+    )
+    cp.steps["paper_writing"] = StepRecord(
+        step_id="paper_writing",
+        phase=ResearchPhase.PAPER_WRITING.value,
+        status=StepStatus.PENDING.value,
+    )
+    
     save_checkpoint(cp)
     return cp
 
@@ -555,8 +606,7 @@ def resume_research(
                 continue
 
             perspective_analysis = run_perspective_analysis(research_id, checkpoint=True)
-            cp.mark_done(f"perspective_{perspective_analysis['name']}",
-                         output_path=perspective_analysis.get("path", ""))
+            cp.mark_done(step_id, output_path=str(ws / "perspective_analysis"))
             results["resumed"].append(perspective_analysis)
             save_checkpoint(cp)
 

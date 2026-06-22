@@ -307,7 +307,7 @@ def score_paper(paper_content: str) -> dict:
             "Content-Type": "application/json"
         }
         data = {
-            "model": "abab6.5s-chat",
+            "model": "minimax-m2.7-highspeed",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.3
         }
@@ -382,7 +382,7 @@ def regenerate_paper(paper_content: str, feedback: str, criteria: dict) -> str:
             "Content-Type": "application/json"
         }
         data = {
-            "model": "abab6.5s-chat",
+            "model": "minimax-m2.7-highspeed",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.5
         }
@@ -426,7 +426,7 @@ def find_related_papers(topic: str, failed_aspects: list) -> list:
             "Content-Type": "application/json"
         }
         data = {
-            "model": "abab6.5s-chat",
+            "model": "minimax-m2.7-highspeed",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.3
         }
@@ -1175,7 +1175,7 @@ def generate_paper_content(topic: str, existing_papers: list) -> str:
             "Content-Type": "application/json"
         }
         data = {
-            "model": "abab6.5s-chat",
+            "model": "minimax-m2.7-highspeed",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
             "max_tokens": 8192  # 限制输出长度，避免超过总token限制
@@ -1524,7 +1524,7 @@ def api_status():
 def api_config():
     return jsonify({
         "api_configured": bool(MINIMAX_API_KEY),
-        "model": "abab6.5s-chat",
+        "model": "minimax-m2.7-highspeed",
         "version": "2.0",
         "features": {
             "research": True,

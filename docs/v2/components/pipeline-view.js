@@ -135,6 +135,7 @@ class PipelineView {
         this.container.querySelector('#start-research').addEventListener('click', async () => {
             try {
                 await this.api.startResearch('默认研究主题');
+                await this.refreshResearchState();
                 this.store.showToast('研究已开始', 'success');
             } catch (error) {
                 this.store.showToast('启动研究失败: ' + error.message, 'error');
@@ -145,6 +146,7 @@ class PipelineView {
         this.container.querySelector('#pause-research').addEventListener('click', async () => {
             try {
                 await this.api.pauseResearch();
+                await this.refreshResearchState();
                 this.store.showToast('研究已暂停', 'info');
             } catch (error) {
                 this.store.showToast('暂停研究失败: ' + error.message, 'error');
@@ -155,17 +157,29 @@ class PipelineView {
         this.container.querySelector('#stop-research').addEventListener('click', async () => {
             try {
                 await this.api.stopResearch();
+                await this.refreshResearchState();
                 this.store.showToast('研究已停止', 'warning');
             } catch (error) {
                 this.store.showToast('停止研究失败: ' + error.message, 'error');
             }
         });
     }
+
+    async refreshResearchState() {
+        const researchData = await this.api.getResearchStatus();
+        this.store.updateResearch({
+            isRunning: researchData.is_running || researchData.is_generating || false,
+            isPaused: researchData.is_paused || false,
+            currentTopic: researchData.current_topic || null,
+            startTime: researchData.start_time || null,
+            elapsed: researchData.elapsed || 0
+        });
+    }
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.research);
+            (researchState) => {
+                this.updateUI(researchState);
             },
             (state) => state.research
         );

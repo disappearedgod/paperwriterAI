@@ -177,7 +177,7 @@ class TopologyGraph {
             // Add hover events
             group.addEventListener('mouseenter', (e) => this.showTooltip(e, node));
             group.addEventListener('mouseleave', () => this.hideTooltip());
-            group.addEventListener('click', () => this.onNodeClick(node));
+            group.addEventListener('click', (e) => this.onNodeClick(e, node));
         });
         
         // Set viewBox
@@ -218,12 +218,22 @@ class TopologyGraph {
     
     showTooltip(event, node) {
         const tooltip = document.getElementById('node-tooltip');
+        const src = node.source_links || null;
+        const srcHtml = (src && (src.arxiv_url || src.pdf_url))
+            ? `<div class="tooltip-meta" style="margin-top:6px;">
+                 <span style="opacity:.8;">原论文:</span>
+                 ${src.arxiv_url ? `<a href="${src.arxiv_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">arXiv</a>` : ''}
+                 ${src.pdf_url ? `<a href="${src.pdf_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="margin-left:8px;">PDF</a>` : ''}
+               </div>
+               <div class="tooltip-meta" style="opacity:.8;margin-top:4px;">Shift+点击节点打开原论文</div>`
+            : '';
         tooltip.innerHTML = `
             <div class="tooltip-content">
                 <div class="tooltip-title">${node.title}</div>
                 <div class="tooltip-type">类型: ${this.getNodeTypeText(node.type)}</div>
                 ${node.status ? `<div class="tooltip-status">状态: ${node.status}</div>` : ''}
                 <div class="tooltip-id">ID: ${node.id}</div>
+                ${srcHtml}
             </div>
         `;
         
@@ -239,7 +249,12 @@ class TopologyGraph {
         tooltip.style.display = 'none';
     }
     
-    onNodeClick(node) {
+    onNodeClick(event, node) {
+        const src = node.source_links || null;
+        if (event && event.shiftKey && src && (src.arxiv_url || src.pdf_url)) {
+            window.open(src.arxiv_url || src.pdf_url, '_blank', 'noopener');
+            return;
+        }
         this.store.showToast(`选择了节点: ${node.title}`, 'info');
     }
     

@@ -341,8 +341,8 @@ class LLMMonitor {
     
     subscribeToState() {
         this.store.subscribe(
-            (state) => {
-                this.updateUI(state.llmMonitoring);
+            (llmMonitoringState) => {
+                this.updateUI(llmMonitoringState);
             },
             (state) => state.llmMonitoring
         );

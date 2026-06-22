@@ -1,9 +1,0 @@
-{
-  "step": "workflow_start",
-  "status": "started",
-  "timestamp": "2026-06-20T13:16:57.040019",
-  "details": {
-    "topic": "Transformer-based momentum trading strategy in Chinese A-shares",
-    "mode": "all"
-  }
-}

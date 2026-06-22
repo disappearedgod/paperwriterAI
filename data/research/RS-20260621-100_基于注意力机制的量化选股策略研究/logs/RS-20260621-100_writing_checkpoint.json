@@ -1,9 +1,0 @@
-{
-  "status": "completed",
-  "next_step": 10,
-  "min_chars": 14000,
-  "updated_at": "2026-06-21T17:41:48.921628",
-  "reason": "writing total timeout (600s)",
-  "content_len": 17894,
-  "has_refs": true
-}

@@ -32,6 +32,7 @@ globs: "**/*.py"
 - 大文件操作使用 context manager (`with open(...)`)
 
 ## server.py 特别注意
-- server.py 是 5675 行的核心文件，修改时要特别谨慎
+- server.py 是 5984 行的核心文件，修改时要特别谨慎
 - API 端点函数使用 `@app.route` 装饰器
 - 新增端点需要添加对应的错误处理和日志
+- 不要在此文件中硬编码 API key 或 base_url
