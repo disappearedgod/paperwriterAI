@@ -33,8 +33,17 @@ class PipelineView {
                     <h2>研究流水线</h2>
                     <div class="pipeline-controls">
                         <button id="start-research" class="btn btn-primary">开始研究</button>
+                        <button id="resume-research" class="btn btn-primary" style="display:none;">继续</button>
+                        <button id="recover-research" class="btn btn-primary" style="display:none;">恢复后台线程</button>
                         <button id="pause-research" class="btn btn-secondary" disabled>暂停</button>
                         <button id="stop-research" class="btn btn-danger" disabled>停止</button>
+                    </div>
+                </div>
+
+                <div id="self-heal-banner" class="panel" style="display:none; padding:12px; margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                        <div id="self-heal-text" style="line-height:1.35;"></div>
+                        <button id="self-heal-recover" class="btn btn-secondary">恢复后台线程</button>
                     </div>
                 </div>
                 
@@ -141,6 +150,26 @@ class PipelineView {
                 this.store.showToast('启动研究失败: ' + error.message, 'error');
             }
         });
+
+        this.container.querySelector('#resume-research').addEventListener('click', async () => {
+            try {
+                await this.api.resumeResearch();
+                await this.refreshResearchState();
+                this.store.showToast('已继续', 'success');
+            } catch (error) {
+                this.store.showToast('继续失败: ' + error.message, 'error');
+            }
+        });
+
+        this.container.querySelector('#recover-research').addEventListener('click', async () => {
+            try {
+                await this.api.resumeResearch();
+                await this.refreshResearchState();
+                this.store.showToast('已恢复后台线程', 'success');
+            } catch (error) {
+                this.store.showToast('恢复失败: ' + error.message, 'error');
+            }
+        });
         
         // Pause research button
         this.container.querySelector('#pause-research').addEventListener('click', async () => {
@@ -163,6 +192,16 @@ class PipelineView {
                 this.store.showToast('停止研究失败: ' + error.message, 'error');
             }
         });
+
+        this.container.querySelector('#self-heal-recover').addEventListener('click', async () => {
+            try {
+                await this.api.resumeResearch();
+                await this.refreshResearchState();
+                this.store.showToast('已恢复后台线程', 'success');
+            } catch (error) {
+                this.store.showToast('恢复失败: ' + error.message, 'error');
+            }
+        });
     }
 
     async refreshResearchState() {
@@ -172,7 +211,10 @@ class PipelineView {
             isPaused: researchData.is_paused || false,
             currentTopic: researchData.current_topic || null,
             startTime: researchData.start_time || null,
-            elapsed: researchData.elapsed || 0
+            elapsed: researchData.elapsed || 0,
+            selfHeal: researchData.self_heal || null,
+            lastActiveAt: researchData.last_active_at || null,
+            stallSeconds: researchData.stall_seconds == null ? null : Number(researchData.stall_seconds)
         });
     }
     
@@ -188,12 +230,61 @@ class PipelineView {
     updateUI(researchState) {
         // Update button states
         const startBtn = this.container.querySelector('#start-research');
+        const resumeBtn = this.container.querySelector('#resume-research');
+        const recoverBtn = this.container.querySelector('#recover-research');
         const pauseBtn = this.container.querySelector('#pause-research');
         const stopBtn = this.container.querySelector('#stop-research');
+        const banner = this.container.querySelector('#self-heal-banner');
+        const bannerText = this.container.querySelector('#self-heal-text');
         
-        startBtn.disabled = researchState.isRunning;
-        pauseBtn.disabled = !researchState.isRunning;
-        stopBtn.disabled = !researchState.isRunning;
+        const heal = researchState.selfHeal || null;
+        const showRecover = !!(heal && (heal.reason === 'runner_not_running' || heal.type === 'startup_self_heal' || heal.type === 'stall_auto_pause'));
+
+        if (researchState.isPaused) {
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'none';
+            resumeBtn.style.display = showRecover ? 'none' : '';
+            recoverBtn.style.display = showRecover ? '' : 'none';
+            stopBtn.style.display = '';
+
+            pauseBtn.disabled = true;
+            stopBtn.disabled = false;
+            resumeBtn.disabled = false;
+            recoverBtn.disabled = false;
+        } else if (researchState.isRunning) {
+            startBtn.style.display = 'none';
+            resumeBtn.style.display = 'none';
+            recoverBtn.style.display = 'none';
+            pauseBtn.style.display = '';
+            stopBtn.style.display = '';
+
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+        } else {
+            startBtn.style.display = '';
+            resumeBtn.style.display = 'none';
+            recoverBtn.style.display = 'none';
+            pauseBtn.style.display = '';
+            stopBtn.style.display = '';
+
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+        }
+
+        if (banner && bannerText) {
+            if (researchState.isPaused && showRecover) {
+                const reason = heal.reason || heal.type || '';
+                const msg = heal.message || heal.title || '';
+                const lastActive = researchState.lastActiveAt ? `最后活跃: ${researchState.lastActiveAt}` : '';
+                const stall = researchState.stallSeconds == null ? '' : `停滞: ${researchState.stallSeconds}s`;
+                const extra = [lastActive, stall].filter(Boolean).join(' · ');
+                bannerText.textContent = `检测到后台线程异常已暂停（${reason}${msg ? `：${msg}` : ''}）${extra ? ` · ${extra}` : ''}`;
+                banner.style.display = '';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
         
         // Update progress bar
         const progressFill = this.container.querySelector('#progress-fill');

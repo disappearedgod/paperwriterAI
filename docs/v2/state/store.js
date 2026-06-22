@@ -12,7 +12,10 @@ class FARSStore {
                 isPaused: false,
                 currentTopic: null,
                 startTime: null,
-                elapsed: 0
+                elapsed: 0,
+                selfHeal: null,
+                lastActiveAt: null,
+                stallSeconds: null
             },
             
             // Papers state

@@ -16,6 +16,7 @@ class FARSApp {
         this.loadInitialData();
         this.setupTheme();
         this.setupToastContainer();
+        this.startPolling();
     }
     
     setupEventListeners() {
@@ -90,7 +91,10 @@ class FARSApp {
                 isPaused: researchData.is_paused || false,
                 currentTopic: researchData.current_topic,
                 startTime: researchData.start_time,
-                elapsed: researchData.elapsed || 0
+                elapsed: researchData.elapsed || 0,
+                selfHeal: researchData.self_heal || null,
+                lastActiveAt: researchData.last_active_at || null,
+                stallSeconds: researchData.stall_seconds == null ? null : Number(researchData.stall_seconds)
             });
         } catch (error) {
             console.error('Failed to load research data:', error);
@@ -212,6 +216,12 @@ class FARSApp {
     
     hideLoading() {
         this.store.setLoading(false);
+    }
+
+    startPolling() {
+        setInterval(() => {
+            this.loadResearchData();
+        }, 2000);
     }
     
     // Utility methods
